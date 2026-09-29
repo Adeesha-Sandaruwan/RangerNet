@@ -1,26 +1,36 @@
 {
   "project_info": {
-    "project_number": "229269952910",
-    "project_id": "rangernet-wildlife-2",
-    "storage_bucket": "rangernet-wildlife-2.firebasestorage.app"
+    "project_number": "991758102233",
+    "project_id": "rangernet",
+    "storage_bucket": "rangernet.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:229269952910:android:d3837bff86143d530cecdf",
+        "mobilesdk_app_id": "1:991758102233:android:ee56d551a6ed620a3258c8",
         "android_client_info": {
           "package_name": "lk.rangernet.rangernet"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "991758102233-br1qdpli2tb708i1l7878e9rnr7t76go.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyASylG7G9trWeMnjNKOGyCJxn6hszVviow"
+          "current_key": "AIzaSyCl_ezvsuZxhDZVc5xGDgx5Vr4glC0l-1o"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "991758102233-br1qdpli2tb708i1l7878e9rnr7t76go.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

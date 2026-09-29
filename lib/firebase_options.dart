@@ -41,20 +41,21 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAnc0ZJlWIRXvaYMDrkIbW0TkXYkjy3s6Y',
-    appId: '1:229269952910:web:1dd7258df7a68c320cecdf',
-    messagingSenderId: '229269952910',
-    projectId: 'rangernet-wildlife-2',
-    authDomain: 'rangernet-wildlife-2.firebaseapp.com',
-    storageBucket: 'rangernet-wildlife-2.firebasestorage.app',
+    apiKey: 'AIzaSyAUZ-x80KwQUTZsSKGJmoCqCMSKfgV72hA',
+    appId: '1:991758102233:web:b8598330553076173258c8',
+    messagingSenderId: '991758102233',
+    projectId: 'rangernet',
+    authDomain: 'rangernet.firebaseapp.com',
+    storageBucket: 'rangernet.firebasestorage.app',
+    measurementId: 'G-F80C907V95',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyASylG7G9trWeMnjNKOGyCJxn6hszVviow',
-    appId: '1:229269952910:android:d3837bff86143d530cecdf',
-    messagingSenderId: '229269952910',
-    projectId: 'rangernet-wildlife-2',
-    storageBucket: 'rangernet-wildlife-2.firebasestorage.app',
+    apiKey: 'AIzaSyCl_ezvsuZxhDZVc5xGDgx5Vr4glC0l-1o',
+    appId: '1:991758102233:android:ee56d551a6ed620a3258c8',
+    messagingSenderId: '991758102233',
+    projectId: 'rangernet',
+    storageBucket: 'rangernet.firebasestorage.app',
   );
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDjTy-JGvxOY4_JfPB-jgrhsJGo8SVvwbM',
