@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "229269952910",
+    "project_id": "rangernet-wildlife-2",
+    "storage_bucket": "rangernet-wildlife-2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:229269952910:android:d3837bff86143d530cecdf",
+        "android_client_info": {
+          "package_name": "lk.rangernet.rangernet"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyASylG7G9trWeMnjNKOGyCJxn6hszVviow"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
