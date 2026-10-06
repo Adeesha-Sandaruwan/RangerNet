@@ -42,8 +42,9 @@ class IncidentLocalStore {
       _queueKey(report.rangerId),
       jsonEncode(reports.map((item) => item.toJson()).toList()),
     );
-    if (!saved)
+    if (!saved) {
       throw StateError('The incident could not be saved on this device.');
+    }
   }
 
   Future<void> replace(IncidentReport report) => enqueue(report);
