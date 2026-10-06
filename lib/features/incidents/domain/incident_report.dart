@@ -1,8 +1,14 @@
 enum IncidentType {
-  illegalSnare('Illegal snare / poaching', 'Wire snare, trap, or poaching sign'),
+  illegalSnare(
+    'Illegal snare / poaching',
+    'Wire snare, trap, or poaching sign',
+  ),
   animalCarcass('Animal carcass', 'Dead or injured wildlife'),
   illegalCampsite('Illegal campsite', 'Camp or human intrusion'),
-  suspiciousActivity('Suspicious activity', 'Tracks, sounds, or other activity'),
+  suspiciousActivity(
+    'Suspicious activity',
+    'Tracks, sounds, or other activity',
+  ),
   other('Other wildlife incident', 'Something else requiring follow-up');
 
   const IncidentType(this.label, this.hint);
@@ -35,11 +41,11 @@ class IncidentEvidence {
   final String contentType;
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'fileName': fileName,
-        'base64Data': base64Data,
-        'contentType': contentType,
-      };
+    'id': id,
+    'fileName': fileName,
+    'base64Data': base64Data,
+    'contentType': contentType,
+  };
 
   factory IncidentEvidence.fromJson(Map<String, dynamic> json) =>
       IncidentEvidence(
@@ -90,66 +96,68 @@ class IncidentReport {
   final bool manualLocation;
 
   IncidentReport copyWith({IncidentStatus? status}) => IncidentReport(
-        id: id,
-        rangerId: rangerId,
-        rangerEmail: rangerEmail,
-        type: type,
-        title: title,
-        description: description,
-        severity: severity,
-        activeThreat: activeThreat,
-        latitude: latitude,
-        longitude: longitude,
-        locationAccuracyMeters: locationAccuracyMeters,
-        parkOrBlock: parkOrBlock,
-        createdAt: createdAt,
-        status: status ?? this.status,
-        evidence: evidence,
-        patrolId: patrolId,
-        manualLocation: manualLocation,
-      );
+    id: id,
+    rangerId: rangerId,
+    rangerEmail: rangerEmail,
+    type: type,
+    title: title,
+    description: description,
+    severity: severity,
+    activeThreat: activeThreat,
+    latitude: latitude,
+    longitude: longitude,
+    locationAccuracyMeters: locationAccuracyMeters,
+    parkOrBlock: parkOrBlock,
+    createdAt: createdAt,
+    status: status ?? this.status,
+    evidence: evidence,
+    patrolId: patrolId,
+    manualLocation: manualLocation,
+  );
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'rangerId': rangerId,
-        'rangerEmail': rangerEmail,
-        'type': type.name,
-        'title': title,
-        'description': description,
-        'severity': severity.name,
-        'activeThreat': activeThreat,
-        'latitude': latitude,
-        'longitude': longitude,
-        'locationAccuracyMeters': locationAccuracyMeters,
-        'parkOrBlock': parkOrBlock,
-        'createdAt': createdAt.toIso8601String(),
-        'status': status.name,
-        'evidence': evidence.map((item) => item.toJson()).toList(),
-        'patrolId': patrolId,
-        'manualLocation': manualLocation,
-      };
+    'id': id,
+    'rangerId': rangerId,
+    'rangerEmail': rangerEmail,
+    'type': type.name,
+    'title': title,
+    'description': description,
+    'severity': severity.name,
+    'activeThreat': activeThreat,
+    'latitude': latitude,
+    'longitude': longitude,
+    'locationAccuracyMeters': locationAccuracyMeters,
+    'parkOrBlock': parkOrBlock,
+    'createdAt': createdAt.toIso8601String(),
+    'status': status.name,
+    'evidence': evidence.map((item) => item.toJson()).toList(),
+    'patrolId': patrolId,
+    'manualLocation': manualLocation,
+  };
 
   factory IncidentReport.fromJson(Map<String, dynamic> json) => IncidentReport(
-        id: json['id'] as String,
-        rangerId: json['rangerId'] as String,
-        rangerEmail: json['rangerEmail'] as String? ?? '',
-        type: IncidentType.values.byName(json['type'] as String),
-        title: json['title'] as String,
-        description: json['description'] as String,
-        severity: IncidentSeverity.values.byName(json['severity'] as String),
-        activeThreat: json['activeThreat'] as bool? ?? false,
-        latitude: (json['latitude'] as num?)?.toDouble(),
-        longitude: (json['longitude'] as num?)?.toDouble(),
-        locationAccuracyMeters:
-            (json['locationAccuracyMeters'] as num?)?.toDouble(),
-        parkOrBlock: json['parkOrBlock'] as String? ?? '',
-        createdAt: DateTime.parse(json['createdAt'] as String),
-        status: IncidentStatus.values.byName(json['status'] as String),
-        evidence: (json['evidence'] as List<dynamic>? ?? const [])
-            .map((item) => IncidentEvidence.fromJson(
-                Map<String, dynamic>.from(item as Map)))
-            .toList(growable: false),
-        patrolId: json['patrolId'] as String?,
-        manualLocation: json['manualLocation'] as bool? ?? false,
-      );
+    id: json['id'] as String,
+    rangerId: json['rangerId'] as String,
+    rangerEmail: json['rangerEmail'] as String? ?? '',
+    type: IncidentType.values.byName(json['type'] as String),
+    title: json['title'] as String,
+    description: json['description'] as String,
+    severity: IncidentSeverity.values.byName(json['severity'] as String),
+    activeThreat: json['activeThreat'] as bool? ?? false,
+    latitude: (json['latitude'] as num?)?.toDouble(),
+    longitude: (json['longitude'] as num?)?.toDouble(),
+    locationAccuracyMeters: (json['locationAccuracyMeters'] as num?)
+        ?.toDouble(),
+    parkOrBlock: json['parkOrBlock'] as String? ?? '',
+    createdAt: DateTime.parse(json['createdAt'] as String),
+    status: IncidentStatus.values.byName(json['status'] as String),
+    evidence: (json['evidence'] as List<dynamic>? ?? const [])
+        .map(
+          (item) =>
+              IncidentEvidence.fromJson(Map<String, dynamic>.from(item as Map)),
+        )
+        .toList(growable: false),
+    patrolId: json['patrolId'] as String?,
+    manualLocation: json['manualLocation'] as bool? ?? false,
+  );
 }
