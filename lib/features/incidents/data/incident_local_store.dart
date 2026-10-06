@@ -47,6 +47,26 @@ class IncidentLocalStore {
     }
   }
 
+  Future<Map<String, dynamic>?> loadDraft(String rangerId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_draftKey(rangerId));
+    if (raw == null || raw.isEmpty) return null;
+    return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+  }
+
+  Future<void> saveDraft(String rangerId, Map<String, Object?> draft) async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = await prefs.setString(_draftKey(rangerId), jsonEncode(draft));
+    if (!saved) {
+      throw StateError('The incident draft could not be saved on this device.');
+    }
+  }
+
+  Future<void> clearDraft(String rangerId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_draftKey(rangerId));
+  }
+
   Future<void> replace(IncidentReport report) => enqueue(report);
 
   Future<void> remove(String rangerId, String incidentId) async {
@@ -65,4 +85,5 @@ class IncidentLocalStore {
   }
 
   String _queueKey(String rangerId) => 'incident_queue_$rangerId';
+  String _draftKey(String rangerId) => 'incident_draft_$rangerId';
 }

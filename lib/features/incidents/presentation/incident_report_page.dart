@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -6,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import '../data/incident_evidence_picker.dart';
 import '../data/incident_location_service.dart';
+import '../data/incident_local_store.dart';
 import '../domain/incident_report.dart';
 
 class IncidentReportPage extends StatefulWidget {
@@ -42,6 +44,8 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
   final _longitude = TextEditingController();
   final _locationService = IncidentLocationService();
   final _evidencePicker = IncidentEvidencePicker();
+  final _localStore = IncidentLocalStore();
+  Timer? _draftSaveTimer;
 
   int _step = 0;
   IncidentType? _type;
@@ -56,9 +60,17 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
   IncidentReport? _submittedReport;
   bool _synced = false;
   String? _syncMessage;
+  bool _draftSaved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_restoreDraft());
+  }
 
   @override
   void dispose() {
+    _draftSaveTimer?.cancel();
     _title.dispose();
     _description.dispose();
     _parkOrBlock.dispose();
@@ -66,6 +78,88 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     _latitude.dispose();
     _longitude.dispose();
     super.dispose();
+  }
+
+  Future<void> _restoreDraft() async {
+    try {
+      final draft = await _localStore.loadDraft(widget.ranger.uid);
+      if (!mounted || draft == null) return;
+      _title.text = draft['title'] as String? ?? '';
+      _description.text = draft['description'] as String? ?? '';
+      _parkOrBlock.text = draft['parkOrBlock'] as String? ?? '';
+      _patrolId.text = draft['patrolId'] as String? ?? '';
+      _latitude.text = draft['latitude'] as String? ?? '';
+      _longitude.text = draft['longitude'] as String? ?? '';
+      final savedType = draft['type'] as String?;
+      final savedSeverity = draft['severity'] as String?;
+      setState(() {
+        _type = savedType == null
+            ? null
+            : IncidentType.values.byName(savedType);
+        _severity = savedSeverity == null
+            ? IncidentSeverity.medium
+            : IncidentSeverity.values.byName(savedSeverity);
+        _activeThreat = draft['activeThreat'] as bool? ?? false;
+        _manualLocation = draft['manualLocation'] as bool? ?? false;
+        _confirmDetails = draft['confirmDetails'] as bool? ?? false;
+        _accuracy = (draft['accuracy'] as num?)?.toDouble();
+        _step = ((draft['step'] as int?) ?? 0).clamp(0, _stepTitles.length - 1);
+        _evidence = (draft['evidence'] as List<dynamic>? ?? const [])
+            .map(
+              (item) => IncidentEvidence.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ),
+            )
+            .toList();
+        _draftSaved = true;
+      });
+    } catch (error) {
+      if (mounted) {
+        setState(() => _error = 'Could not restore the saved draft: $error');
+      }
+    }
+  }
+
+  void _scheduleDraftSave() {
+    _draftSaveTimer?.cancel();
+    _draftSaveTimer = Timer(const Duration(milliseconds: 350), () {
+      unawaited(_saveDraftNow());
+    });
+  }
+
+  Future<void> _saveDraftNow() async {
+    if (_submittedReport != null) return;
+    final hasContent =
+        _type != null ||
+        _title.text.trim().isNotEmpty ||
+        _description.text.trim().isNotEmpty ||
+        _parkOrBlock.text.trim().isNotEmpty ||
+        _patrolId.text.trim().isNotEmpty ||
+        _latitude.text.trim().isNotEmpty ||
+        _longitude.text.trim().isNotEmpty ||
+        _evidence.isNotEmpty;
+    if (!hasContent) return;
+    try {
+      await _localStore.saveDraft(widget.ranger.uid, {
+        'step': _step,
+        'type': _type?.name,
+        'title': _title.text,
+        'description': _description.text,
+        'severity': _severity.name,
+        'activeThreat': _activeThreat,
+        'parkOrBlock': _parkOrBlock.text,
+        'patrolId': _patrolId.text,
+        'latitude': _latitude.text,
+        'longitude': _longitude.text,
+        'manualLocation': _manualLocation,
+        'accuracy': _accuracy,
+        'confirmDetails': _confirmDetails,
+        'evidence': _evidence.map((item) => item.toJson()).toList(),
+      });
+      if (mounted) setState(() => _draftSaved = true);
+    } catch (error) {
+      if (mounted) setState(() => _error = 'Draft save failed: $error');
+    }
   }
 
   double? get _parsedLatitude => double.tryParse(_latitude.text.trim());
@@ -95,6 +189,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
         _accuracy = location.accuracyMeters;
         _manualLocation = false;
       });
+      _scheduleDraftSave();
     } on IncidentLocationException catch (error) {
       setState(() => _error = error.message);
     } catch (error) {
@@ -117,6 +212,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
       final item = await _evidencePicker.pick(source);
       if (item != null && mounted) {
         setState(() => _evidence = [..._evidence, item]);
+        _scheduleDraftSave();
       }
     } on IncidentEvidenceException catch (error) {
       setState(() => _error = error.message);
@@ -127,7 +223,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     }
   }
 
-  void _next() {
+  Future<void> _next() async {
     setState(() => _error = null);
     if (_step == 0 && _type == null) {
       setState(() => _error = 'Choose an incident type to continue.');
@@ -159,6 +255,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     }
     if (_step < _stepTitles.length - 1) {
       setState(() => _step++);
+      await _saveDraftNow();
     } else {
       _submit();
     }
@@ -193,6 +290,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     try {
       // Save to device before attempting any network request.
       await widget.saveLocally(report);
+      await _localStore.clearDraft(widget.ranger.uid);
       if (!mounted) return;
       setState(() {
         _submittedReport = report;
@@ -312,6 +410,14 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
           'Ranger: ${widget.ranger.email ?? widget.ranger.uid}',
           style: Theme.of(context).textTheme.bodySmall,
         ),
+        if (_draftSaved)
+          const Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              'Draft saved on this device',
+              style: TextStyle(color: Color(0xFF17613F)),
+            ),
+          ),
         const SizedBox(height: 14),
         if (_error != null) _message(_error!, isError: true),
         Expanded(
@@ -330,7 +436,12 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
           children: [
             if (_step > 0)
               OutlinedButton(
-                onPressed: _busy ? null : () => setState(() => _step--),
+                onPressed: _busy
+                    ? null
+                    : () {
+                        setState(() => _step--);
+                        _scheduleDraftSave();
+                      },
                 child: const Text('Back'),
               )
             else
@@ -356,7 +467,10 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
 
   Widget _buildTypeStep() => RadioGroup<IncidentType>(
     groupValue: _type,
-    onChanged: (value) => setState(() => _type = value),
+    onChanged: (value) {
+      setState(() => _type = value);
+      _scheduleDraftSave();
+    },
     child: Column(
       children: IncidentType.values.map((type) {
         final selected = _type == type;
@@ -407,12 +521,18 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
             )
             .toList(),
         selected: {_severity},
-        onSelectionChanged: (value) => setState(() => _severity = value.first),
+        onSelectionChanged: (value) {
+          setState(() => _severity = value.first);
+          _scheduleDraftSave();
+        },
       ),
       CheckboxListTile(
         contentPadding: EdgeInsets.zero,
         value: _activeThreat,
-        onChanged: (value) => setState(() => _activeThreat = value ?? false),
+        onChanged: (value) {
+          setState(() => _activeThreat = value ?? false);
+          _scheduleDraftSave();
+        },
         title: const Text('Active threat — prioritize response'),
         controlAffinity: ListTileControlAffinity.leading,
       ),
@@ -452,7 +572,10 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
                 decimal: true,
                 signed: true,
               ),
-              onChanged: (_) => setState(() => _manualLocation = true),
+              onChanged: (_) {
+                setState(() => _manualLocation = true);
+                _scheduleDraftSave();
+              },
             ),
           ),
           const SizedBox(width: 12),
@@ -465,7 +588,10 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
                 decimal: true,
                 signed: true,
               ),
-              onChanged: (_) => setState(() => _manualLocation = true),
+              onChanged: (_) {
+                setState(() => _manualLocation = true);
+                _scheduleDraftSave();
+              },
             ),
           ),
         ],
@@ -547,7 +673,10 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
             subtitle: const Text('Compressed and ready'),
             trailing: IconButton(
               tooltip: 'Remove photo',
-              onPressed: () => setState(() => _evidence.remove(photo)),
+              onPressed: () {
+                setState(() => _evidence.remove(photo));
+                _scheduleDraftSave();
+              },
               icon: const Icon(Icons.delete_outline),
             ),
           ),
@@ -597,8 +726,10 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
         ),
         CheckboxListTile(
           value: _confirmDetails,
-          onChanged: (value) =>
-              setState(() => _confirmDetails = value ?? false),
+          onChanged: (value) {
+            setState(() => _confirmDetails = value ?? false);
+            _scheduleDraftSave();
+          },
           title: const Text('I confirm these incident details are accurate.'),
           controlAffinity: ListTileControlAffinity.leading,
         ),
@@ -674,7 +805,10 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     maxLines: maxLines,
     maxLength: max,
     keyboardType: keyboard,
-    onChanged: onChanged,
+    onChanged: (value) {
+      onChanged?.call(value);
+      _scheduleDraftSave();
+    },
     decoration: InputDecoration(
       labelText: label,
       hintText: hint,
