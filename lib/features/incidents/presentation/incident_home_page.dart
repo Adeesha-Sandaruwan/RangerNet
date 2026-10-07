@@ -81,6 +81,37 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
     await _refreshQueue();
   }
 
+  Future<void> _discardDraft() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Discard incident draft?'),
+        content: const Text(
+          'This removes the unfinished report and its photos from this device. '
+          'It cannot be recovered afterward.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep draft'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Discard draft'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await _store.clearDraft(widget.ranger.uid);
+      await _refreshQueue();
+      if (mounted) setState(() => _message = 'Unfinished incident draft discarded.');
+    } catch (error) {
+      if (mounted) setState(() => _message = 'Could not discard draft: $error');
+    }
+  }
+
   Future<void> _ensureNetworkAvailable() async {
     final results = await Connectivity().checkConnectivity();
     if (results.isEmpty ||
@@ -214,6 +245,12 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
                                 : 'Report incident',
                           ),
                         ),
+                        if (_draftAvailable)
+                          TextButton.icon(
+                            onPressed: _discardDraft,
+                            icon: const Icon(Icons.delete_outline),
+                            label: const Text('Discard saved draft'),
+                          ),
                       ],
                     ),
                   ),
