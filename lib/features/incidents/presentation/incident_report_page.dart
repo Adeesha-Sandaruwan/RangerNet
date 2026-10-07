@@ -241,6 +241,49 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     }
   }
 
+  Future<void> _removeEvidence(IncidentEvidence photo) async {
+    final remove = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove this photo?'),
+        content: Text('"${photo.fileName}" will be removed from this draft.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep photo'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove photo'),
+          ),
+        ],
+      ),
+    );
+    if (remove == true && mounted) {
+      setState(() => _evidence.remove(photo));
+      _scheduleDraftSave();
+    }
+  }
+
+  Future<void> _previewEvidence(IncidentEvidence photo) => showDialog<void>(
+    context: context,
+    builder: (context) => Dialog(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            InteractiveViewer(
+              child: Image.memory(base64Decode(photo.base64Data)),
+            ),
+            const SizedBox(height: 8),
+            Text(photo.fileName),
+          ],
+        ),
+      ),
+    ),
+  );
+
   Future<void> _next() async {
     setState(() => _error = null);
     if (_step == 0 && _type == null) {
@@ -657,7 +700,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
           children: [
             Icon(Icons.camera_alt, size: 34, color: Color(0xFF17613F)),
             SizedBox(height: 8),
-            Text('Attach up to 3 evidence photos'),
+            Text('Evidence photos · ${_evidence.length}/3 attached'),
             Text('Photos are compressed before saving on this device.'),
           ],
         ),
@@ -696,6 +739,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
       ..._evidence.map(
         (photo) => Card(
           child: ListTile(
+            onTap: () => _previewEvidence(photo),
             leading: ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.memory(
@@ -710,13 +754,13 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            subtitle: const Text('Compressed and ready'),
+            subtitle: Text(
+              'Tap to preview · '
+              '${(base64Decode(photo.base64Data).length / 1024).toStringAsFixed(0)} KB',
+            ),
             trailing: IconButton(
               tooltip: 'Remove photo',
-              onPressed: () {
-                setState(() => _evidence.remove(photo));
-                _scheduleDraftSave();
-              },
+              onPressed: () => _removeEvidence(photo),
               icon: const Icon(Icons.delete_outline),
             ),
           ),
