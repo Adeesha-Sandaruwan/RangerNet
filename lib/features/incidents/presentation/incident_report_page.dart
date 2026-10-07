@@ -632,7 +632,6 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
         },
         icon: const Icon(Icons.edit_location_alt_outlined),
         label: const Text('Enter location manually'),
-        alignment: Alignment.centerLeft,
       ),
       const SizedBox(height: 8),
       Row(
@@ -696,12 +695,12 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xFF92B69D)),
         ),
-        child: const Column(
+        child: Column(
           children: [
-            Icon(Icons.camera_alt, size: 34, color: Color(0xFF17613F)),
-            SizedBox(height: 8),
+            const Icon(Icons.camera_alt, size: 34, color: Color(0xFF17613F)),
+            const SizedBox(height: 8),
             Text('Evidence photos · ${_evidence.length}/3 attached'),
-            Text('Photos are compressed before saving on this device.'),
+            const Text('Photos are compressed before saving on this device.'),
           ],
         ),
       ),
