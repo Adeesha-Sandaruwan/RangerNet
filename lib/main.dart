@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
+import 'features/home/presentation/rangernet_shell.dart';
 import 'features/incidents/presentation/incident_home_page.dart';
 import 'firebase_options.dart';
 
@@ -45,7 +46,7 @@ class _AuthenticationGate extends StatelessWidget {
       final user = snapshot.data;
       return user == null
           ? const RangerNetLoginPage()
-          : IncidentHomePage(ranger: user);
+          : RangerNetShell(ranger: user);
     },
   );
 }

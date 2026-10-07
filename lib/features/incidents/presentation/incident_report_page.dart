@@ -176,6 +176,24 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
         longitude <= 180;
   }
 
+  String get _locationValidationMessage {
+    final latitudeText = _latitude.text.trim();
+    final longitudeText = _longitude.text.trim();
+    if (latitudeText.isEmpty || longitudeText.isEmpty) {
+      return 'A location is required. Capture GPS or enter both coordinates.';
+    }
+    if (_parsedLatitude == null || _parsedLongitude == null) {
+      return 'Coordinates must be numbers. Check the latitude and longitude.';
+    }
+    if (_parsedLatitude! < -90 || _parsedLatitude! > 90) {
+      return 'Latitude must be between -90 and 90.';
+    }
+    if (_parsedLongitude! < -180 || _parsedLongitude! > 180) {
+      return 'Longitude must be between -180 and 180.';
+    }
+    return 'Capture GPS or enter valid coordinates.';
+  }
+
   Future<void> _captureGps() async {
     setState(() {
       _busy = true;
@@ -223,6 +241,49 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     }
   }
 
+  Future<void> _removeEvidence(IncidentEvidence photo) async {
+    final remove = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove this photo?'),
+        content: Text('"${photo.fileName}" will be removed from this draft.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep photo'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove photo'),
+          ),
+        ],
+      ),
+    );
+    if (remove == true && mounted) {
+      setState(() => _evidence.remove(photo));
+      _scheduleDraftSave();
+    }
+  }
+
+  Future<void> _previewEvidence(IncidentEvidence photo) => showDialog<void>(
+    context: context,
+    builder: (context) => Dialog(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            InteractiveViewer(
+              child: Image.memory(base64Decode(photo.base64Data)),
+            ),
+            const SizedBox(height: 8),
+            Text(photo.fileName),
+          ],
+        ),
+      ),
+    ),
+  );
+
   Future<void> _next() async {
     setState(() => _error = null);
     if (_step == 0 && _type == null) {
@@ -242,9 +303,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
       }
     }
     if (_step == 2 && !_hasValidLocation) {
-      setState(
-        () => _error = 'Capture GPS or enter valid latitude and longitude.',
-      );
+      setState(() => _error = _locationValidationMessage);
       return;
     }
     if (_step == 4 && !_confirmDetails) {
@@ -560,6 +619,20 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
       ],
       const SizedBox(height: 12),
       const Text('If GPS is unavailable, enter coordinates manually.'),
+      TextButton.icon(
+        onPressed: () {
+          setState(() {
+            _latitude.clear();
+            _longitude.clear();
+            _accuracy = null;
+            _manualLocation = true;
+            _error = null;
+          });
+          _scheduleDraftSave();
+        },
+        icon: const Icon(Icons.edit_location_alt_outlined),
+        label: const Text('Enter location manually'),
+      ),
       const SizedBox(height: 8),
       Row(
         children: [
@@ -573,7 +646,10 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
                 signed: true,
               ),
               onChanged: (_) {
-                setState(() => _manualLocation = true);
+                setState(() {
+                  _manualLocation = true;
+                  _accuracy = null;
+                });
                 _scheduleDraftSave();
               },
             ),
@@ -589,7 +665,10 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
                 signed: true,
               ),
               onChanged: (_) {
-                setState(() => _manualLocation = true);
+                setState(() {
+                  _manualLocation = true;
+                  _accuracy = null;
+                });
                 _scheduleDraftSave();
               },
             ),
@@ -600,6 +679,9 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
         _message(
           '${_parsedLatitude!.toStringAsFixed(5)}, ${_parsedLongitude!.toStringAsFixed(5)}${_manualLocation ? ' · entered manually' : ' · GPS'}',
         ),
+      if (!_hasValidLocation &&
+          (_latitude.text.isNotEmpty || _longitude.text.isNotEmpty))
+        _message(_locationValidationMessage, isError: true),
     ],
   );
 
@@ -613,12 +695,12 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xFF92B69D)),
         ),
-        child: const Column(
+        child: Column(
           children: [
-            Icon(Icons.camera_alt, size: 34, color: Color(0xFF17613F)),
-            SizedBox(height: 8),
-            Text('Attach up to 3 evidence photos'),
-            Text('Photos are compressed before saving on this device.'),
+            const Icon(Icons.camera_alt, size: 34, color: Color(0xFF17613F)),
+            const SizedBox(height: 8),
+            Text('Evidence photos · ${_evidence.length}/3 attached'),
+            const Text('Photos are compressed before saving on this device.'),
           ],
         ),
       ),
@@ -656,6 +738,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
       ..._evidence.map(
         (photo) => Card(
           child: ListTile(
+            onTap: () => _previewEvidence(photo),
             leading: ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.memory(
@@ -670,13 +753,13 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            subtitle: const Text('Compressed and ready'),
+            subtitle: Text(
+              'Tap to preview · '
+              '${(base64Decode(photo.base64Data).length / 1024).toStringAsFixed(0)} KB',
+            ),
             trailing: IconButton(
               tooltip: 'Remove photo',
-              onPressed: () {
-                setState(() => _evidence.remove(photo));
-                _scheduleDraftSave();
-              },
+              onPressed: () => _removeEvidence(photo),
               icon: const Icon(Icons.delete_outline),
             ),
           ),

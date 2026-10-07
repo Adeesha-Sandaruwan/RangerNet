@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../data/incident_cloud_repository.dart';
 import '../data/incident_local_store.dart';
 import '../domain/incident_report.dart';
+import 'incident_detail_page.dart';
 import 'incident_report_page.dart';
 
 class IncidentHomePage extends StatefulWidget {
@@ -22,6 +23,7 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
   final _cloud = IncidentCloudRepository();
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   List<IncidentReport> _queue = const [];
+  List<IncidentReport> _reportedReports = const [];
   bool _loading = true;
   bool _syncing = false;
   bool _draftAvailable = false;
@@ -57,6 +59,14 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
           _draftAvailable = draft != null;
         });
       }
+      try {
+        final reports = await _cloud.loadReportsForRanger(widget.ranger.uid);
+        if (mounted) setState(() => _reportedReports = reports);
+      } catch (error) {
+        if (mounted) {
+          setState(() => _message = 'Saved locally; cloud list unavailable: $error');
+        }
+      }
     } catch (error) {
       if (mounted) {
         setState(() => _message = 'Could not load saved reports: $error');
@@ -71,6 +81,37 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
     await _refreshQueue();
   }
 
+  Future<void> _discardDraft() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Discard incident draft?'),
+        content: const Text(
+          'This removes the unfinished report and its photos from this device. '
+          'It cannot be recovered afterward.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep draft'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Discard draft'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await _store.clearDraft(widget.ranger.uid);
+      await _refreshQueue();
+      if (mounted) setState(() => _message = 'Unfinished incident draft discarded.');
+    } catch (error) {
+      if (mounted) setState(() => _message = 'Could not discard draft: $error');
+    }
+  }
+
   Future<void> _ensureNetworkAvailable() async {
     final results = await Connectivity().checkConnectivity();
     if (results.isEmpty ||
@@ -82,10 +123,17 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
   }
 
   Future<void> _syncOne(IncidentReport report) async {
-    await _ensureNetworkAvailable();
-    await _cloud.publish(report).timeout(const Duration(seconds: 25));
-    await _store.remove(widget.ranger.uid, report.id);
-    await _refreshQueue();
+    try {
+      await _ensureNetworkAvailable();
+      await _cloud.publish(report).timeout(const Duration(seconds: 25));
+      await _store.remove(widget.ranger.uid, report.id);
+      await _refreshQueue();
+      if (mounted) setState(() => _message = 'Report synced successfully.');
+    } catch (_) {
+      await _store.replace(report.copyWith(status: IncidentStatus.syncFailed));
+      await _refreshQueue();
+      rethrow;
+    }
   }
 
   Future<void> _syncPending() async {
@@ -96,6 +144,7 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
     });
     var synced = 0;
     var failed = 0;
+    String? firstFailure;
     try {
       await _ensureNetworkAvailable();
       final pending = await _store.loadQueue(widget.ranger.uid);
@@ -104,7 +153,11 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
           await _cloud.publish(report).timeout(const Duration(seconds: 25));
           await _store.remove(widget.ranger.uid, report.id);
           synced++;
-        } catch (_) {
+        } catch (error) {
+          await _store.replace(
+            report.copyWith(status: IncidentStatus.syncFailed),
+          );
+          firstFailure ??= error.toString();
           failed++;
         }
       }
@@ -112,7 +165,8 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
         setState(() {
           _message = pending.isEmpty
               ? 'No pending incident reports.'
-              : '$synced synced · $failed still pending.';
+              : '$synced synced · $failed need retry.'
+                    '${firstFailure == null ? '' : ' First error: $firstFailure'}';
         });
       }
     } catch (error) {
@@ -204,6 +258,12 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
                                 : 'Report incident',
                           ),
                         ),
+                        if (_draftAvailable)
+                          TextButton.icon(
+                            onPressed: _discardDraft,
+                            icon: const Icon(Icons.delete_outline),
+                            label: const Text('Discard saved draft'),
+                          ),
                       ],
                     ),
                   ),
@@ -250,6 +310,26 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
                   )
                 else
                   ..._queue.map(_pendingCard),
+                const SizedBox(height: 20),
+                Text(
+                  'My submitted reports (${_reportedReports.length})',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                if (_loading)
+                  const Center(child: CircularProgressIndicator())
+                else if (_reportedReports.isEmpty)
+                  const Card(
+                    child: ListTile(
+                      leading: Icon(Icons.assignment_outlined),
+                      title: Text('No submitted reports yet'),
+                      subtitle: Text(
+                        'Reports appear here after they reach Firestore.',
+                      ),
+                    ),
+                  )
+                else
+                  ..._reportedReports.map(_reportedCard),
                 const SizedBox(height: 16),
                 const Card(
                   child: ListTile(
@@ -270,13 +350,20 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
 
   Widget _pendingCard(IncidentReport report) => Card(
     child: ListTile(
-      leading: const Icon(
-        Icons.cloud_upload_outlined,
-        color: Color(0xFFE18436),
+      onTap: () => _openDetails(report),
+      leading: Icon(
+        report.status == IncidentStatus.syncFailed
+            ? Icons.sync_problem
+            : Icons.cloud_upload_outlined,
+        color: report.status == IncidentStatus.syncFailed
+            ? const Color(0xFFB54735)
+            : const Color(0xFFE18436),
       ),
       title: Text(report.title),
       subtitle: Text(
-        '${report.type.label} · ${report.severity.label} · ${report.createdAt.toLocal().toString().substring(0, 16)}',
+        '${report.status == IncidentStatus.syncFailed ? 'Retry needed' : 'Pending Sync'} · '
+        '${report.type.label} · ${report.severity.label} · '
+        '${report.createdAt.toLocal().toString().substring(0, 16)}',
       ),
       trailing: IconButton(
         tooltip: 'Retry this report',
@@ -289,6 +376,27 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
       ),
     ),
   );
+
+  Widget _reportedCard(IncidentReport report) => Card(
+    child: ListTile(
+      onTap: () => _openDetails(report),
+      leading: const Icon(Icons.cloud_done, color: Color(0xFF21834D)),
+      title: Text(report.title),
+      subtitle: Text(
+        '${report.type.label} · ${report.severity.label} · '
+        '${report.createdAt.toLocal().toString().substring(0, 16)}',
+      ),
+      trailing: const Chip(label: Text('Reported')),
+    ),
+  );
+
+  void _openDetails(IncidentReport report) {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => IncidentDetailPage(report: report),
+      ),
+    );
+  }
 }
 
 class RangerNetLoginPage extends StatefulWidget {
