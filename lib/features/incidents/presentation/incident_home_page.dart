@@ -22,6 +22,7 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
   final _cloud = IncidentCloudRepository();
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   List<IncidentReport> _queue = const [];
+  List<IncidentReport> _reportedReports = const [];
   bool _loading = true;
   bool _syncing = false;
   bool _draftAvailable = false;
@@ -56,6 +57,14 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
           _queue = queue;
           _draftAvailable = draft != null;
         });
+      }
+      try {
+        final reports = await _cloud.loadReportsForRanger(widget.ranger.uid);
+        if (mounted) setState(() => _reportedReports = reports);
+      } catch (error) {
+        if (mounted) {
+          setState(() => _message = 'Saved locally; cloud list unavailable: $error');
+        }
       }
     } catch (error) {
       if (mounted) {
@@ -250,6 +259,26 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
                   )
                 else
                   ..._queue.map(_pendingCard),
+                const SizedBox(height: 20),
+                Text(
+                  'My submitted reports (${_reportedReports.length})',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                if (_loading)
+                  const Center(child: CircularProgressIndicator())
+                else if (_reportedReports.isEmpty)
+                  const Card(
+                    child: ListTile(
+                      leading: Icon(Icons.assignment_outlined),
+                      title: Text('No submitted reports yet'),
+                      subtitle: Text(
+                        'Reports appear here after they reach Firestore.',
+                      ),
+                    ),
+                  )
+                else
+                  ..._reportedReports.map(_reportedCard),
                 const SizedBox(height: 16),
                 const Card(
                   child: ListTile(
@@ -287,6 +316,18 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
               }),
         icon: const Icon(Icons.sync),
       ),
+    ),
+  );
+
+  Widget _reportedCard(IncidentReport report) => Card(
+    child: ListTile(
+      leading: const Icon(Icons.cloud_done, color: Color(0xFF21834D)),
+      title: Text(report.title),
+      subtitle: Text(
+        '${report.type.label} · ${report.severity.label} · '
+        '${report.createdAt.toLocal().toString().substring(0, 16)}',
+      ),
+      trailing: const Chip(label: Text('Reported')),
     ),
   );
 }

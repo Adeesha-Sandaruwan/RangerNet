@@ -11,6 +11,60 @@ class IncidentCloudRepository {
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
 
+  /// Loads only the signed-in ranger's reports. The Firestore rules enforce
+  /// the same ownership check on the server.
+  Future<List<IncidentReport>> loadReportsForRanger(String rangerId) async {
+    final user = _auth.currentUser;
+    if (user == null || user.uid != rangerId) {
+      throw StateError('Sign in as the reporting ranger to load reports.');
+    }
+
+    final snapshot = await _firestore
+        .collection('incidents')
+        .where('rangerId', isEqualTo: rangerId)
+        .get();
+
+    final reports = snapshot.docs
+        .map((document) => _reportFromDocument(document.data()))
+        .toList(growable: true)
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return reports;
+  }
+
+  IncidentReport _reportFromDocument(Map<String, dynamic> data) {
+    final created = data['createdAtClient'];
+    final createdAt = created is Timestamp
+        ? created.toDate()
+        : DateTime.tryParse(created?.toString() ?? '') ?? DateTime.now();
+    final rawStatus = data['status']?.toString().toLowerCase();
+    final status = rawStatus == 'reported'
+        ? IncidentStatus.reported
+        : IncidentStatus.pendingSync;
+
+    return IncidentReport(
+      id: data['incidentId']?.toString() ?? '',
+      rangerId: data['rangerId']?.toString() ?? '',
+      rangerEmail: data['rangerEmail']?.toString() ?? '',
+      type: IncidentType.values.byName(data['type']?.toString() ?? 'other'),
+      title: data['title']?.toString() ?? 'Wildlife incident',
+      description: data['description']?.toString() ?? '',
+      severity: IncidentSeverity.values.byName(
+        data['severity']?.toString() ?? 'medium',
+      ),
+      activeThreat: data['activeThreat'] == true,
+      latitude: (data['latitude'] as num?)?.toDouble(),
+      longitude: (data['longitude'] as num?)?.toDouble(),
+      locationAccuracyMeters: (data['locationAccuracyMeters'] as num?)
+          ?.toDouble(),
+      parkOrBlock: data['parkOrBlock']?.toString() ?? '',
+      createdAt: createdAt,
+      status: status,
+      evidence: const [],
+      patrolId: data['patrolId']?.toString(),
+      manualLocation: data['locationSource'] == 'manual',
+    );
+  }
+
   Future<void> publish(IncidentReport report) async {
     final user = _auth.currentUser;
     if (user == null || user.uid != report.rangerId) {
