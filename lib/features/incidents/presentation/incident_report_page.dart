@@ -176,6 +176,24 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
         longitude <= 180;
   }
 
+  String get _locationValidationMessage {
+    final latitudeText = _latitude.text.trim();
+    final longitudeText = _longitude.text.trim();
+    if (latitudeText.isEmpty || longitudeText.isEmpty) {
+      return 'A location is required. Capture GPS or enter both coordinates.';
+    }
+    if (_parsedLatitude == null || _parsedLongitude == null) {
+      return 'Coordinates must be numbers. Check the latitude and longitude.';
+    }
+    if (_parsedLatitude! < -90 || _parsedLatitude! > 90) {
+      return 'Latitude must be between -90 and 90.';
+    }
+    if (_parsedLongitude! < -180 || _parsedLongitude! > 180) {
+      return 'Longitude must be between -180 and 180.';
+    }
+    return 'Capture GPS or enter valid coordinates.';
+  }
+
   Future<void> _captureGps() async {
     setState(() {
       _busy = true;
@@ -242,9 +260,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
       }
     }
     if (_step == 2 && !_hasValidLocation) {
-      setState(
-        () => _error = 'Capture GPS or enter valid latitude and longitude.',
-      );
+      setState(() => _error = _locationValidationMessage);
       return;
     }
     if (_step == 4 && !_confirmDetails) {
@@ -560,6 +576,21 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
       ],
       const SizedBox(height: 12),
       const Text('If GPS is unavailable, enter coordinates manually.'),
+      TextButton.icon(
+        onPressed: () {
+          setState(() {
+            _latitude.clear();
+            _longitude.clear();
+            _accuracy = null;
+            _manualLocation = true;
+            _error = null;
+          });
+          _scheduleDraftSave();
+        },
+        icon: const Icon(Icons.edit_location_alt_outlined),
+        label: const Text('Enter location manually'),
+        alignment: Alignment.centerLeft,
+      ),
       const SizedBox(height: 8),
       Row(
         children: [
@@ -573,7 +604,10 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
                 signed: true,
               ),
               onChanged: (_) {
-                setState(() => _manualLocation = true);
+                setState(() {
+                  _manualLocation = true;
+                  _accuracy = null;
+                });
                 _scheduleDraftSave();
               },
             ),
@@ -589,7 +623,10 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
                 signed: true,
               ),
               onChanged: (_) {
-                setState(() => _manualLocation = true);
+                setState(() {
+                  _manualLocation = true;
+                  _accuracy = null;
+                });
                 _scheduleDraftSave();
               },
             ),
@@ -600,6 +637,9 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
         _message(
           '${_parsedLatitude!.toStringAsFixed(5)}, ${_parsedLongitude!.toStringAsFixed(5)}${_manualLocation ? ' · entered manually' : ' · GPS'}',
         ),
+      if (!_hasValidLocation &&
+          (_latitude.text.isNotEmpty || _longitude.text.isNotEmpty))
+        _message(_locationValidationMessage, isError: true),
     ],
   );
 
