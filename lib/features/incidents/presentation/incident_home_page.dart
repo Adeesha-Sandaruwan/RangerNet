@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../data/incident_cloud_repository.dart';
 import '../data/incident_local_store.dart';
 import '../domain/incident_report.dart';
+import 'incident_detail_page.dart';
 import 'incident_report_page.dart';
 
 class IncidentHomePage extends StatefulWidget {
@@ -299,6 +300,7 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
 
   Widget _pendingCard(IncidentReport report) => Card(
     child: ListTile(
+      onTap: () => _openDetails(report),
       leading: const Icon(
         Icons.cloud_upload_outlined,
         color: Color(0xFFE18436),
@@ -321,6 +323,7 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
 
   Widget _reportedCard(IncidentReport report) => Card(
     child: ListTile(
+      onTap: () => _openDetails(report),
       leading: const Icon(Icons.cloud_done, color: Color(0xFF21834D)),
       title: Text(report.title),
       subtitle: Text(
@@ -330,6 +333,14 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
       trailing: const Chip(label: Text('Reported')),
     ),
   );
+
+  void _openDetails(IncidentReport report) {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => IncidentDetailPage(report: report),
+      ),
+    );
+  }
 }
 
 class RangerNetLoginPage extends StatefulWidget {
