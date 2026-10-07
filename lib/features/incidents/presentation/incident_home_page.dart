@@ -123,10 +123,17 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
   }
 
   Future<void> _syncOne(IncidentReport report) async {
-    await _ensureNetworkAvailable();
-    await _cloud.publish(report).timeout(const Duration(seconds: 25));
-    await _store.remove(widget.ranger.uid, report.id);
-    await _refreshQueue();
+    try {
+      await _ensureNetworkAvailable();
+      await _cloud.publish(report).timeout(const Duration(seconds: 25));
+      await _store.remove(widget.ranger.uid, report.id);
+      await _refreshQueue();
+      if (mounted) setState(() => _message = 'Report synced successfully.');
+    } catch (_) {
+      await _store.replace(report.copyWith(status: IncidentStatus.syncFailed));
+      await _refreshQueue();
+      rethrow;
+    }
   }
 
   Future<void> _syncPending() async {
@@ -137,6 +144,7 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
     });
     var synced = 0;
     var failed = 0;
+    String? firstFailure;
     try {
       await _ensureNetworkAvailable();
       final pending = await _store.loadQueue(widget.ranger.uid);
@@ -145,7 +153,11 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
           await _cloud.publish(report).timeout(const Duration(seconds: 25));
           await _store.remove(widget.ranger.uid, report.id);
           synced++;
-        } catch (_) {
+        } catch (error) {
+          await _store.replace(
+            report.copyWith(status: IncidentStatus.syncFailed),
+          );
+          firstFailure ??= error.toString();
           failed++;
         }
       }
@@ -153,7 +165,8 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
         setState(() {
           _message = pending.isEmpty
               ? 'No pending incident reports.'
-              : '$synced synced · $failed still pending.';
+              : '$synced synced · $failed need retry.'
+                    '${firstFailure == null ? '' : ' First error: $firstFailure'}';
         });
       }
     } catch (error) {
@@ -338,13 +351,19 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
   Widget _pendingCard(IncidentReport report) => Card(
     child: ListTile(
       onTap: () => _openDetails(report),
-      leading: const Icon(
-        Icons.cloud_upload_outlined,
-        color: Color(0xFFE18436),
+      leading: Icon(
+        report.status == IncidentStatus.syncFailed
+            ? Icons.sync_problem
+            : Icons.cloud_upload_outlined,
+        color: report.status == IncidentStatus.syncFailed
+            ? const Color(0xFFB54735)
+            : const Color(0xFFE18436),
       ),
       title: Text(report.title),
       subtitle: Text(
-        '${report.type.label} · ${report.severity.label} · ${report.createdAt.toLocal().toString().substring(0, 16)}',
+        '${report.status == IncidentStatus.syncFailed ? 'Retry needed' : 'Pending Sync'} · '
+        '${report.type.label} · ${report.severity.label} · '
+        '${report.createdAt.toLocal().toString().substring(0, 16)}',
       ),
       trailing: IconButton(
         tooltip: 'Retry this report',
