@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../incidents/presentation/incident_home_page.dart';
+import '../../incidents/presentation/incident_responder_inbox_page.dart';
 
 /// Navigation container for the ranger's currently implemented UC02 feature.
 /// Other use cases can add their own destinations when those features are ready.
@@ -28,6 +29,7 @@ class _RangerNetShellState extends State<RangerNetShell> {
             openIncidents: () => setState(() => _selectedIndex = 1),
           ),
           IncidentHomePage(ranger: widget.ranger),
+          IncidentResponderInboxPage(rangerId: widget.ranger.uid),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -44,6 +46,11 @@ class _RangerNetShellState extends State<RangerNetShell> {
             icon: Icon(Icons.crisis_alert_outlined),
             selectedIcon: Icon(Icons.crisis_alert),
             label: 'Incidents',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.assignment_outlined),
+            selectedIcon: Icon(Icons.assignment),
+            label: 'Assigned',
           ),
         ],
       ),
