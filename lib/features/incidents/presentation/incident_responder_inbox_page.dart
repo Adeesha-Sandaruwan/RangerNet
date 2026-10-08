@@ -3,15 +3,18 @@ import 'package:flutter/material.dart';
 import '../data/incident_management_repository.dart';
 import '../domain/incident_report.dart';
 import 'incident_detail_page.dart';
+import 'incident_responder_detail_page.dart';
 
 /// Assigned UC02 cases for a ranger acting as an incident responder.
 class IncidentResponderInboxPage extends StatefulWidget {
   const IncidentResponderInboxPage({
     required this.rangerId,
+    required this.responderName,
     super.key,
   });
 
   final String rangerId;
+  final String responderName;
 
   @override
   State<IncidentResponderInboxPage> createState() =>
@@ -109,7 +112,10 @@ class _IncidentResponderInboxPageState extends State<IncidentResponderInboxPage>
     child: ListTile(
       onTap: () => Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
-          builder: (_) => IncidentDetailPage(report: report),
+          builder: (_) => IncidentResponderDetailPage(
+            report: report,
+            responderName: widget.responderName,
+          ),
         ),
       ).then((_) => _load()),
       leading: Icon(

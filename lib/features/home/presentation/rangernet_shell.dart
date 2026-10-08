@@ -29,7 +29,12 @@ class _RangerNetShellState extends State<RangerNetShell> {
             openIncidents: () => setState(() => _selectedIndex = 1),
           ),
           IncidentHomePage(ranger: widget.ranger),
-          IncidentResponderInboxPage(rangerId: widget.ranger.uid),
+          IncidentResponderInboxPage(
+            rangerId: widget.ranger.uid,
+            responderName: widget.ranger.displayName ??
+                widget.ranger.email ??
+                'Ranger',
+          ),
         ],
       ),
       bottomNavigationBar: NavigationBar(
