@@ -4,8 +4,12 @@ import 'package:flutter/material.dart';
 import '../../incidents/presentation/incident_home_page.dart';
 import '../../incidents/presentation/incident_responder_inbox_page.dart';
 
-/// Navigation container for the ranger's currently implemented UC02 feature.
-/// Other use cases can add their own destinations when those features are ready.
+import '../../wildlife_alerts/data/repositories/wildlife_alert_repository_impl.dart';
+import '../../wildlife_alerts/presentation/controllers/wildlife_alert_controller.dart';
+import '../../wildlife_alerts/presentation/pages/wildlife_alert_dashboard_page.dart';
+
+/// Navigation container for RangerNet.
+/// Hosts UC02 Incident Reporting and UC03 Wildlife Sensor Alerts.
 class RangerNetShell extends StatefulWidget {
   const RangerNetShell({required this.ranger, super.key});
 
@@ -17,6 +21,21 @@ class RangerNetShell extends StatefulWidget {
 
 class _RangerNetShellState extends State<RangerNetShell> {
   int _selectedIndex = 0;
+  late final WildlifeAlertController _wildlifeAlertController;
+
+  @override
+  void initState() {
+    super.initState();
+    _wildlifeAlertController = WildlifeAlertController(
+      repository: WildlifeAlertRepositoryImpl(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _wildlifeAlertController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +45,12 @@ class _RangerNetShellState extends State<RangerNetShell> {
         children: [
           _RangerHomePage(
             ranger: widget.ranger,
-            openIncidents: () => setState(() => _selectedIndex = 1),
+            openAlerts: () => setState(() => _selectedIndex = 1),
+            openIncidents: () => setState(() => _selectedIndex = 2),
+          ),
+          WildlifeAlertDashboardPage(
+            ranger: widget.ranger,
+            controller: _wildlifeAlertController,
           ),
           IncidentHomePage(ranger: widget.ranger),
           IncidentResponderInboxPage(
@@ -47,6 +71,11 @@ class _RangerNetShellState extends State<RangerNetShell> {
             label: 'Home',
           ),
           NavigationDestination(
+            icon: Icon(Icons.radar_outlined),
+            selectedIcon: Icon(Icons.radar),
+            label: 'Alerts',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.crisis_alert_outlined),
             selectedIcon: Icon(Icons.crisis_alert),
             label: 'Incidents',
@@ -63,9 +92,14 @@ class _RangerNetShellState extends State<RangerNetShell> {
 }
 
 class _RangerHomePage extends StatelessWidget {
-  const _RangerHomePage({required this.ranger, required this.openIncidents});
+  const _RangerHomePage({
+    required this.ranger,
+    required this.openAlerts,
+    required this.openIncidents,
+  });
 
   final User ranger;
+  final VoidCallback openAlerts;
   final VoidCallback openIncidents;
 
   @override
@@ -102,15 +136,23 @@ class _RangerHomePage extends StatelessWidget {
               Text('Signed in as ${ranger.email ?? 'ranger'}'),
               const SizedBox(height: 18),
               const Text(
-                'Use Incidents to report wildlife or poaching activity. '
-                'Your report can be saved on this device and synchronized '
-                'when a connection is available.',
+                'Monitor wildlife sensor telemetry, geofence breaches, and report '
+                'illegal poaching incidents with real-time field synchronization.',
               ),
               const SizedBox(height: 20),
               FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF17613F),
+                ),
+                onPressed: openAlerts,
+                icon: const Icon(Icons.radar),
+                label: const Text('UC03: Monitor Wildlife & Sensor Alerts'),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
                 onPressed: openIncidents,
                 icon: const Icon(Icons.crisis_alert),
-                label: const Text('Incident reporting is in the Incidents tab'),
+                label: const Text('Incident reporting (Incidents tab)'),
               ),
             ],
           ),
