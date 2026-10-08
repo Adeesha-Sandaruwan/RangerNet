@@ -62,6 +62,21 @@ class IncidentCloudRepository {
       evidence: const [],
       patrolId: data['patrolId']?.toString(),
       manualLocation: data['locationSource'] == 'manual',
+      workflowStatus: IncidentWorkflowStatus.values.firstWhere(
+        (value) => value.name == data['workflowStatus'],
+        orElse: () => IncidentWorkflowStatus.reported,
+      ),
+      assignmentKind: IncidentAssignmentKind.values.firstWhere(
+        (value) => value.name == data['assignmentType'],
+        orElse: () => IncidentAssignmentKind.ranger,
+      ),
+      assignedRangerIds: (data['assignedRangerIds'] as List<dynamic>? ?? const [])
+          .map((value) => value.toString())
+          .toList(growable: false),
+      assignedRangerNames:
+          (data['assignedRangerNames'] as List<dynamic>? ?? const [])
+              .map((value) => value.toString())
+              .toList(growable: false),
     );
   }
 
@@ -90,6 +105,10 @@ class IncidentCloudRepository {
       'patrolId': report.patrolId,
       'createdAtClient': Timestamp.fromDate(report.createdAt.toUtc()),
       'evidenceCount': report.evidence.length,
+      'workflowStatus': report.workflowStatus.name,
+      'assignmentType': report.assignmentKind.name,
+      'assignedRangerIds': report.assignedRangerIds,
+      'assignedRangerNames': report.assignedRangerNames,
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
