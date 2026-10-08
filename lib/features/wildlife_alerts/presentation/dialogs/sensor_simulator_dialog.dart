@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controllers/wildlife_alert_controller.dart';
 import '../../domain/services/wildlife_sensor_simulator.dart';
+import '../widgets/camera_trap_live_video_feed_widget.dart';
 
 class SensorSimulatorDialog extends StatefulWidget {
   const SensorSimulatorDialog({
@@ -35,6 +36,53 @@ class _SensorSimulatorDialogState extends State<SensorSimulatorDialog> {
     } finally {
       if (mounted) setState(() => _isRunning = false);
     }
+  }
+
+  void _openCameraLiveFeed(String cameraTrapId, String? tag, String? imageUrl) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: const EdgeInsets.all(12),
+        child: SizedBox(
+          width: 720,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                color: const Color(0xFF14241C),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  children: [
+                    const Icon(Icons.videocam,
+                        color: Colors.greenAccent, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Live Video Stream — $cameraTrapId',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+              ),
+              CameraTrapLiveVideoFeedWidget(
+                cameraTrapId: cameraTrapId,
+                initialImageUrl: imageUrl,
+                detectionTag: tag,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -133,6 +181,31 @@ class _SensorSimulatorDialogState extends State<SensorSimulatorDialog> {
                               ),
                             ),
                           )),
+                      if (_lastResult!.scenarioName.contains('Camera Trap')) ...[
+                        const SizedBox(height: 10),
+                        FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF17613F),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                          ),
+                          onPressed: () {
+                            final alert = _lastResult!.telemetryResults
+                                .where((r) => r.alert != null)
+                                .map((r) => r.alert)
+                                .firstOrNull;
+                            _openCameraLiveFeed(
+                              alert?.sensorId ?? 'CAM-TRAP-101',
+                              alert?.simulatedDetectionTag ?? 'POACHER_DETECTED',
+                              alert?.capturedImageUrl,
+                            );
+                          },
+                          icon: const Icon(Icons.videocam, size: 16),
+                          label: const Text('📹 Open Live Camera Video Feed',
+                              style: TextStyle(fontSize: 12)),
+                        ),
+                      ],
                     ],
                   ),
                 ),

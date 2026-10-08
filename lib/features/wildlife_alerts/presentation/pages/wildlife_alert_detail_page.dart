@@ -6,6 +6,7 @@ import '../../domain/models/wildlife_alert.dart';
 import '../controllers/wildlife_alert_controller.dart';
 import '../dialogs/submit_response_dialog.dart';
 import '../widgets/alert_badges.dart';
+import '../widgets/camera_trap_live_video_feed_widget.dart';
 import '../widgets/location_history_timeline.dart';
 import '../widgets/wildlife_conservation_map_widget.dart';
 import 'wildlife_live_tracking_map_page.dart';
@@ -354,56 +355,18 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
                         ),
                         const Divider(height: 20),
 
-                        // If Camera Trap Alert: preview detection image and tag
-                        if (alert.capturedImageUrl != null ||
+                        // If Camera Trap Alert: render Simulated Live Video Stream Feed
+                        if (alert.triggerType == AlertTriggerType.cameraDetection ||
+                            alert.capturedImageUrl != null ||
                             alert.simulatedDetectionTag != null) ...[
-                          if (alert.simulatedDetectionTag != null) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFEBEE),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: const Color(0xFFC62828)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.warning,
-                                      color: Color(0xFFC62828), size: 16),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'AI DETECTION TAG: ${alert.simulatedDetectionTag}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                      color: Color(0xFFC62828),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                          ],
-                          if (alert.capturedImageUrl != null)
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: AspectRatio(
-                                aspectRatio: 16 / 9,
-                                child: Image.network(
-                                  alert.capturedImageUrl!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => Container(
-                                    color: Colors.grey.shade200,
-                                    child: const Center(
-                                      child: Icon(Icons.broken_image,
-                                          size: 48, color: Colors.grey),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          const SizedBox(height: 12),
+                          CameraTrapLiveVideoFeedWidget(
+                            cameraTrapId: alert.sensorId,
+                            cameraName: alert.targetName,
+                            initialImageUrl: alert.capturedImageUrl,
+                            detectionTag: alert.simulatedDetectionTag,
+                            batteryLevel: _sensor?.batteryLevel ?? 88.0,
+                          ),
+                          const SizedBox(height: 16),
                         ],
 
                         // Current Coordinates & Sensor Status

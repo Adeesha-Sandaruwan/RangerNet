@@ -103,9 +103,10 @@ Show these key scenarios to the evaluator:
   - `Ping 2: ⚡ [THROTTLED/APPENDED]`
   - `Ping 3: ⚡ [THROTTLED/APPENDED]`
 
-#### Demo Scenario C: Camera Trap Threat Detection
+#### Demo Scenario C: Camera Trap Threat Detection & Live Video Stream
 - In the simulator, click **"Trigger"** next to **Scenario 4: Camera Trap - Poaching / Trespass**.
 - **Explanation to Evaluator:** *"A motion-triggered camera trap on the Menik Ganga trail captures armed trespassers. The CameraTrapProcessingStrategy evaluates the simulated detection tag `POACHER_WEAPON_DETECTED` and spawns a HIGH threat alert with photo evidence."*
+- Click **"📹 Open Live Camera Video Feed"** directly from the simulator dialog to launch the live surveillance stream for `CAM-TRAP-101`.
 
 #### Demo Scenario D: Safe Range Movement (Zero False Alarms)
 - Click **"Trigger"** next to **Scenario 3: Normal Movement (Safe Range)**.
@@ -113,12 +114,22 @@ Show these key scenarios to the evaluator:
 
 ---
 
-### Step 4: Inspect Alert Details & Telemetry Breadcrumbs
+### Step 4: Inspect Alert Details, GIS Map & Camera Live Video Feed
 Tap on any alert card in the list to open the **Alert Details Screen**:
 1. **Header Cards**: Risk Level badge (`HIGH RISK`), status badge (`ACTIVE`), animal profile (`Raja (Tusker) - Sri Lankan Elephant`), and breached zone information.
 2. **Sensor Telemetry**: Real-time Latitude, Longitude, Altitude, and Collar Battery percentage gauge.
-3. **Camera Photo Preview** *(for Camera Trap alerts)*: Displays the captured photo frame and the red **`AI DETECTION TAG`** banner.
-4. **Location Breadcrumbs Timeline**: Point out the **"Telemetry Breadcrumbs (X pings)"** list. Show how throttled pings are chronologically tracked with individual timestamps and coordinates, including the `LATEST` badge.
+3. **Embedded Interactive GIS Map**: Visualizes the exact location coordinates, sector boundaries, and sensor point.
+4. **Camera Trap Live Video Stream** *(for Camera Trap alerts)*:
+   - **REC LIVE Blinking Indicator**: Real-time streaming status with pulsing red REC badge.
+   - **Live Clock Ticker**: Real-time millisecond timecode (`YYYY-MM-DD HH:MM:SS.F`) synced to current time.
+   - **AI Vision Bounding Box**: Reticle brackets highlighting the detected intruder/animal with confidence score (`AI: POACHER_DETECTED (97.4%)`).
+   - **Vision Mode Switcher**:
+     - ☀️ **Daylight (True Color)**: Standard full-spectrum optical view.
+     - 🌙 **Night Vision (Infrared)**: High-contrast monochrome green night vision matrix with CRT scanlines.
+     - 🔥 **Thermal FLIR (Ironbow)**: High-heat gradient thermographic overlay.
+   - **Live Frame Capture**: Tap **"Capture Frame"** to trigger a simulated camera shutter flash and save evidence.
+   - **Fullscreen Mode**: Expand the feed to a dedicated full-screen monitor.
+5. **Location Breadcrumbs Timeline**: Point out the **"Telemetry Breadcrumbs (X pings)"** list. Show how throttled pings are chronologically tracked with individual timestamps and coordinates, including the `LATEST` badge.
 
 ---
 

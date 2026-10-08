@@ -5,6 +5,7 @@ import 'package:rangernet/features/wildlife_alerts/domain/models/geo_location.da
 import 'package:rangernet/features/wildlife_alerts/domain/models/wildlife_alert.dart';
 import 'package:rangernet/features/wildlife_alerts/presentation/controllers/wildlife_alert_controller.dart';
 import 'package:rangernet/features/wildlife_alerts/presentation/widgets/alert_badges.dart';
+import 'package:rangernet/features/wildlife_alerts/presentation/widgets/camera_trap_live_video_feed_widget.dart';
 import 'package:rangernet/features/wildlife_alerts/presentation/widgets/location_history_timeline.dart';
 import 'package:rangernet/features/wildlife_alerts/presentation/widgets/wildlife_conservation_map_widget.dart';
 
@@ -159,6 +160,42 @@ void main() {
       expect(find.text('High Risk Geofence'), findsOneWidget);
       expect(find.text('GPS Collar Breadcrumbs'), findsOneWidget);
       expect(find.text('Camera Trap Node'), findsOneWidget);
+    });
+
+    testWidgets('CameraTrapLiveVideoFeedWidget renders REC status, FPS, and vision controls', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: SizedBox(
+                width: 800,
+                child: CameraTrapLiveVideoFeedWidget(
+                  cameraTrapId: 'CAM-TRAP-101',
+                  detectionTag: 'POACHER_DETECTED',
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.textContaining('REC'), findsOneWidget);
+      expect(find.textContaining('30 FPS'), findsOneWidget);
+      expect(find.textContaining('Daylight'), findsOneWidget);
+      expect(find.textContaining('Night Vision'), findsOneWidget);
+      expect(find.textContaining('Thermal'), findsOneWidget);
+      expect(find.textContaining('AI: POACHER_DETECTED'), findsOneWidget);
+      expect(find.text('Capture Frame'), findsOneWidget);
+
+      // Switch to Thermal Vision mode
+      await tester.tap(find.textContaining('Thermal'));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Tap Capture Frame
+      await tester.tap(find.text('Capture Frame'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.textContaining('Live frame snapshot captured'), findsOneWidget);
     });
   });
 }
