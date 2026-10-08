@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
+import '../data/incident_evidence_picker.dart';
 import '../data/incident_management_repository.dart';
 import '../domain/incident_report.dart';
 import '../domain/incident_timeline_event.dart';
@@ -23,7 +26,9 @@ class IncidentResponderDetailPage extends StatefulWidget {
 class _IncidentResponderDetailPageState
     extends State<IncidentResponderDetailPage> {
   final _repository = IncidentManagementRepository();
+  final _evidencePicker = IncidentEvidencePicker();
   final _notes = TextEditingController();
+  final List<IncidentEvidence> _evidence = [];
   List<IncidentTimelineEvent> _history = const [];
   bool _saving = false;
   String? _error;
@@ -67,16 +72,36 @@ class _IncidentResponderDetailPageState
         responderName: widget.responderName,
         note: _notes.text,
         status: status,
-        evidence: const [],
+        evidence: List.unmodifiable(_evidence),
       );
       if (!mounted) return;
       _notes.clear();
+      setState(() => _evidence.clear());
       await _loadHistory();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Response update saved: ${status.label}.')),
       );
     } catch (error) {
       if (mounted) setState(() => _error = 'Update was not saved: $error');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _addEvidence(EvidenceSource source) async {
+    if (_evidence.length >= IncidentEvidencePicker.maxEvidenceCount) {
+      setState(() => _error = 'You can attach up to three response photos.');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      final photo = await _evidencePicker.pick(source);
+      if (photo != null && mounted) setState(() => _evidence.add(photo));
+    } catch (error) {
+      if (mounted) setState(() => _error = 'Photo could not be attached: $error');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -153,6 +178,53 @@ class _IncidentResponderDetailPageState
                           border: OutlineInputBorder(),
                         ),
                       ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _closed || _saving
+                                  ? null
+                                  : () => _addEvidence(EvidenceSource.camera),
+                              icon: const Icon(Icons.camera_alt_outlined),
+                              label: const Text('Camera'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _closed || _saving
+                                  ? null
+                                  : () => _addEvidence(EvidenceSource.gallery),
+                              icon: const Icon(Icons.photo_library_outlined),
+                              label: const Text('Gallery'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_evidence.isNotEmpty)
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _evidence.map((photo) => InputChip(
+                            avatar: Image.memory(
+                              base64Decode(photo.base64Data),
+                              width: 28,
+                              height: 28,
+                              fit: BoxFit.cover,
+                            ),
+                            label: Text(photo.fileName,
+                                overflow: TextOverflow.ellipsis),
+                            onDeleted: _saving || _closed
+                                ? null
+                                : () => setState(() => _evidence.remove(photo)),
+                          )).toList(),
+                        ),
+                      if (_evidence.isEmpty)
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text('Response photos are optional · up to 3'),
+                        ),
+                      const SizedBox(height: 8),
                       OutlinedButton.icon(
                         onPressed: _closed || _saving
                             ? null

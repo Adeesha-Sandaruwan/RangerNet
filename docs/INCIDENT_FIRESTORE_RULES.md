@@ -122,7 +122,7 @@ service cloud.firestore {
         match /evidence/{evidenceId} {
           allow get, list: if canReadIncident(incidentId);
           allow create: if isAssignedResponder(incidentId)
-            && get(/databases/$(database)/documents/incidents/$(incidentId)/responses/$(responseId))
+            && getAfter(/databases/$(database)/documents/incidents/$(incidentId)/responses/$(responseId))
                  .data.actorId == request.auth.uid;
           allow update, delete: if false;
         }
