@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../domain/incident_report.dart';
 import '../domain/incident_timeline_event.dart';
 import '../domain/ranger_profile.dart';
+import '../domain/incident_workflow_policy.dart';
 
 /// Firestore boundary for UC02 management and responder actions.
 /// Authorization is enforced by Firestore rules, not by this UI repository.
@@ -143,20 +144,18 @@ class IncidentManagementRepository {
     required String managerName,
     String note = '',
   }) async {
-    if (severity == IncidentSeverity.critical && note.trim().isEmpty) {
-      throw ArgumentError('Add the reason for marking this incident critical.');
-    }
     final actor = _requireSignedIn();
     final incident = _firestore.collection('incidents').doc(incidentId);
     final current = await incident.get();
-    if (_enumValue(
-          IncidentWorkflowStatus.values,
-          current.data()?['workflowStatus'],
-          IncidentWorkflowStatus.reported,
-        ) ==
-        IncidentWorkflowStatus.closed) {
-      throw StateError('Closed incidents are read-only.');
-    }
+    IncidentWorkflowPolicy.validateReview(
+      currentStatus: _enumValue(
+        IncidentWorkflowStatus.values,
+        current.data()?['workflowStatus'],
+        IncidentWorkflowStatus.reported,
+      ),
+      severity: severity,
+      note: note,
+    );
     final event = incident.collection('timeline').doc(_uuid.v4());
     final batch = _firestore.batch();
     batch.update(incident, {
@@ -191,26 +190,20 @@ class IncidentManagementRepository {
     required List<RangerProfile> responders,
     required String managerName,
   }) async {
-    if (responders.isEmpty ||
-        (kind == IncidentAssignmentKind.ranger && responders.length != 1) ||
-        (kind == IncidentAssignmentKind.responseTeam &&
-            responders.length < 2)) {
-      throw ArgumentError('Select one ranger or at least two team members.');
-    }
+    IncidentWorkflowPolicy.validateAssignmentSelection(kind, responders.length);
     final actor = _requireSignedIn();
     final incident = _firestore.collection('incidents').doc(incidentId);
     final before = await incident.get();
     final wasAssigned =
         (before.data()?['assignedRangerIds'] as List<dynamic>?)?.isNotEmpty ==
         true;
-    if (_enumValue(
-          IncidentWorkflowStatus.values,
-          before.data()?['workflowStatus'],
-          IncidentWorkflowStatus.reported,
-        ) ==
-        IncidentWorkflowStatus.closed) {
-      throw StateError('Closed incidents cannot be reassigned.');
-    }
+    IncidentWorkflowPolicy.ensureIncidentIsOpen(
+      _enumValue(
+        IncidentWorkflowStatus.values,
+        before.data()?['workflowStatus'],
+        IncidentWorkflowStatus.reported,
+      ),
+    );
     final event = incident.collection('timeline').doc(_uuid.v4());
     final names = responders.map(_displayName).toList(growable: false);
     final batch = _firestore.batch();
@@ -244,7 +237,7 @@ class IncidentManagementRepository {
     required String note,
     IncidentSeverity? severity,
   }) async {
-    if (!_managerStatuses.contains(status)) {
+    if (!IncidentWorkflowPolicy.managerActions.contains(status)) {
       throw ArgumentError('That status change is not a manager action.');
     }
     final actor = _requireSignedIn();
@@ -255,24 +248,12 @@ class IncidentManagementRepository {
       current.data()?['workflowStatus'],
       IncidentWorkflowStatus.reported,
     );
-    if (currentStatus == IncidentWorkflowStatus.closed) {
-      throw StateError('This incident is already closed.');
-    }
-    if (status == IncidentWorkflowStatus.closed &&
-        currentStatus != IncidentWorkflowStatus.resolved) {
-      throw StateError(
-        'A responder must submit the incident as resolved before manager closure.',
-      );
-    }
-    if ((status == IncidentWorkflowStatus.followUpRequired ||
-            status == IncidentWorkflowStatus.monitoring ||
-            status == IncidentWorkflowStatus.duplicate ||
-            status == IncidentWorkflowStatus.rejected ||
-            status == IncidentWorkflowStatus.closed ||
-            severity == IncidentSeverity.critical) &&
-        note.trim().isEmpty) {
-      throw ArgumentError('Add a reason for this incident action.');
-    }
+    IncidentWorkflowPolicy.validateManagerTransition(
+      currentStatus: currentStatus,
+      nextStatus: status,
+      note: note,
+      severity: severity,
+    );
     final event = incident.collection('timeline').doc(_uuid.v4());
     final update = <String, Object?>{
       'workflowStatus': status.name,
@@ -318,15 +299,7 @@ class IncidentManagementRepository {
     required IncidentWorkflowStatus status,
     required List<IncidentEvidence> evidence,
   }) async {
-    if (note.trim().length < 5) {
-      throw ArgumentError(
-        'Add at least five characters describing the action.',
-      );
-    }
-    if (status != IncidentWorkflowStatus.responseInProgress &&
-        status != IncidentWorkflowStatus.resolved) {
-      throw ArgumentError('Choose in progress or resolved.');
-    }
+    IncidentWorkflowPolicy.validateResponderUpdate(note: note, status: status);
     final actor = _requireSignedIn();
     final incident = _firestore.collection('incidents').doc(incidentId);
     final response = incident.collection('responses').doc(_uuid.v4());
@@ -443,14 +416,4 @@ class IncidentManagementRepository {
 
   String _displayName(RangerProfile ranger) =>
       ranger.displayName.isEmpty ? ranger.email : ranger.displayName;
-
-  static const _managerStatuses = {
-    IncidentWorkflowStatus.underReview,
-    IncidentWorkflowStatus.followUpRequired,
-    IncidentWorkflowStatus.monitoring,
-    IncidentWorkflowStatus.closed,
-    IncidentWorkflowStatus.duplicate,
-    IncidentWorkflowStatus.rejected,
-    IncidentWorkflowStatus.assigned,
-  };
 }

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../data/incident_management_repository.dart';
 import '../domain/incident_report.dart';
 import '../domain/ranger_profile.dart';
+import 'auth_navigation.dart';
 import 'incident_manager_detail_page.dart';
 import 'widgets/incident_status_badges.dart';
 
@@ -128,7 +129,7 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
           ),
           IconButton(
             tooltip: 'Sign out',
-            onPressed: () => FirebaseAuth.instance.signOut(),
+            onPressed: _signOut,
             icon: const Icon(Icons.logout),
           ),
         ],
@@ -272,4 +273,7 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
   );
 
   String _date(DateTime date) => date.toLocal().toString().substring(0, 16);
+
+  Future<void> _signOut() =>
+      signOutAndReturnToLogin(context, signOut: FirebaseAuth.instance.signOut);
 }
