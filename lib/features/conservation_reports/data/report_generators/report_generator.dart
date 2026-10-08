@@ -1,6 +1,6 @@
-import '../../incidents/domain/incident_report.dart';
-import '../domain/conservation_report_filter.dart';
-import '../domain/conservation_report_result.dart';
+import '../../../incidents/domain/incident_report.dart';
+import '../../domain/conservation_report_filter.dart';
+import '../../domain/conservation_report_result.dart';
 
 /// Strategy interface for UC04 conservation report generators.
 ///

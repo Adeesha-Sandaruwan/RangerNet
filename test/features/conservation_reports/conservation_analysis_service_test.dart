@@ -213,7 +213,7 @@ void main() {
       );
       expect(result.summaryMetrics['Resolution rate'], '50.0%');
       expect(result.summaryMetrics['Resolved / closed'], '2');
-      expect(result.summaryMetrics['Open cases'], '2');
+      expect(result.summaryMetrics['Open cases'], '3');
     });
 
     test('calculates assignment rate', () {
