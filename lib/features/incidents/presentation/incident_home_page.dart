@@ -64,7 +64,9 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
         if (mounted) setState(() => _reportedReports = reports);
       } catch (error) {
         if (mounted) {
-          setState(() => _message = 'Saved locally; cloud list unavailable: $error');
+          setState(
+            () => _message = 'Saved locally; cloud list unavailable: $error',
+          );
         }
       }
     } catch (error) {
@@ -106,7 +108,9 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
     try {
       await _store.clearDraft(widget.ranger.uid);
       await _refreshQueue();
-      if (mounted) setState(() => _message = 'Unfinished incident draft discarded.');
+      if (mounted) {
+        setState(() => _message = 'Unfinished incident draft discarded.');
+      }
     } catch (error) {
       if (mounted) setState(() => _message = 'Could not discard draft: $error');
     }
@@ -386,7 +390,7 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
         '${report.type.label} · ${report.severity.label} · '
         '${report.createdAt.toLocal().toString().substring(0, 16)}',
       ),
-      trailing: const Chip(label: Text('Reported')),
+      trailing: Chip(label: Text(report.workflowStatus.label)),
     ),
   );
 

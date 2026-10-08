@@ -57,7 +57,9 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
       if (mounted) setState(() => _report = report);
       await _loadTimeline();
     } catch (error) {
-      if (mounted) setState(() => _error = 'Could not refresh incident: $error');
+      if (mounted) {
+        setState(() => _error = 'Could not refresh incident: $error');
+      }
     }
   }
 
@@ -70,9 +72,11 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isEscalation
-            ? 'Escalate to critical'
-            : 'Set ${status.label.toLowerCase()}'),
+        title: Text(
+          isEscalation
+              ? 'Escalate to critical'
+              : 'Set ${status.label.toLowerCase()}',
+        ),
         content: TextField(
           controller: reason,
           autofocus: true,
@@ -118,13 +122,12 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
       );
       if (!mounted) return;
       setState(() {
-        _report = _report.copyWith(
-          workflowStatus: status,
-          severity: severity,
-        );
+        _report = _report.copyWith(workflowStatus: status, severity: severity);
       });
       await _loadTimeline();
-      _showMessage(isEscalation ? 'Incident escalated to critical.' : 'Incident updated.');
+      _showMessage(
+        isEscalation ? 'Incident escalated to critical.' : 'Incident updated.',
+      );
     } catch (error) {
       if (mounted) setState(() => _error = 'Action was not saved: $error');
     } finally {
@@ -165,12 +168,16 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
     try {
       candidates = await _repository.loadActiveRangers();
     } catch (error) {
-      if (mounted) setState(() => _error = 'Could not load ranger list: $error');
+      if (mounted) {
+        setState(() => _error = 'Could not load ranger list: $error');
+      }
       return;
     }
     if (!mounted) return;
     if (candidates.isEmpty) {
-      setState(() => _error = 'No active ranger accounts are available to assign.');
+      setState(
+        () => _error = 'No active ranger accounts are available to assign.',
+      );
       return;
     }
 
@@ -179,101 +186,104 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
     if (kind == IncidentAssignmentKind.ranger && selected.length > 1) {
       selected.remove(selected.last);
     }
-    final result = await showDialog<({
-      IncidentAssignmentKind kind,
-      List<RangerProfile> responders,
-    })>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, updateDialog) => AlertDialog(
-          title: const Text('Assign response'),
-          content: SizedBox(
-            width: 440,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SegmentedButton<IncidentAssignmentKind>(
-                  segments: const [
-                    ButtonSegment(
-                      value: IncidentAssignmentKind.ranger,
-                      label: Text('One ranger'),
-                      icon: Icon(Icons.person_outline),
+    final result =
+        await showDialog<
+          ({IncidentAssignmentKind kind, List<RangerProfile> responders})
+        >(
+          context: context,
+          builder: (dialogContext) => StatefulBuilder(
+            builder: (context, updateDialog) => AlertDialog(
+              title: const Text('Assign response'),
+              content: SizedBox(
+                width: 440,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SegmentedButton<IncidentAssignmentKind>(
+                      segments: const [
+                        ButtonSegment(
+                          value: IncidentAssignmentKind.ranger,
+                          label: Text('One ranger'),
+                          icon: Icon(Icons.person_outline),
+                        ),
+                        ButtonSegment(
+                          value: IncidentAssignmentKind.responseTeam,
+                          label: Text('Response team'),
+                          icon: Icon(Icons.groups_outlined),
+                        ),
+                      ],
+                      selected: {kind},
+                      onSelectionChanged: (value) => updateDialog(() {
+                        kind = value.first;
+                        if (kind == IncidentAssignmentKind.ranger &&
+                            selected.length > 1) {
+                          selected.removeAll(selected.skip(1).toList());
+                        }
+                      }),
                     ),
-                    ButtonSegment(
-                      value: IncidentAssignmentKind.responseTeam,
-                      label: Text('Response team'),
-                      icon: Icon(Icons.groups_outlined),
+                    const SizedBox(height: 8),
+                    Text(
+                      kind == IncidentAssignmentKind.ranger
+                          ? 'Choose one ranger.'
+                          : 'Choose at least two rangers for the response team.',
+                    ),
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: candidates.map((ranger) {
+                          final name = ranger.displayName.isEmpty
+                              ? ranger.email
+                              : ranger.displayName;
+                          return CheckboxListTile(
+                            value: selected.contains(ranger.uid),
+                            title: Text(name),
+                            subtitle: ranger.email.isEmpty
+                                ? null
+                                : Text(ranger.email),
+                            onChanged: (checked) => updateDialog(() {
+                              if (checked == true) {
+                                if (kind == IncidentAssignmentKind.ranger) {
+                                  selected
+                                    ..clear()
+                                    ..add(ranger.uid);
+                                } else {
+                                  selected.add(ranger.uid);
+                                }
+                              } else {
+                                selected.remove(ranger.uid);
+                              }
+                            }),
+                            controlAffinity: ListTileControlAffinity.leading,
+                          );
+                        }).toList(),
+                      ),
                     ),
                   ],
-                  selected: {kind},
-                  onSelectionChanged: (value) => updateDialog(() {
-                    kind = value.first;
-                    if (kind == IncidentAssignmentKind.ranger &&
-                        selected.length > 1) {
-                      selected.removeAll(selected.skip(1).toList());
-                    }
-                  }),
                 ),
-                const SizedBox(height: 8),
-                Text(kind == IncidentAssignmentKind.ranger
-                    ? 'Choose one ranger.'
-                    : 'Choose at least two rangers for the response team.'),
-                const SizedBox(height: 8),
-                Flexible(
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: candidates.map((ranger) {
-                      final name = ranger.displayName.isEmpty
-                          ? ranger.email
-                          : ranger.displayName;
-                      return CheckboxListTile(
-                        value: selected.contains(ranger.uid),
-                        title: Text(name),
-                        subtitle: ranger.email.isEmpty
-                            ? null
-                            : Text(ranger.email),
-                        onChanged: (checked) => updateDialog(() {
-                          if (checked == true) {
-                            if (kind == IncidentAssignmentKind.ranger) {
-                              selected
-                                ..clear()
-                                ..add(ranger.uid);
-                            } else {
-                              selected.add(ranger.uid);
-                            }
-                          } else {
-                            selected.remove(ranger.uid);
-                          }
-                        }),
-                        controlAffinity: ListTileControlAffinity.leading,
-                      );
-                    }).toList(),
-                  ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed:
+                      selected.length <
+                          (kind == IncidentAssignmentKind.ranger ? 1 : 2)
+                      ? null
+                      : () => Navigator.pop(dialogContext, (
+                          kind: kind,
+                          responders: candidates
+                              .where((item) => selected.contains(item.uid))
+                              .toList(growable: false),
+                        )),
+                  child: const Text('Assign'),
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: selected.length <
-                      (kind == IncidentAssignmentKind.ranger ? 1 : 2)
-                  ? null
-                  : () => Navigator.pop(dialogContext, (
-                      kind: kind,
-                      responders: candidates
-                          .where((item) => selected.contains(item.uid))
-                          .toList(growable: false),
-                    )),
-              child: const Text('Assign'),
-            ),
-          ],
-        ),
-      ),
-    );
+        );
     if (result == null || !mounted) return;
 
     setState(() {
@@ -289,7 +299,9 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
       );
       if (!mounted) return;
       final names = result.responders
-          .map((item) => item.displayName.isEmpty ? item.email : item.displayName)
+          .map(
+            (item) => item.displayName.isEmpty ? item.email : item.displayName,
+          )
           .toList(growable: false);
       setState(() {
         _report = _report.copyWith(
@@ -351,8 +363,8 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
                   _report.latitude == null || _report.longitude == null
                       ? 'No coordinates recorded'
                       : '${_report.latitude!.toStringAsFixed(6)}, '
-                          '${_report.longitude!.toStringAsFixed(6)} · '
-                          '${_report.parkOrBlock}',
+                            '${_report.longitude!.toStringAsFixed(6)} · '
+                            '${_report.parkOrBlock}',
                 ),
                 trailing: IconButton(
                   tooltip: 'View full report and evidence',
@@ -371,8 +383,10 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('Review and priority',
-                        style: Theme.of(context).textTheme.titleLarge),
+                    Text(
+                      'Review and priority',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<IncidentSeverity>(
                       initialValue: _report.severity,
@@ -381,17 +395,25 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
                         border: OutlineInputBorder(),
                       ),
                       items: IncidentSeverity.values
-                          .map((value) => DropdownMenuItem(
-                                value: value,
-                                child: Text(value.label),
-                              ))
+                          .map(
+                            (value) => DropdownMenuItem(
+                              value: value,
+                              child: Text(value.label),
+                            ),
+                          )
                           .toList(),
-                      onChanged: _saving
+                      onChanged:
+                          _saving ||
+                              _report.workflowStatus ==
+                                  IncidentWorkflowStatus.closed
                           ? null
                           : (value) {
                               if (value != null) {
-                                setState(() => _report =
-                                    _report.copyWith(severity: value));
+                                setState(
+                                  () => _report = _report.copyWith(
+                                    severity: value,
+                                  ),
+                                );
                               }
                             },
                     ),
@@ -406,7 +428,12 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
                       ),
                     ),
                     FilledButton.icon(
-                      onPressed: _saving ? null : _saveReview,
+                      onPressed:
+                          _saving ||
+                              _report.workflowStatus ==
+                                  IncidentWorkflowStatus.closed
+                          ? null
+                          : _saveReview,
                       icon: _saving
                           ? const SizedBox.square(
                               dimension: 18,
@@ -425,8 +452,10 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('Incident actions',
-                        style: Theme.of(context).textTheme.titleLarge),
+                    Text(
+                      'Incident actions',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                     const SizedBox(height: 6),
                     const Text(
                       'Record a reason for escalation, monitoring, follow-up, '
@@ -435,8 +464,10 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
                     ),
                     const SizedBox(height: 10),
                     OutlinedButton.icon(
-                      onPressed: _saving ||
-                              _report.workflowStatus == IncidentWorkflowStatus.closed ||
+                      onPressed:
+                          _saving ||
+                              _report.workflowStatus ==
+                                  IncidentWorkflowStatus.closed ||
                               _report.severity == IncidentSeverity.critical
                           ? null
                           : () => _managerAction(
@@ -447,8 +478,10 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
                       label: const Text('Escalate to critical'),
                     ),
                     OutlinedButton.icon(
-                      onPressed: _saving ||
-                              _report.workflowStatus == IncidentWorkflowStatus.closed
+                      onPressed:
+                          _saving ||
+                              _report.workflowStatus ==
+                                  IncidentWorkflowStatus.closed
                           ? null
                           : () => _managerAction(
                               IncidentWorkflowStatus.followUpRequired,
@@ -457,8 +490,10 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
                       label: const Text('Require follow-up'),
                     ),
                     OutlinedButton.icon(
-                      onPressed: _saving ||
-                              _report.workflowStatus == IncidentWorkflowStatus.closed
+                      onPressed:
+                          _saving ||
+                              _report.workflowStatus ==
+                                  IncidentWorkflowStatus.closed
                           ? null
                           : () => _managerAction(
                               IncidentWorkflowStatus.monitoring,
@@ -466,13 +501,13 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
                       icon: const Icon(Icons.visibility_outlined),
                       label: const Text('Keep under monitoring'),
                     ),
-                    if (_report.workflowStatus == IncidentWorkflowStatus.resolved)
+                    if (_report.workflowStatus ==
+                        IncidentWorkflowStatus.resolved)
                       FilledButton.icon(
                         onPressed: _saving
                             ? null
-                            : () => _managerAction(
-                                IncidentWorkflowStatus.closed,
-                              ),
+                            : () =>
+                                  _managerAction(IncidentWorkflowStatus.closed),
                         icon: const Icon(Icons.task_alt),
                         label: const Text('Confirm resolution and close'),
                       )
@@ -489,8 +524,10 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
                       spacing: 8,
                       children: [
                         TextButton(
-                          onPressed: _saving ||
-                                  _report.workflowStatus == IncidentWorkflowStatus.closed
+                          onPressed:
+                              _saving ||
+                                  _report.workflowStatus ==
+                                      IncidentWorkflowStatus.closed
                               ? null
                               : () => _managerAction(
                                   IncidentWorkflowStatus.duplicate,
@@ -498,8 +535,10 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
                           child: const Text('Mark duplicate'),
                         ),
                         TextButton(
-                          onPressed: _saving ||
-                                  _report.workflowStatus == IncidentWorkflowStatus.closed
+                          onPressed:
+                              _saving ||
+                                  _report.workflowStatus ==
+                                      IncidentWorkflowStatus.closed
                               ? null
                               : () => _managerAction(
                                   IncidentWorkflowStatus.rejected,
@@ -518,20 +557,31 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('Response assignment',
-                        style: Theme.of(context).textTheme.titleLarge),
+                    Text(
+                      'Response assignment',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                     const SizedBox(height: 6),
-                    Text(_report.assignedRangerNames.isEmpty
-                        ? 'No ranger or response team assigned.'
-                        : '${_report.assignmentKind == IncidentAssignmentKind.ranger ? 'Ranger' : 'Response team'}: '
-                            '${_report.assignedRangerNames.join(', ')}'),
+                    Text(
+                      _report.assignedRangerNames.isEmpty
+                          ? 'No ranger or response team assigned.'
+                          : '${_report.assignmentKind == IncidentAssignmentKind.ranger ? 'Ranger' : 'Response team'}: '
+                                '${_report.assignedRangerNames.join(', ')}',
+                    ),
                     const SizedBox(height: 10),
                     OutlinedButton.icon(
-                      onPressed: _saving ? null : _assignResponders,
+                      onPressed:
+                          _saving ||
+                              _report.workflowStatus ==
+                                  IncidentWorkflowStatus.closed
+                          ? null
+                          : _assignResponders,
                       icon: const Icon(Icons.assignment_ind_outlined),
-                      label: Text(_report.assignedRangerIds.isEmpty
-                          ? 'Assign ranger or response team'
-                          : 'Reassign response'),
+                      label: Text(
+                        _report.assignedRangerIds.isEmpty
+                            ? 'Assign ranger or response team'
+                            : 'Reassign response',
+                      ),
                     ),
                   ],
                 ),
@@ -546,8 +596,10 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
                 ),
               ),
             const SizedBox(height: 8),
-            Text('Incident history',
-                style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Incident history',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             if (_events.isEmpty)
               const Card(
                 child: ListTile(
@@ -572,8 +624,8 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
   );
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }

@@ -17,7 +17,9 @@ class UserRoleRepository {
     if (existing.exists) {
       final profile = RangerProfile.fromMap(user.uid, existing.data()!);
       if (!profile.active) {
-        throw StateError('This RangerNet account is inactive. Contact a manager.');
+        throw StateError(
+          'This RangerNet account is inactive. Contact a manager.',
+        );
       }
       return profile;
     }

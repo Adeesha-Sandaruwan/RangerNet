@@ -26,6 +26,14 @@ class _IncidentRoleGateState extends State<IncidentRoleGate> {
   }
 
   @override
+  void didUpdateWidget(covariant IncidentRoleGate oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user.uid != widget.user.uid) {
+      _profile = UserRoleRepository().loadOrCreateRangerProfile(widget.user);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) => FutureBuilder<RangerProfile>(
     future: _profile,
     builder: (context, snapshot) {

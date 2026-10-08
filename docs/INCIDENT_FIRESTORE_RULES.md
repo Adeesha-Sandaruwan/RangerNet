@@ -35,7 +35,7 @@ service cloud.firestore {
     }
 
     function isReporter(incidentId) {
-      return signedIn()
+      return isRanger()
         && exists(incidentPath(incidentId))
         && get(incidentPath(incidentId)).data.rangerId == request.auth.uid;
     }
@@ -88,6 +88,11 @@ service cloud.firestore {
                .hasOnly(['status', 'submittedAt', 'updatedAt'])
         ) || (
           isManager()
+          && request.resource.data.workflowStatus in [
+               'reported', 'underReview', 'assigned', 'responseInProgress',
+               'resolved', 'followUpRequired', 'monitoring', 'closed',
+               'duplicate', 'rejected'
+             ]
           && request.resource.data.diff(resource.data).affectedKeys()
                .hasOnly([
                  'severity', 'activeThreat', 'workflowStatus',
@@ -97,6 +102,10 @@ service cloud.firestore {
                ])
         ) || (
           isAssignedResponder(incidentId)
+          && resource.data.workflowStatus
+               in ['assigned', 'responseInProgress', 'followUpRequired', 'monitoring']
+          && request.resource.data.workflowStatus
+               in ['responseInProgress', 'resolved']
           && request.resource.data.diff(resource.data).affectedKeys()
                .hasOnly(['workflowStatus', 'updatedAt'])
           && request.resource.data.workflowStatus
@@ -130,9 +139,19 @@ service cloud.firestore {
 
       match /timeline/{eventId} {
         allow get, list: if canReadIncident(incidentId);
-        allow create: if (isManager() || isAssignedResponder(incidentId))
-          && request.resource.data.actorId == request.auth.uid;
-        allow update, delete: if false;
+        allow create: if (
+            (isManager() || isAssignedResponder(incidentId))
+            && request.resource.data.actorId == request.auth.uid
+          ) || (
+            isReporter(incidentId)
+            && request.resource.data.actorId == request.auth.uid
+            && request.resource.data.type == 'reportSubmitted'
+          );
+        // The initial event has a stable payload so retrying report sync is safe.
+        allow update: if isReporter(incidentId)
+          && resource.data.type == 'reportSubmitted'
+          && request.resource.data == resource.data;
+        allow delete: if false;
       }
     }
   }

@@ -75,8 +75,10 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(report.title,
-                            style: Theme.of(context).textTheme.titleLarge),
+                        child: Text(
+                          report.title,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
                       ),
                       Chip(label: Text(status)),
                     ],
@@ -85,23 +87,37 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                   _detail('Type', report.type.label),
                   _detail('Severity', report.severity.label),
                   _detail('Active threat', report.activeThreat ? 'Yes' : 'No'),
+                  _detail('Incident status', report.workflowStatus.label),
                   _detail('Reported', _formatDate(report.createdAt)),
-                  _detail('Ranger', report.rangerEmail.isEmpty
-                      ? report.rangerId
-                      : report.rangerEmail),
-                  _detail('Park / block', report.parkOrBlock.isEmpty
-                      ? 'Not provided'
-                      : report.parkOrBlock),
-                  _detail('Patrol ID', report.patrolId?.isNotEmpty == true
-                      ? report.patrolId!
-                      : 'Not linked'),
+                  _detail(
+                    'Ranger',
+                    report.rangerEmail.isEmpty
+                        ? report.rangerId
+                        : report.rangerEmail,
+                  ),
+                  _detail(
+                    'Park / block',
+                    report.parkOrBlock.isEmpty
+                        ? 'Not provided'
+                        : report.parkOrBlock,
+                  ),
+                  _detail(
+                    'Patrol ID',
+                    report.patrolId?.isNotEmpty == true
+                        ? report.patrolId!
+                        : 'Not linked',
+                  ),
                   const Divider(height: 24),
-                  const Text('Description',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Description',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   const SizedBox(height: 6),
-                  Text(report.description.isEmpty
-                      ? 'No description provided.'
-                      : report.description),
+                  Text(
+                    report.description.isEmpty
+                        ? 'No description provided.'
+                        : report.description,
+                  ),
                 ],
               ),
             ),
@@ -113,8 +129,8 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
               subtitle: Text(
                 hasLocation
                     ? '${report.latitude!.toStringAsFixed(6)}, '
-                        '${report.longitude!.toStringAsFixed(6)}\n'
-                        '${report.manualLocation ? 'Entered manually' : 'Captured by GPS'}'
+                          '${report.longitude!.toStringAsFixed(6)}\n'
+                          '${report.manualLocation ? 'Entered manually' : 'Captured by GPS'}'
                     : 'Location was not recorded',
               ),
               isThreeLine: hasLocation,
@@ -155,8 +171,10 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
             },
           ),
           const SizedBox(height: 16),
-          SelectableText('Report ID: ${report.id}',
-              style: Theme.of(context).textTheme.bodySmall),
+          SelectableText(
+            'Report ID: ${report.id}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         ],
       ),
     );
@@ -189,16 +207,19 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
   }
 
   Widget _detail(String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(width: 116, child: Text(label,
-                style: const TextStyle(color: Colors.black54))),
-            Expanded(child: Text(value)),
-          ],
+    padding: const EdgeInsets.symmetric(vertical: 3),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 116,
+          child: Text(label, style: const TextStyle(color: Colors.black54)),
         ),
-      );
+        Expanded(child: Text(value)),
+      ],
+    ),
+  );
 
-  String _formatDate(DateTime date) => date.toLocal().toString().substring(0, 16);
+  String _formatDate(DateTime date) =>
+      date.toLocal().toString().substring(0, 16);
 }

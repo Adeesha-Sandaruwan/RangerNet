@@ -1,8 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../data/incident_management_repository.dart';
 import '../domain/incident_report.dart';
-import 'incident_detail_page.dart';
 import 'incident_responder_detail_page.dart';
 
 /// Assigned UC02 cases for a ranger acting as an incident responder.
@@ -21,16 +22,62 @@ class IncidentResponderInboxPage extends StatefulWidget {
       _IncidentResponderInboxPageState();
 }
 
-class _IncidentResponderInboxPageState extends State<IncidentResponderInboxPage> {
+class _IncidentResponderInboxPageState
+    extends State<IncidentResponderInboxPage> {
   final _repository = IncidentManagementRepository();
+  StreamSubscription<List<IncidentReport>>? _subscription;
   List<IncidentReport> _reports = const [];
+  final Set<String> _knownIncidentIds = {};
+  bool _receivedInitialSnapshot = false;
   bool _loading = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _subscription = _repository
+        .watchAssignedIncidents(widget.rangerId)
+        .listen(
+          (reports) {
+            if (mounted) {
+              if (_receivedInitialSnapshot) {
+                final newlyAssigned = reports.where(
+                  (report) => !_knownIncidentIds.contains(report.id),
+                );
+                for (final report in newlyAssigned) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Incident assigned: ${report.title}'),
+                    ),
+                  );
+                }
+              }
+              _receivedInitialSnapshot = true;
+              _knownIncidentIds
+                ..clear()
+                ..addAll(reports.map((report) => report.id));
+              setState(() {
+                _reports = reports;
+                _loading = false;
+                _error = null;
+              });
+            }
+          },
+          onError: (Object error) {
+            if (mounted) {
+              setState(() {
+                _error = error.toString();
+                _loading = false;
+              });
+            }
+          },
+        );
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -70,8 +117,10 @@ class _IncidentResponderInboxPageState extends State<IncidentResponderInboxPage>
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text('UC02 · Response work',
-                  style: Theme.of(context).textTheme.headlineSmall),
+              Text(
+                'UC02 · Response work',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
               const SizedBox(height: 4),
               const Text('Incidents assigned to your ranger account.'),
               const SizedBox(height: 12),
@@ -110,19 +159,22 @@ class _IncidentResponderInboxPageState extends State<IncidentResponderInboxPage>
 
   Widget _incidentCard(IncidentReport report) => Card(
     child: ListTile(
-      onTap: () => Navigator.of(context).push<void>(
-        MaterialPageRoute<void>(
-          builder: (_) => IncidentResponderDetailPage(
-            report: report,
-            responderName: widget.responderName,
-          ),
-        ),
-      ).then((_) => _load()),
+      onTap: () => Navigator.of(context)
+          .push<void>(
+            MaterialPageRoute<void>(
+              builder: (_) => IncidentResponderDetailPage(
+                report: report,
+                responderName: widget.responderName,
+              ),
+            ),
+          )
+          .then((_) => _load()),
       leading: Icon(
         report.activeThreat || report.severity == IncidentSeverity.critical
             ? Icons.warning_amber_rounded
             : Icons.crisis_alert,
-        color: report.activeThreat || report.severity == IncidentSeverity.critical
+        color:
+            report.activeThreat || report.severity == IncidentSeverity.critical
             ? const Color(0xFFB54735)
             : const Color(0xFF17613F),
       ),

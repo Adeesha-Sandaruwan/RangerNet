@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -19,7 +21,10 @@ class IncidentManagerInboxPage extends StatefulWidget {
 
 class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
   final _repository = IncidentManagementRepository();
+  StreamSubscription<List<IncidentReport>>? _subscription;
   List<IncidentReport> _reports = const [];
+  final Set<String> _knownIncidentIds = {};
+  bool _receivedInitialSnapshot = false;
   IncidentWorkflowStatus? _statusFilter;
   bool _loading = true;
   String? _error;
@@ -27,7 +32,49 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
   @override
   void initState() {
     super.initState();
-    _load();
+    _subscription = _repository.watchAllIncidents().listen(
+      (reports) {
+        if (mounted) {
+          if (_receivedInitialSnapshot) {
+            final newReports = reports.where(
+              (report) =>
+                  !_knownIncidentIds.contains(report.id) &&
+                  report.workflowStatus == IncidentWorkflowStatus.reported,
+            );
+            for (final report in newReports) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('New incident reported: ${report.title}'),
+                ),
+              );
+            }
+          }
+          _receivedInitialSnapshot = true;
+          _knownIncidentIds
+            ..clear()
+            ..addAll(reports.map((report) => report.id));
+          setState(() {
+            _reports = reports;
+            _loading = false;
+            _error = null;
+          });
+        }
+      },
+      onError: (Object error) {
+        if (mounted) {
+          setState(() {
+            _error = error.toString();
+            _loading = false;
+          });
+        }
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -50,10 +97,14 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
     final filtered = _statusFilter == null
         ? _reports
         : _reports.where((r) => r.workflowStatus == _statusFilter).toList();
-    final openCount = _reports.where((report) =>
-        report.workflowStatus != IncidentWorkflowStatus.closed &&
-        report.workflowStatus != IncidentWorkflowStatus.duplicate &&
-        report.workflowStatus != IncidentWorkflowStatus.rejected).length;
+    final openCount = _reports
+        .where(
+          (report) =>
+              report.workflowStatus != IncidentWorkflowStatus.closed &&
+              report.workflowStatus != IncidentWorkflowStatus.duplicate &&
+              report.workflowStatus != IncidentWorkflowStatus.rejected,
+        )
+        .length;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F8F3),
@@ -81,10 +132,14 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                Text('UC02 · Wildlife / poaching incidents',
-                    style: Theme.of(context).textTheme.headlineSmall),
+                Text(
+                  'UC02 · Wildlife / poaching incidents',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
                 const SizedBox(height: 4),
-                Text('Manager: ${widget.manager.displayName} · $openCount open'),
+                Text(
+                  'Manager: ${widget.manager.displayName} · $openCount open',
+                ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<IncidentWorkflowStatus?>(
                   initialValue: _statusFilter,
@@ -145,19 +200,22 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
 
   Widget _incidentCard(IncidentReport report) => Card(
     child: ListTile(
-      onTap: () => Navigator.of(context).push<void>(
-        MaterialPageRoute<void>(
-          builder: (_) => IncidentManagerDetailPage(
-            report: report,
-            manager: widget.manager,
-          ),
-        ),
-      ).then((_) => _load()),
+      onTap: () => Navigator.of(context)
+          .push<void>(
+            MaterialPageRoute<void>(
+              builder: (_) => IncidentManagerDetailPage(
+                report: report,
+                manager: widget.manager,
+              ),
+            ),
+          )
+          .then((_) => _load()),
       leading: Icon(
         report.activeThreat || report.severity == IncidentSeverity.critical
             ? Icons.warning_amber_rounded
             : Icons.crisis_alert,
-        color: report.activeThreat || report.severity == IncidentSeverity.critical
+        color:
+            report.activeThreat || report.severity == IncidentSeverity.critical
             ? const Color(0xFFB54735)
             : const Color(0xFF17613F),
       ),

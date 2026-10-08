@@ -24,10 +24,11 @@ class IncidentCloudRepository {
         .where('rangerId', isEqualTo: rangerId)
         .get();
 
-    final reports = snapshot.docs
-        .map((document) => _reportFromDocument(document.data()))
-        .toList(growable: true)
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final reports =
+        snapshot.docs
+            .map((document) => _reportFromDocument(document.data()))
+            .toList(growable: true)
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return reports;
   }
 
@@ -70,9 +71,10 @@ class IncidentCloudRepository {
         (value) => value.name == data['assignmentType'],
         orElse: () => IncidentAssignmentKind.ranger,
       ),
-      assignedRangerIds: (data['assignedRangerIds'] as List<dynamic>? ?? const [])
-          .map((value) => value.toString())
-          .toList(growable: false),
+      assignedRangerIds:
+          (data['assignedRangerIds'] as List<dynamic>? ?? const [])
+              .map((value) => value.toString())
+              .toList(growable: false),
       assignedRangerNames:
           (data['assignedRangerNames'] as List<dynamic>? ?? const [])
               .map((value) => value.toString())
@@ -131,6 +133,16 @@ class IncidentCloudRepository {
       'status': 'Reported',
       'submittedAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    await incident.collection('timeline').doc('reportSubmitted').set({
+      'actorId': report.rangerId,
+      'actorName': report.rangerEmail.isEmpty
+          ? 'Reporting ranger'
+          : report.rangerEmail,
+      'type': 'reportSubmitted',
+      'message': 'Incident report submitted by the ranger.',
+      // Keep the initial event's payload stable so retries are idempotent.
+      'createdAt': Timestamp.fromDate(report.createdAt.toUtc()),
     }, SetOptions(merge: true));
   }
 }

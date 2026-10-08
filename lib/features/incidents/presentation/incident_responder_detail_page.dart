@@ -32,13 +32,16 @@ class _IncidentResponderDetailPageState
   List<IncidentTimelineEvent> _history = const [];
   bool _saving = false;
   String? _error;
+  late IncidentWorkflowStatus _workflowStatus;
 
-  bool get _closed =>
-      widget.report.workflowStatus == IncidentWorkflowStatus.closed;
+  bool get _readOnly =>
+      _workflowStatus == IncidentWorkflowStatus.closed ||
+      _workflowStatus == IncidentWorkflowStatus.resolved;
 
   @override
   void initState() {
     super.initState();
+    _workflowStatus = widget.report.workflowStatus;
     _loadHistory();
   }
 
@@ -53,13 +56,17 @@ class _IncidentResponderDetailPageState
       final history = await _repository.loadTimeline(widget.report.id);
       if (mounted) setState(() => _history = history);
     } catch (error) {
-      if (mounted) setState(() => _error = 'Could not load incident history: $error');
+      if (mounted) {
+        setState(() => _error = 'Could not load incident history: $error');
+      }
     }
   }
 
   Future<void> _saveUpdate(IncidentWorkflowStatus status) async {
     if (_notes.text.trim().length < 5) {
-      setState(() => _error = 'Describe the response using at least 5 characters.');
+      setState(
+        () => _error = 'Describe the response using at least 5 characters.',
+      );
       return;
     }
     setState(() {
@@ -76,8 +83,12 @@ class _IncidentResponderDetailPageState
       );
       if (!mounted) return;
       _notes.clear();
-      setState(() => _evidence.clear());
+      setState(() {
+        _evidence.clear();
+        _workflowStatus = status;
+      });
       await _loadHistory();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Response update saved: ${status.label}.')),
       );
@@ -101,7 +112,9 @@ class _IncidentResponderDetailPageState
       final photo = await _evidencePicker.pick(source);
       if (photo != null && mounted) setState(() => _evidence.add(photo));
     } catch (error) {
-      if (mounted) setState(() => _error = 'Photo could not be attached: $error');
+      if (mounted) {
+        setState(() => _error = 'Photo could not be attached: $error');
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -147,8 +160,8 @@ class _IncidentResponderDetailPageState
                     report.latitude == null || report.longitude == null
                         ? 'No coordinates recorded'
                         : '${report.latitude!.toStringAsFixed(6)}, '
-                            '${report.longitude!.toStringAsFixed(6)}\n'
-                            '${report.parkOrBlock}',
+                              '${report.longitude!.toStringAsFixed(6)}\n'
+                              '${report.parkOrBlock}',
                   ),
                   isThreeLine: true,
                 ),
@@ -159,8 +172,10 @@ class _IncidentResponderDetailPageState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('Record response',
-                          style: Theme.of(context).textTheme.titleLarge),
+                      Text(
+                        'Record response',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
                       const SizedBox(height: 6),
                       const Text(
                         'Record what you found or did. A manager reviews '
@@ -171,7 +186,7 @@ class _IncidentResponderDetailPageState
                         controller: _notes,
                         maxLength: 1000,
                         maxLines: 5,
-                        enabled: !_closed && !_saving,
+                        enabled: !_readOnly && !_saving,
                         decoration: const InputDecoration(
                           labelText: 'Response notes',
                           hintText: 'Investigation findings and actions taken…',
@@ -182,7 +197,7 @@ class _IncidentResponderDetailPageState
                         children: [
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: _closed || _saving
+                              onPressed: _readOnly || _saving
                                   ? null
                                   : () => _addEvidence(EvidenceSource.camera),
                               icon: const Icon(Icons.camera_alt_outlined),
@@ -192,7 +207,7 @@ class _IncidentResponderDetailPageState
                           const SizedBox(width: 8),
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: _closed || _saving
+                              onPressed: _readOnly || _saving
                                   ? null
                                   : () => _addEvidence(EvidenceSource.gallery),
                               icon: const Icon(Icons.photo_library_outlined),
@@ -205,19 +220,27 @@ class _IncidentResponderDetailPageState
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: _evidence.map((photo) => InputChip(
-                            avatar: Image.memory(
-                              base64Decode(photo.base64Data),
-                              width: 28,
-                              height: 28,
-                              fit: BoxFit.cover,
-                            ),
-                            label: Text(photo.fileName,
-                                overflow: TextOverflow.ellipsis),
-                            onDeleted: _saving || _closed
-                                ? null
-                                : () => setState(() => _evidence.remove(photo)),
-                          )).toList(),
+                          children: _evidence
+                              .map(
+                                (photo) => InputChip(
+                                  avatar: Image.memory(
+                                    base64Decode(photo.base64Data),
+                                    width: 28,
+                                    height: 28,
+                                    fit: BoxFit.cover,
+                                  ),
+                                  label: Text(
+                                    photo.fileName,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  onDeleted: _saving || _readOnly
+                                      ? null
+                                      : () => setState(
+                                          () => _evidence.remove(photo),
+                                        ),
+                                ),
+                              )
+                              .toList(),
                         ),
                       if (_evidence.isEmpty)
                         const Align(
@@ -226,7 +249,7 @@ class _IncidentResponderDetailPageState
                         ),
                       const SizedBox(height: 8),
                       OutlinedButton.icon(
-                        onPressed: _closed || _saving
+                        onPressed: _readOnly || _saving
                             ? null
                             : () => _saveUpdate(
                                 IncidentWorkflowStatus.responseInProgress,
@@ -236,16 +259,21 @@ class _IncidentResponderDetailPageState
                       ),
                       const SizedBox(height: 8),
                       FilledButton.icon(
-                        onPressed: _closed || _saving
+                        onPressed: _readOnly || _saving
                             ? null
-                            : () => _saveUpdate(IncidentWorkflowStatus.resolved),
+                            : () =>
+                                  _saveUpdate(IncidentWorkflowStatus.resolved),
                         icon: const Icon(Icons.task_alt),
-                        label: const Text('Submit resolution for manager review'),
+                        label: const Text(
+                          'Submit resolution for manager review',
+                        ),
                       ),
-                      if (_closed)
+                      if (_readOnly)
                         const Padding(
                           padding: EdgeInsets.only(top: 8),
-                          child: Text('This incident has been closed.'),
+                          child: Text(
+                            'Your response is saved. This incident is awaiting manager action.',
+                          ),
                         ),
                     ],
                   ),
@@ -260,8 +288,10 @@ class _IncidentResponderDetailPageState
                   ),
                 ),
               const SizedBox(height: 8),
-              Text('Incident history',
-                  style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                'Incident history',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               if (_history.isEmpty)
                 const Card(
                   child: ListTile(
@@ -270,15 +300,17 @@ class _IncidentResponderDetailPageState
                   ),
                 )
               else
-                ..._history.map((event) => Card(
-                      child: ListTile(
-                        leading: const Icon(Icons.history),
-                        title: Text(event.message),
-                        subtitle: Text(
-                          '${event.actorName} · ${event.createdAt.toLocal()}',
-                        ),
+                ..._history.map(
+                  (event) => Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.history),
+                      title: Text(event.message),
+                      subtitle: Text(
+                        '${event.actorName} · ${event.createdAt.toLocal()}',
                       ),
-                    )),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

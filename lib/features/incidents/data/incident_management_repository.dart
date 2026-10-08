@@ -22,12 +22,31 @@ class IncidentManagementRepository {
   Future<List<IncidentReport>> loadAllIncidents() async {
     _requireSignedIn();
     final snapshot = await _firestore.collection('incidents').get();
-    return _sortReports(snapshot.docs.map(_reportFromDocument));
+    return _sortReports(
+      snapshot.docs.map((document) => _reportFromDocument(document.data())),
+    );
+  }
+
+  Stream<List<IncidentReport>> watchAllIncidents() {
+    _requireSignedIn();
+    return _firestore
+        .collection('incidents')
+        .snapshots()
+        .map(
+          (snapshot) => _sortReports(
+            snapshot.docs.map(
+              (document) => _reportFromDocument(document.data()),
+            ),
+          ),
+        );
   }
 
   Future<IncidentReport> loadIncident(String incidentId) async {
     _requireSignedIn();
-    final snapshot = await _firestore.collection('incidents').doc(incidentId).get();
+    final snapshot = await _firestore
+        .collection('incidents')
+        .doc(incidentId)
+        .get();
     final data = snapshot.data();
     if (data == null) throw StateError('This incident no longer exists.');
     return _reportFromDocument(data);
@@ -42,7 +61,27 @@ class IncidentManagementRepository {
         .collection('incidents')
         .where('assignedRangerIds', arrayContains: rangerId)
         .get();
-    return _sortReports(snapshot.docs.map(_reportFromDocument));
+    return _sortReports(
+      snapshot.docs.map((document) => _reportFromDocument(document.data())),
+    );
+  }
+
+  Stream<List<IncidentReport>> watchAssignedIncidents(String rangerId) {
+    final user = _requireSignedIn();
+    if (user.uid != rangerId) {
+      throw StateError('You can only open incidents assigned to your account.');
+    }
+    return _firestore
+        .collection('incidents')
+        .where('assignedRangerIds', arrayContains: rangerId)
+        .snapshots()
+        .map(
+          (snapshot) => _sortReports(
+            snapshot.docs.map(
+              (document) => _reportFromDocument(document.data()),
+            ),
+          ),
+        );
   }
 
   Future<List<RangerProfile>> loadActiveRangers() async {
@@ -65,14 +104,16 @@ class IncidentManagementRepository {
         .collection('timeline')
         .orderBy('createdAt', descending: true)
         .get();
-    return snapshot.docs.map((doc) {
-      final data = doc.data();
-      final stamp = data['createdAt'];
-      final date = stamp is Timestamp
-          ? stamp.toDate()
-          : DateTime.tryParse(stamp?.toString() ?? '') ?? DateTime.now();
-      return IncidentTimelineEvent.fromDocument(doc.id, data, date);
-    }).toList(growable: false);
+    return snapshot.docs
+        .map((doc) {
+          final data = doc.data();
+          final stamp = data['createdAt'];
+          final date = stamp is Timestamp
+              ? stamp.toDate()
+              : DateTime.tryParse(stamp?.toString() ?? '') ?? DateTime.now();
+          return IncidentTimelineEvent.fromDocument(doc.id, data, date);
+        })
+        .toList(growable: false);
   }
 
   Future<void> reviewIncident({
@@ -86,6 +127,15 @@ class IncidentManagementRepository {
     }
     final actor = _requireSignedIn();
     final incident = _firestore.collection('incidents').doc(incidentId);
+    final current = await incident.get();
+    if (_enumValue(
+          IncidentWorkflowStatus.values,
+          current.data()?['workflowStatus'],
+          IncidentWorkflowStatus.reported,
+        ) ==
+        IncidentWorkflowStatus.closed) {
+      throw StateError('Closed incidents are read-only.');
+    }
     final event = incident.collection('timeline').doc(_uuid.v4());
     final batch = _firestore.batch();
     batch.update(incident, {
@@ -96,18 +146,21 @@ class IncidentManagementRepository {
         'escalationReason': note.trim(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
-    batch.set(event, _eventData(
-      actorId: actor.uid,
-      actorName: managerName,
-      type: severity == IncidentSeverity.critical
-          ? 'criticalEscalation'
-          : 'reviewed',
-      message: severity == IncidentSeverity.critical
-          ? 'Escalated to critical: ${note.trim()}'
-          : note.trim().isEmpty
-          ? 'Incident reviewed; severity set to ${severity.label}.'
-          : 'Incident reviewed: ${note.trim()}',
-    ));
+    batch.set(
+      event,
+      _eventData(
+        actorId: actor.uid,
+        actorName: managerName,
+        type: severity == IncidentSeverity.critical
+            ? 'criticalEscalation'
+            : 'reviewed',
+        message: severity == IncidentSeverity.critical
+            ? 'Escalated to critical: ${note.trim()}'
+            : note.trim().isEmpty
+            ? 'Incident reviewed; severity set to ${severity.label}.'
+            : 'Incident reviewed: ${note.trim()}',
+      ),
+    );
     await batch.commit();
   }
 
@@ -119,15 +172,24 @@ class IncidentManagementRepository {
   }) async {
     if (responders.isEmpty ||
         (kind == IncidentAssignmentKind.ranger && responders.length != 1) ||
-        (kind == IncidentAssignmentKind.responseTeam && responders.length < 2)) {
+        (kind == IncidentAssignmentKind.responseTeam &&
+            responders.length < 2)) {
       throw ArgumentError('Select one ranger or at least two team members.');
     }
     final actor = _requireSignedIn();
     final incident = _firestore.collection('incidents').doc(incidentId);
     final before = await incident.get();
-    final wasAssigned = (before.data()?['assignedRangerIds'] as List<dynamic>?)
-            ?.isNotEmpty ==
+    final wasAssigned =
+        (before.data()?['assignedRangerIds'] as List<dynamic>?)?.isNotEmpty ==
         true;
+    if (_enumValue(
+          IncidentWorkflowStatus.values,
+          before.data()?['workflowStatus'],
+          IncidentWorkflowStatus.reported,
+        ) ==
+        IncidentWorkflowStatus.closed) {
+      throw StateError('Closed incidents cannot be reassigned.');
+    }
     final event = incident.collection('timeline').doc(_uuid.v4());
     final names = responders.map(_displayName).toList(growable: false);
     final batch = _firestore.batch();
@@ -140,13 +202,17 @@ class IncidentManagementRepository {
       'workflowStatus': IncidentWorkflowStatus.assigned.name,
       'updatedAt': FieldValue.serverTimestamp(),
     });
-    batch.set(event, _eventData(
-      actorId: actor.uid,
-      actorName: managerName,
-      type: 'assigned',
-      message: '${wasAssigned ? 'Reassigned' : 'Assigned'} '
-          '${kind == IncidentAssignmentKind.ranger ? 'to ${names.first}' : 'to response team: ${names.join(', ')}'}.',
-    ));
+    batch.set(
+      event,
+      _eventData(
+        actorId: actor.uid,
+        actorName: managerName,
+        type: 'assigned',
+        message:
+            '${wasAssigned ? 'Reassigned' : 'Assigned'} '
+            '${kind == IncidentAssignmentKind.ranger ? 'to ${names.first}' : 'to response team: ${names.join(', ')}'}.',
+      ),
+    );
     await batch.commit();
   }
 
@@ -168,6 +234,9 @@ class IncidentManagementRepository {
       current.data()?['workflowStatus'],
       IncidentWorkflowStatus.reported,
     );
+    if (currentStatus == IncidentWorkflowStatus.closed) {
+      throw StateError('This incident is already closed.');
+    }
     if (status == IncidentWorkflowStatus.closed &&
         currentStatus != IncidentWorkflowStatus.resolved) {
       throw StateError(
@@ -203,18 +272,21 @@ class IncidentManagementRepository {
     }
     final batch = _firestore.batch();
     batch.update(incident, update);
-    batch.set(event, _eventData(
-      actorId: actor.uid,
-      actorName: managerName,
-      type: severity == IncidentSeverity.critical
-          ? 'criticalEscalation'
-          : status.name,
-      message: severity == IncidentSeverity.critical
-          ? 'Escalated to critical: $normalizedNote'
-          : normalizedNote.isEmpty
-          ? 'Incident status changed to ${status.label}.'
-          : '${status.label}: $normalizedNote',
-    ));
+    batch.set(
+      event,
+      _eventData(
+        actorId: actor.uid,
+        actorName: managerName,
+        type: severity == IncidentSeverity.critical
+            ? 'criticalEscalation'
+            : status.name,
+        message: severity == IncidentSeverity.critical
+            ? 'Escalated to critical: $normalizedNote'
+            : normalizedNote.isEmpty
+            ? 'Incident status changed to ${status.label}.'
+            : '${status.label}: $normalizedNote',
+      ),
+    );
     await batch.commit();
   }
 
@@ -226,7 +298,9 @@ class IncidentManagementRepository {
     required List<IncidentEvidence> evidence,
   }) async {
     if (note.trim().length < 5) {
-      throw ArgumentError('Add at least five characters describing the action.');
+      throw ArgumentError(
+        'Add at least five characters describing the action.',
+      );
     }
     if (status != IncidentWorkflowStatus.responseInProgress &&
         status != IncidentWorkflowStatus.resolved) {
@@ -249,12 +323,15 @@ class IncidentManagementRepository {
       'workflowStatus': status.name,
       'updatedAt': FieldValue.serverTimestamp(),
     });
-    batch.set(event, _eventData(
-      actorId: actor.uid,
-      actorName: responderName,
-      type: 'responderUpdate',
-      message: '${status.label}: ${note.trim()}',
-    ));
+    batch.set(
+      event,
+      _eventData(
+        actorId: actor.uid,
+        actorName: responderName,
+        type: 'responderUpdate',
+        message: '${status.label}: ${note.trim()}',
+      ),
+    );
     for (final photo in evidence) {
       batch.set(response.collection('evidence').doc(photo.id), {
         'fileName': photo.fileName,
@@ -273,7 +350,8 @@ class IncidentManagementRepository {
   }
 
   List<IncidentReport> _sortReports(Iterable<IncidentReport> reports) =>
-      reports.where((report) => report.status == IncidentStatus.reported)
+      reports
+          .where((report) => report.status == IncidentStatus.reported)
           .toList(growable: true)
         ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
@@ -342,9 +420,8 @@ class IncidentManagementRepository {
     'createdAt': FieldValue.serverTimestamp(),
   };
 
-  String _displayName(RangerProfile ranger) => ranger.displayName.isEmpty
-      ? ranger.email
-      : ranger.displayName;
+  String _displayName(RangerProfile ranger) =>
+      ranger.displayName.isEmpty ? ranger.email : ranger.displayName;
 
   static const _managerStatuses = {
     IncidentWorkflowStatus.underReview,

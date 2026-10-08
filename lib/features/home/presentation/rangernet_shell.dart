@@ -31,9 +31,8 @@ class _RangerNetShellState extends State<RangerNetShell> {
           IncidentHomePage(ranger: widget.ranger),
           IncidentResponderInboxPage(
             rangerId: widget.ranger.uid,
-            responderName: widget.ranger.displayName ??
-                widget.ranger.email ??
-                'Ranger',
+            responderName:
+                widget.ranger.displayName ?? widget.ranger.email ?? 'Ranger',
           ),
         ],
       ),
@@ -95,8 +94,10 @@ class _RangerHomePage extends StatelessWidget {
             children: [
               const Icon(Icons.forest, size: 54, color: Color(0xFF17613F)),
               const SizedBox(height: 18),
-              Text('Welcome to RangerNet',
-                  style: Theme.of(context).textTheme.headlineMedium),
+              Text(
+                'Welcome to RangerNet',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
               const SizedBox(height: 8),
               Text('Signed in as ${ranger.email ?? 'ranger'}'),
               const SizedBox(height: 18),
