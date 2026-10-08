@@ -118,11 +118,18 @@ class IncidentCloudRepository {
     // failed while saving its final timeline event. Read the server copy first
     // so a retry never changes a Reported record back to Uploading (which the
     // rules correctly reject).
-    final existingSnapshot = await incident.get(
-      const GetOptions(source: Source.server),
-    );
-    if (existingSnapshot.exists) {
-      final existing = existingSnapshot.data()!;
+    // Do not read the document path directly here: Firestore rules deny a
+    // ranger's get() when that document does not exist. This owner-filtered
+    // query is authorized by the same rangerId rule as the submitted reports
+    // list and safely returns no documents for a new incident.
+    final existingSnapshot = await _firestore
+        .collection('incidents')
+        .where('incidentId', isEqualTo: report.id)
+        .where('rangerId', isEqualTo: user.uid)
+        .limit(1)
+        .get(const GetOptions(source: Source.server));
+    if (existingSnapshot.docs.isNotEmpty) {
+      final existing = existingSnapshot.docs.first.data();
       if (existing['rangerId'] != user.uid) {
         throw StateError('This incident ID belongs to another ranger.');
       }
