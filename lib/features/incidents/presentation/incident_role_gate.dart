@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/user_role_repository.dart';
 import '../domain/ranger_profile.dart';
-import 'incident_manager_inbox_page.dart';
+import 'incident_manager_dashboard_page.dart';
 import '../../home/presentation/rangernet_shell.dart';
 
 /// Resolves the authenticated user's trusted Firestore role before routing.
@@ -73,7 +73,7 @@ class _IncidentRoleGateState extends State<IncidentRoleGate> {
       }
       final profile = snapshot.data!;
       return profile.role == RangerRole.manager
-          ? IncidentManagerInboxPage(manager: profile)
+          ? IncidentManagerDashboardPage(manager: profile)
           : RangerNetShell(ranger: widget.user);
     },
   );

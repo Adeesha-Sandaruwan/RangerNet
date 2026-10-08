@@ -27,6 +27,7 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
   final Set<String> _knownIncidentIds = {};
   bool _receivedInitialSnapshot = false;
   IncidentWorkflowStatus? _statusFilter;
+  bool _showClosed = false;
   bool _loading = true;
   String? _error;
 
@@ -95,9 +96,16 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
 
   @override
   Widget build(BuildContext context) {
+    final sectionReports = _reports.where(
+      (report) => _showClosed
+          ? report.workflowStatus == IncidentWorkflowStatus.closed
+          : report.workflowStatus != IncidentWorkflowStatus.closed,
+    );
     final filtered = _statusFilter == null
-        ? _reports
-        : _reports.where((r) => r.workflowStatus == _statusFilter).toList();
+        ? sectionReports.toList()
+        : sectionReports
+              .where((r) => r.workflowStatus == _statusFilter)
+              .toList();
     final openCount = _reports
         .where(
           (report) =>
@@ -142,6 +150,30 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
                   'Manager: ${widget.manager.displayName} · $openCount open',
                 ),
                 const SizedBox(height: 14),
+                SegmentedButton<bool>(
+                  segments: [
+                    ButtonSegment(
+                      value: false,
+                      label: Text(
+                        'Open (${_reports.where((report) => report.workflowStatus != IncidentWorkflowStatus.closed).length})',
+                      ),
+                      icon: const Icon(Icons.pending_actions_outlined),
+                    ),
+                    ButtonSegment(
+                      value: true,
+                      label: Text(
+                        'Closed (${_reports.where((report) => report.workflowStatus == IncidentWorkflowStatus.closed).length})',
+                      ),
+                      icon: const Icon(Icons.task_alt_rounded),
+                    ),
+                  ],
+                  selected: {_showClosed},
+                  onSelectionChanged: (value) => setState(() {
+                    _showClosed = value.first;
+                    _statusFilter = null;
+                  }),
+                ),
+                const SizedBox(height: 12),
                 DropdownButtonFormField<IncidentWorkflowStatus?>(
                   initialValue: _statusFilter,
                   decoration: const InputDecoration(

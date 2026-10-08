@@ -1,10 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 import '../data/incident_management_repository.dart';
 import '../domain/incident_report.dart';
 import '../domain/incident_timeline_event.dart';
 import '../domain/ranger_profile.dart';
-import 'incident_detail_page.dart';
+import 'widgets/incident_status_badges.dart';
 
 class IncidentManagerDetailPage extends StatefulWidget {
   const IncidentManagerDetailPage({
@@ -25,6 +27,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
   final _repository = IncidentManagementRepository();
   final _note = TextEditingController();
   late IncidentReport _report;
+  late Future<List<IncidentEvidence>> _evidenceFuture;
   List<IncidentTimelineEvent> _events = const [];
   bool _saving = false;
   String? _error;
@@ -33,6 +36,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
   void initState() {
     super.initState();
     _report = widget.report;
+    _evidenceFuture = _repository.loadIncidentEvidence(_report.id);
     _loadTimeline();
   }
 
@@ -54,7 +58,12 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
   Future<void> _refreshIncident() async {
     try {
       final report = await _repository.loadIncident(_report.id);
-      if (mounted) setState(() => _report = report);
+      if (mounted) {
+        setState(() {
+          _report = report;
+          _evidenceFuture = _repository.loadIncidentEvidence(_report.id);
+        });
+      }
       await _loadTimeline();
     } catch (error) {
       if (mounted) {
@@ -339,44 +348,8 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Card(
-              child: ListTile(
-                leading: Icon(
-                  _report.activeThreat ||
-                          _report.severity == IncidentSeverity.critical
-                      ? Icons.warning_amber_rounded
-                      : Icons.crisis_alert,
-                  color: const Color(0xFF17613F),
-                ),
-                title: Text(_report.title),
-                subtitle: Text(
-                  '${_report.type.label} · ${_report.workflowStatus.label}\n'
-                  'Reporter: ${_report.rangerEmail}',
-                ),
-                isThreeLine: true,
-              ),
-            ),
-            Card(
-              child: ListTile(
-                title: const Text('Location'),
-                subtitle: Text(
-                  _report.latitude == null || _report.longitude == null
-                      ? 'No coordinates recorded'
-                      : '${_report.latitude!.toStringAsFixed(6)}, '
-                            '${_report.longitude!.toStringAsFixed(6)} · '
-                            '${_report.parkOrBlock}',
-                ),
-                trailing: IconButton(
-                  tooltip: 'View full report and evidence',
-                  onPressed: () => Navigator.of(context).push<void>(
-                    MaterialPageRoute<void>(
-                      builder: (_) => IncidentDetailPage(report: _report),
-                    ),
-                  ),
-                  icon: const Icon(Icons.open_in_new),
-                ),
-              ),
-            ),
+            _reportCard(),
+            _evidenceCard(),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -614,6 +587,180 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
       ),
     ),
   );
+
+  Widget _reportCard() => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(_report.title, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          IncidentStatusBadges(
+            severity: _report.severity,
+            status: _report.workflowStatus,
+          ),
+          const Divider(height: 24),
+          _reportField('Incident type', _report.type.label),
+          _reportField(
+            'Reporter',
+            _report.rangerEmail.isEmpty
+                ? _report.rangerId
+                : _report.rangerEmail,
+          ),
+          _reportField('Reported at', _date(_report.createdAt)),
+          _reportField('Active threat', _report.activeThreat ? 'Yes' : 'No'),
+          _reportField('Park / block', _report.parkOrBlock),
+          _reportField(
+            'Location',
+            _report.latitude == null || _report.longitude == null
+                ? 'No coordinates recorded'
+                : '${_report.latitude!.toStringAsFixed(6)}, '
+                      '${_report.longitude!.toStringAsFixed(6)}',
+          ),
+          _reportField(
+            'Location source',
+            _report.manualLocation ? 'Entered manually' : 'GPS',
+          ),
+          if (_report.locationAccuracyMeters != null)
+            _reportField(
+              'GPS accuracy',
+              '±${_report.locationAccuracyMeters!.toStringAsFixed(0)} m',
+            ),
+          _reportField(
+            'Patrol ID',
+            _report.patrolId?.isNotEmpty == true ? _report.patrolId! : 'None',
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Reporter description',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 4),
+          SelectableText(
+            _report.description.isEmpty
+                ? 'No description provided.'
+                : _report.description,
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _reportField(String label, String value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 3),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 125,
+          child: Text(label, style: const TextStyle(color: Colors.black54)),
+        ),
+        Expanded(child: SelectableText(value.isEmpty ? 'Not provided' : value)),
+      ],
+    ),
+  );
+
+  Widget _evidenceCard() => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Reporter evidence',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 10),
+          FutureBuilder<List<IncidentEvidence>>(
+            future: _evidenceFuture,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.cloud_off_outlined),
+                  title: const Text('Could not load evidence photos'),
+                  subtitle: Text(snapshot.error.toString()),
+                  trailing: IconButton(
+                    tooltip: 'Retry loading photos',
+                    onPressed: () => setState(() {
+                      _evidenceFuture = _repository.loadIncidentEvidence(
+                        _report.id,
+                      );
+                    }),
+                    icon: const Icon(Icons.refresh),
+                  ),
+                );
+              }
+              if (!snapshot.hasData) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+              final photos = snapshot.data!;
+              if (photos.isEmpty) {
+                return const Text('No photos were attached to this report.');
+              }
+              return Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: photos.map(_evidenceTile).toList(growable: false),
+              );
+            },
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _evidenceTile(IncidentEvidence photo) {
+    final bytes = base64Decode(photo.base64Data);
+    return InkWell(
+      onTap: () => showDialog<void>(
+        context: context,
+        builder: (context) => Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.memory(bytes, fit: BoxFit.contain),
+                const SizedBox(height: 8),
+                Text(photo.fileName),
+              ],
+            ),
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.memory(
+              bytes,
+              width: 112,
+              height: 112,
+              fit: BoxFit.cover,
+            ),
+          ),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: 112,
+            child: Text(
+              photo.fileName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _date(DateTime value) => value.toLocal().toString().substring(0, 16);
 
   Widget _eventCard(IncidentTimelineEvent event) => Card(
     child: ListTile(

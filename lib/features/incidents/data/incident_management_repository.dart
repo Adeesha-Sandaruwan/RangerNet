@@ -116,6 +116,27 @@ class IncidentManagementRepository {
         .toList(growable: false);
   }
 
+  Future<List<IncidentEvidence>> loadIncidentEvidence(String incidentId) async {
+    _requireSignedIn();
+    final snapshot = await _firestore
+        .collection('incidents')
+        .doc(incidentId)
+        .collection('evidence')
+        .get();
+    return snapshot.docs
+        .map((doc) {
+          final data = doc.data();
+          return IncidentEvidence(
+            id: doc.id,
+            fileName: data['fileName']?.toString() ?? 'Evidence photo',
+            base64Data: data['base64Data']?.toString() ?? '',
+            contentType: data['contentType']?.toString() ?? 'image/jpeg',
+          );
+        })
+        .where((photo) => photo.base64Data.isNotEmpty)
+        .toList(growable: false);
+  }
+
   Future<void> reviewIncident({
     required String incidentId,
     required IncidentSeverity severity,
