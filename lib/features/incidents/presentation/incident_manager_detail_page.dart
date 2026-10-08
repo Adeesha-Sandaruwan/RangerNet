@@ -51,6 +51,87 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
     }
   }
 
+  Future<void> _refreshIncident() async {
+    try {
+      final report = await _repository.loadIncident(_report.id);
+      if (mounted) setState(() => _report = report);
+      await _loadTimeline();
+    } catch (error) {
+      if (mounted) setState(() => _error = 'Could not refresh incident: $error');
+    }
+  }
+
+  Future<void> _managerAction(
+    IncidentWorkflowStatus status, {
+    IncidentSeverity? severity,
+  }) async {
+    final reason = TextEditingController();
+    final isEscalation = severity == IncidentSeverity.critical;
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isEscalation
+            ? 'Escalate to critical'
+            : 'Set ${status.label.toLowerCase()}'),
+        content: TextField(
+          controller: reason,
+          autofocus: true,
+          maxLength: 500,
+          maxLines: 4,
+          decoration: InputDecoration(
+            labelText: isEscalation
+                ? 'Urgent risk and reason'
+                : 'Reason / outcome',
+            hintText: 'Record why this action is needed…',
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, reason.text.trim()),
+            child: const Text('Save action'),
+          ),
+        ],
+      ),
+    );
+    reason.dispose();
+    if (result == null || !mounted) return;
+    if (result.isEmpty) {
+      setState(() => _error = 'Enter a reason before saving this action.');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await _repository.managerTransition(
+        incidentId: _report.id,
+        status: status,
+        managerName: widget.manager.displayName,
+        note: result,
+        severity: severity,
+      );
+      if (!mounted) return;
+      setState(() {
+        _report = _report.copyWith(
+          workflowStatus: status,
+          severity: severity,
+        );
+      });
+      await _loadTimeline();
+      _showMessage(isEscalation ? 'Incident escalated to critical.' : 'Incident updated.');
+    } catch (error) {
+      if (mounted) setState(() => _error = 'Action was not saved: $error');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   Future<void> _saveReview() async {
     setState(() {
       _saving = true;
@@ -230,7 +311,16 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF5F8F3),
-    appBar: AppBar(title: const Text('Review incident')),
+    appBar: AppBar(
+      title: const Text('Review incident'),
+      actions: [
+        IconButton(
+          tooltip: 'Refresh incident and history',
+          onPressed: _saving ? null : _refreshIncident,
+          icon: const Icon(Icons.refresh),
+        ),
+      ],
+    ),
     body: Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 800),
@@ -324,6 +414,99 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
                             )
                           : const Icon(Icons.save_outlined),
                       label: const Text('Save review'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text('Incident actions',
+                        style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Record a reason for escalation, monitoring, follow-up, '
+                      'rejection, or closure. Closing requires a responder to '
+                      'submit a resolution first.',
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: _saving ||
+                              _report.workflowStatus == IncidentWorkflowStatus.closed ||
+                              _report.severity == IncidentSeverity.critical
+                          ? null
+                          : () => _managerAction(
+                              IncidentWorkflowStatus.underReview,
+                              severity: IncidentSeverity.critical,
+                            ),
+                      icon: const Icon(Icons.priority_high),
+                      label: const Text('Escalate to critical'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _saving ||
+                              _report.workflowStatus == IncidentWorkflowStatus.closed
+                          ? null
+                          : () => _managerAction(
+                              IncidentWorkflowStatus.followUpRequired,
+                            ),
+                      icon: const Icon(Icons.event_repeat),
+                      label: const Text('Require follow-up'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _saving ||
+                              _report.workflowStatus == IncidentWorkflowStatus.closed
+                          ? null
+                          : () => _managerAction(
+                              IncidentWorkflowStatus.monitoring,
+                            ),
+                      icon: const Icon(Icons.visibility_outlined),
+                      label: const Text('Keep under monitoring'),
+                    ),
+                    if (_report.workflowStatus == IncidentWorkflowStatus.resolved)
+                      FilledButton.icon(
+                        onPressed: _saving
+                            ? null
+                            : () => _managerAction(
+                                IncidentWorkflowStatus.closed,
+                              ),
+                        icon: const Icon(Icons.task_alt),
+                        label: const Text('Confirm resolution and close'),
+                      )
+                    else
+                      const ListTile(
+                        leading: Icon(Icons.hourglass_empty),
+                        title: Text('Awaiting responder resolution'),
+                        subtitle: Text(
+                          'The manager can close after a responder submits a resolved update.',
+                        ),
+                      ),
+                    const Divider(),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        TextButton(
+                          onPressed: _saving ||
+                                  _report.workflowStatus == IncidentWorkflowStatus.closed
+                              ? null
+                              : () => _managerAction(
+                                  IncidentWorkflowStatus.duplicate,
+                                ),
+                          child: const Text('Mark duplicate'),
+                        ),
+                        TextButton(
+                          onPressed: _saving ||
+                                  _report.workflowStatus == IncidentWorkflowStatus.closed
+                              ? null
+                              : () => _managerAction(
+                                  IncidentWorkflowStatus.rejected,
+                                ),
+                          child: const Text('Reject as invalid'),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -25,6 +25,14 @@ class IncidentManagementRepository {
     return _sortReports(snapshot.docs.map(_reportFromDocument));
   }
 
+  Future<IncidentReport> loadIncident(String incidentId) async {
+    _requireSignedIn();
+    final snapshot = await _firestore.collection('incidents').doc(incidentId).get();
+    final data = snapshot.data();
+    if (data == null) throw StateError('This incident no longer exists.');
+    return _reportFromDocument(data);
+  }
+
   Future<List<IncidentReport>> loadAssignedIncidents(String rangerId) async {
     final user = _requireSignedIn();
     if (user.uid != rangerId) {
@@ -73,6 +81,9 @@ class IncidentManagementRepository {
     required String managerName,
     String note = '',
   }) async {
+    if (severity == IncidentSeverity.critical && note.trim().isEmpty) {
+      throw ArgumentError('Add the reason for marking this incident critical.');
+    }
     final actor = _requireSignedIn();
     final incident = _firestore.collection('incidents').doc(incidentId);
     final event = incident.collection('timeline').doc(_uuid.v4());
@@ -81,13 +92,19 @@ class IncidentManagementRepository {
       'severity': severity.name,
       'workflowStatus': IncidentWorkflowStatus.underReview.name,
       'managerNote': note.trim(),
+      if (severity == IncidentSeverity.critical)
+        'escalationReason': note.trim(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
     batch.set(event, _eventData(
       actorId: actor.uid,
       actorName: managerName,
-      type: 'reviewed',
-      message: note.trim().isEmpty
+      type: severity == IncidentSeverity.critical
+          ? 'criticalEscalation'
+          : 'reviewed',
+      message: severity == IncidentSeverity.critical
+          ? 'Escalated to critical: ${note.trim()}'
+          : note.trim().isEmpty
           ? 'Incident reviewed; severity set to ${severity.label}.'
           : 'Incident reviewed: ${note.trim()}',
     ));
@@ -145,6 +162,27 @@ class IncidentManagementRepository {
     }
     final actor = _requireSignedIn();
     final incident = _firestore.collection('incidents').doc(incidentId);
+    final current = await incident.get();
+    final currentStatus = _enumValue(
+      IncidentWorkflowStatus.values,
+      current.data()?['workflowStatus'],
+      IncidentWorkflowStatus.reported,
+    );
+    if (status == IncidentWorkflowStatus.closed &&
+        currentStatus != IncidentWorkflowStatus.resolved) {
+      throw StateError(
+        'A responder must submit the incident as resolved before manager closure.',
+      );
+    }
+    if ((status == IncidentWorkflowStatus.followUpRequired ||
+            status == IncidentWorkflowStatus.monitoring ||
+            status == IncidentWorkflowStatus.duplicate ||
+            status == IncidentWorkflowStatus.rejected ||
+            status == IncidentWorkflowStatus.closed ||
+            severity == IncidentSeverity.critical) &&
+        note.trim().isEmpty) {
+      throw ArgumentError('Add a reason for this incident action.');
+    }
     final event = incident.collection('timeline').doc(_uuid.v4());
     final update = <String, Object?>{
       'workflowStatus': status.name,
@@ -168,8 +206,12 @@ class IncidentManagementRepository {
     batch.set(event, _eventData(
       actorId: actor.uid,
       actorName: managerName,
-      type: status.name,
-      message: normalizedNote.isEmpty
+      type: severity == IncidentSeverity.critical
+          ? 'criticalEscalation'
+          : status.name,
+      message: severity == IncidentSeverity.critical
+          ? 'Escalated to critical: $normalizedNote'
+          : normalizedNote.isEmpty
           ? 'Incident status changed to ${status.label}.'
           : '${status.label}: $normalizedNote',
     ));
