@@ -136,12 +136,40 @@ service cloud.firestore {
         && request.resource.data.rangerId == request.auth.uid
         && request.resource.data.status == 'completedPendingSync';
 
-      allow update: if isAssignedPatrolRanger(patrolId)
+      allow update: if (
+        isAssignedPatrolRanger(patrolId)
         && resource.data.rangerId == request.auth.uid
         && resource.data.status == 'completedPendingSync'
         && request.resource.data.status == 'completedSynced'
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['status', 'lastSyncedAt']);
+             .hasOnly(['status', 'lastSyncedAt'])
+      ) || (
+          isManager()
+          && resource.data.status == 'completedSynced'
+          && request.resource.data.status == resource.data.status
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly([
+                 'managerReviewStatus', 'reviewedAt', 'reviewedBy',
+                 'managerNotes', 'followUpRequired'
+               ])
+          && request.resource.data.managerReviewStatus in [
+               'reviewed', 'followUpRequired'
+             ]
+          && request.resource.data.followUpRequired is bool
+          && request.resource.data.managerNotes is string
+          && request.resource.data.reviewedBy == request.auth.uid
+          && (
+            !('reviewedAt' in request.resource.data)
+            || request.resource.data.reviewedAt is timestamp
+          )
+          && (
+            request.resource.data.managerReviewStatus != 'reviewed'
+            || (
+              'reviewedAt' in request.resource.data
+              && request.resource.data.reviewedAt is timestamp
+            )
+          )
+        );
       allow delete: if false;
 
       match /{recordCollection}/{recordId} {

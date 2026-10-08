@@ -2,7 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../patrols/application/patrol_assignment_service.dart';
+import '../../patrols/application/patrol_review_service.dart';
 import '../../patrols/data/firestore_patrol_assignment_repository.dart';
+import '../../patrols/data/firestore_patrol_review_repository.dart';
 import '../../patrols/presentation/patrol_assignment_management_page.dart';
 import '../domain/ranger_profile.dart';
 import 'incident_manager_inbox_page.dart';
@@ -65,7 +67,7 @@ class IncidentManagerDashboardPage extends StatelessWidget {
                     const SizedBox(height: 6),
                     const Text(
                       'Create assignments for active rangers and review the '
-                      'patrols assigned from this account.',
+                      'completed patrols and their recorded routes.',
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
@@ -76,11 +78,15 @@ class IncidentManagerDashboardPage extends StatelessWidget {
                             service: PatrolAssignmentService(
                               FirestorePatrolAssignmentRepository(),
                             ),
+                            reviewService: PatrolReviewService(
+                              FirestorePatrolReviewRepository(),
+                            ),
+                            manager: manager,
                           ),
                         ),
                       ),
                       icon: const Icon(Icons.assignment_add),
-                      label: const Text('Manage patrol assignments'),
+                      label: const Text('Manage patrols & reviews'),
                     ),
                   ],
                 ),

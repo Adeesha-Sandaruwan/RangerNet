@@ -1,15 +1,26 @@
 import 'package:flutter/material.dart';
 
 import '../application/patrol_assignment_service.dart';
+import '../application/patrol_metrics_service.dart';
+import '../application/patrol_review_service.dart';
 import '../domain/patrol_assignment.dart';
 import '../domain/patrol_records.dart';
+import '../../incidents/domain/ranger_profile.dart';
+import 'completed_patrol_reviews_page.dart';
 import 'patrol_route_builder_page.dart';
 import 'patrol_route_map.dart';
 
 class PatrolAssignmentManagementPage extends StatefulWidget {
-  const PatrolAssignmentManagementPage({required this.service, super.key});
+  const PatrolAssignmentManagementPage({
+    required this.service,
+    required this.reviewService,
+    required this.manager,
+    super.key,
+  });
 
   final PatrolAssignmentService service;
+  final PatrolReviewService reviewService;
+  final RangerProfile manager;
 
   @override
   State<PatrolAssignmentManagementPage> createState() =>
@@ -62,6 +73,18 @@ class _PatrolAssignmentManagementPageState
       backgroundColor: const Color(0xFFF5F8F3),
       actions: [
         IconButton(
+          tooltip: 'Review completed patrols',
+          onPressed: () => Navigator.of(context).push<void>(
+            MaterialPageRoute<void>(
+              builder: (_) => CompletedPatrolReviewsPage(
+                service: widget.reviewService,
+                manager: widget.manager,
+              ),
+            ),
+          ),
+          icon: const Icon(Icons.rate_review_outlined),
+        ),
+        IconButton(
           tooltip: 'Refresh assignments',
           onPressed: _loading ? null : _load,
           icon: const Icon(Icons.refresh),
@@ -89,6 +112,32 @@ class _PatrolAssignmentManagementPageState
               const Text(
                 'Choose an active ranger and define the park, zone, and route. '
                 'The patrol will appear in that ranger’s Patrols list.',
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (_) => CompletedPatrolReviewsPage(
+                      service: widget.reviewService,
+                      manager: widget.manager,
+                    ),
+                  ),
+                ),
+                icon: const Icon(Icons.fact_check_outlined),
+                label: const Text('Review completed patrols'),
+              ),
+              const SizedBox(height: 4),
+              Card(
+                color: const Color(0xFFEAF2EC),
+                child: const ListTile(
+                  leading: Icon(Icons.route_outlined),
+                  title: Text('Manager-assigned route'),
+                  subtitle: Text(
+                    'Set the route start, optional stops, and destination on '
+                    'the map. Rangers see this plan alongside their recorded '
+                    'GPS track.',
+                  ),
+                ),
               ),
               if (_error != null)
                 Card(
@@ -122,20 +171,91 @@ class _PatrolAssignmentManagementPageState
               else
                 ..._assignments.map(
                   (assignment) => Card(
-                    child: ListTile(
-                      leading: const Icon(
-                        Icons.route,
-                        color: Color(0xFF17613F),
+                    clipBehavior: Clip.antiAlias,
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const CircleAvatar(
+                                backgroundColor: Color(0xFFEAF2EC),
+                                child: Icon(
+                                  Icons.route,
+                                  color: Color(0xFF17613F),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      assignment.area.routeName,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium,
+                                    ),
+                                    Text(
+                                      '${assignment.area.parkName} · '
+                                      '${assignment.area.zoneName}',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Chip(
+                                avatar: Icon(Icons.check_circle_outline, size: 16),
+                                label: Text('Assigned'),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ],
+                          ),
+                          if (assignment.plannedRoute case final route?) ...[
+                            const SizedBox(height: 12),
+                            PatrolRouteMap(
+                              plannedRoute: route,
+                              height: 190,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '${route.start.name} → ${route.end.name}',
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                            Text(
+                              '${route.stops.length} optional stop(s) · '
+                              '${route.coverageSections.length} coverage sections · '
+                              '${_formatRouteDistance(_plannedRouteDistanceMeters(route))} planned',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                          const Divider(height: 24),
+                          Row(
+                            children: [
+                              const Icon(Icons.person_outline, size: 18),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  assignment.rangerName,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium,
+                                ),
+                              ),
+                              Text(
+                                assignment.assignedAt
+                                    .toLocal()
+                                    .toString()
+                                    .substring(0, 16),
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      title: Text(assignment.area.routeName),
-                      subtitle: Text(
-                        '${assignment.area.parkName} · ${assignment.area.zoneName}\n'
-                        '${assignment.plannedRoute?.stops.length ?? 0} optional stops · '
-                        '${assignment.plannedCoverageSections.length} coverage sections · '
-                        'Assigned to ${assignment.rangerName} · '
-                        '${assignment.assignedAt.toLocal()}',
-                      ),
-                      isThreeLine: true,
                     ),
                   ),
                 ),
@@ -145,6 +265,7 @@ class _PatrolAssignmentManagementPageState
       ),
     ),
   );
+
 }
 
 class _CreatePatrolAssignmentPage extends StatefulWidget {
@@ -271,6 +392,11 @@ class _CreatePatrolAssignmentPageState
                 '1. Select ranger',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
+              const SizedBox(height: 4),
+              Text(
+                'Choose who will receive this patrol assignment.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
               const SizedBox(height: 8),
               if (_loadingRangers)
                 const LinearProgressIndicator()
@@ -321,6 +447,11 @@ class _CreatePatrolAssignmentPageState
                 '2. Define patrol area',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
+              const SizedBox(height: 4),
+              Text(
+                'Use names that help the ranger identify the place and route.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
               const SizedBox(height: 8),
               _requiredField(_parkName, 'Park name'),
               const SizedBox(height: 12),
@@ -342,8 +473,9 @@ class _CreatePatrolAssignmentPageState
               const Text(
                 'Choose the start and destination by tapping the map. Add '
                 'optional stops in the order the ranger should visit them. '
-                'The route and coverage sections are generated from those '
-                'map selections.',
+                'The preview connects selected locations with straight map '
+                'segments. Confirm the path follows accessible tracks; '
+                'coverage sections are generated from those map selections.',
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -360,7 +492,8 @@ class _CreatePatrolAssignmentPageState
                 PatrolRouteMap(plannedRoute: route, height: 240),
                 const SizedBox(height: 6),
                 Text(
-                  'Route generated · ${route.stops.length} optional stop(s) · '
+                  'Route generated · ${_formatRouteDistance(_plannedRouteDistanceMeters(route))} '
+                  'planned · ${route.stops.length} optional stop(s) · '
                   '${route.coverageSections.length} coverage sections. '
                   'The route is saved with the assignment.',
                 ),
@@ -430,3 +563,30 @@ class _CreatePatrolAssignmentPageState
     if (route != null && mounted) setState(() => _plannedRoute = route);
   }
 }
+
+double _plannedRouteDistanceMeters(PatrolRoutePlan route) {
+  const metrics = PatrolMetricsService();
+  final points = route.routeLocations;
+  var distance = 0.0;
+  for (var index = 1; index < points.length; index++) {
+    distance += metrics.distanceBetween(
+      PatrolLocation(
+        latitude: points[index - 1].latitude,
+        longitude: points[index - 1].longitude,
+        recordedAt: DateTime.utc(2026),
+        source: PatrolLocationSource.manual,
+      ),
+      PatrolLocation(
+        latitude: points[index].latitude,
+        longitude: points[index].longitude,
+        recordedAt: DateTime.utc(2026),
+        source: PatrolLocationSource.manual,
+      ),
+    );
+  }
+  return distance;
+}
+
+String _formatRouteDistance(double meters) => meters >= 1000
+    ? '${(meters / 1000).toStringAsFixed(2)} km'
+    : '${meters.toStringAsFixed(0)} m';

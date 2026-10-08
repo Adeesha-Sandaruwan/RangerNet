@@ -93,8 +93,14 @@ If the app already created that profile as a ranger, update its `role` to
 `manager`. Sign out and sign in again. The manager opens a dashboard first, then
 selects **Go to incident management**.
 
-From the manager dashboard, select **Manage patrol assignments** → **Assign
-patrol**. Choose an active ranger, enter the park, zone, and route, and
+From the manager dashboard, select **Manage patrols & reviews**. In the patrol
+management screen, use **Review completed patrols** to open the manager review
+queue. Choose a synchronized patrol to compare its assigned route with the
+recorded route, inspect coverage and field records, add manager notes, and mark
+it reviewed or flag follow-up. Review notes and audit metadata are saved on the
+completed patrol record.
+
+To assign a patrol, select **Assign patrol**. Choose an active ranger, enter the park, zone, and route, and
 select **Select route on map**. Tap the map to select the start, add optional
 stops in visit order, then select the destination. Choose **Generate route
 coverage** to preview the connected route and its coverage sections, then
@@ -129,13 +135,13 @@ More detail about the implemented workflow is in
 3. GPS route points are filtered and stored locally; GPS health and accuracy
    are shown, and the ranger can mark exact manual locations on the map when
    needed. These manual locations do not modify the manager-assigned route.
-4. The ranger can compare the assigned route with the actual recorded GPS track
-   on the map and view recorded distance, active patrol time, and GPS point
-   count. Distance uses the start, saved GPS points, and a later GPS end fix;
-   manual waypoints are not treated as traveled distance. During completion
-   review, generated route sections reached within 100 m of a recorded GPS
-   point or manual waypoint are reported; uncovered sections are listed.
-   Inaccurate GPS points are not counted.
+4. The ranger can compare the assigned route with the actual recorded track on
+   the map and view route distance, active patrol duration, and GPS point
+   count. Distance follows the start, GPS fixes, map-marked waypoints, and end
+   location in timestamp order. Segments between these sparse points are
+   straight-line estimates. During completion review, generated route sections
+   reached within 100 m of a recorded GPS point or manual waypoint are reported;
+   uncovered sections are listed. Inaccurate GPS points are not counted.
 5. The ranger adds observations and optional compressed photographs, and can
    pause/resume, interrupt, or end early with a reason.
 6. Before completing, the ranger reviews the summary and selects an end

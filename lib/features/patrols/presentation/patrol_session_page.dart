@@ -742,31 +742,45 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
       color: const Color(0xFFEAF2EC),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: _RouteMetric(
-                icon: Icons.route_outlined,
-                label: 'Recorded distance',
-                value: distanceLabel,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: _RouteMetric(
+                    icon: Icons.route_outlined,
+                    label: 'Actual route distance',
+                    value: distanceLabel,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _RouteMetric(
+                    icon: Icons.timer_outlined,
+                    label: 'Active duration',
+                    value: durationLabel,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _RouteMetric(
+                    icon: Icons.my_location_outlined,
+                    label: 'GPS points',
+                    value: '${_patrol.routePoints.length}',
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _RouteMetric(
-                icon: Icons.timer_outlined,
-                label: 'Active time',
-                value: durationLabel,
+            if (_patrol.manualWaypoints.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Includes ${_patrol.manualWaypoints.length} map-marked '
+                'location(s). Distance follows saved GPS and manual points '
+                'in recorded order.',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _RouteMetric(
-                icon: Icons.my_location_outlined,
-                label: 'GPS points',
-                value: '${_patrol.routePoints.length}',
-              ),
-            ),
+            ],
           ],
         ),
       ),

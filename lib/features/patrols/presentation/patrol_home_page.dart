@@ -40,6 +40,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
   List<Patrol> _patrols = const [];
   StreamSubscription<bool>? _connectivitySubscription;
   StreamSubscription<PatrolListResult>? _assignmentSubscription;
+  Timer? _clock;
   bool _loading = true;
   bool _syncing = false;
   bool? _online;
@@ -61,6 +62,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
               _assignmentWarning = result.assignmentError?.toString();
               _loading = false;
             });
+            _updateClock();
           },
           onError: (Object error) {
             if (mounted) {
@@ -89,6 +91,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
     WidgetsBinding.instance.removeObserver(this);
     _connectivitySubscription?.cancel();
     _assignmentSubscription?.cancel();
+    _clock?.cancel();
     super.dispose();
   }
 
@@ -127,11 +130,29 @@ class _PatrolHomePageState extends State<PatrolHomePage>
           _patrols = result.patrols;
           _assignmentWarning = result.assignmentError?.toString();
         });
+        _updateClock();
       }
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _updateClock() {
+    final hasActivePatrol = _patrols.any(
+      (patrol) =>
+          patrol.status == PatrolStatus.inProgress ||
+          patrol.status == PatrolStatus.paused ||
+          patrol.status == PatrolStatus.interrupted,
+    );
+    if (hasActivePatrol) {
+      _clock ??= Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    } else {
+      _clock?.cancel();
+      _clock = null;
     }
   }
 
@@ -372,7 +393,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
                   children: [
                     Expanded(
                       child: _PatrolCardMetric(
-                        label: 'Recorded distance',
+                        label: 'Actual route distance',
                         value: distance >= 1000
                             ? '${(distance / 1000).toStringAsFixed(2)} km'
                             : '${distance.toStringAsFixed(0)} m',
@@ -380,7 +401,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
                     ),
                     Expanded(
                       child: _PatrolCardMetric(
-                        label: 'Active time',
+                        label: 'Active duration',
                         value: '${duration.inHours}h '
                             '${duration.inMinutes.remainder(60)}m',
                       ),
@@ -393,6 +414,14 @@ class _PatrolHomePageState extends State<PatrolHomePage>
                     ),
                   ],
                 ),
+                if (patrol.manualWaypoints.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    '${patrol.manualWaypoints.length} map-marked location(s) '
+                    'included in the route distance',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
               ],
               const SizedBox(height: 10),
               Text(

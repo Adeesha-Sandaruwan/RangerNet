@@ -6,29 +6,72 @@ import '../domain/patrol_records.dart';
 class PatrolMetricsService {
   const PatrolMetricsService();
 
+  List<PatrolLocation> actualRouteLocations(Patrol patrol) {
+    final start = patrol.startLocation;
+    final startTime = start?.recordedAt ?? patrol.startedAt;
+    final locations = <(int, PatrolLocation)>[];
+
+    if (start != null) locations.add((0, start));
+    locations.addAll(
+      patrol.routePoints.indexed.map(
+        (entry) => (entry.$1 + 1, entry.$2.location),
+      ),
+    );
+    locations.addAll(
+      patrol.manualWaypoints.indexed.map(
+        (entry) =>
+            (entry.$1 + patrol.routePoints.length + 1, entry.$2.location),
+      ),
+    );
+    final end = patrol.endLocation;
+    if (end != null) {
+      locations.add((
+        patrol.routePoints.length + patrol.manualWaypoints.length + 1,
+        end,
+      ));
+    }
+
+    locations.sort((first, second) {
+      final timeOrder = first.$2.recordedAt.compareTo(second.$2.recordedAt);
+      return timeOrder == 0 ? first.$1.compareTo(second.$1) : timeOrder;
+    });
+
+    return List.unmodifiable([
+      for (final entry in locations)
+        if (startTime == null ||
+            !entry.$2.recordedAt.isBefore(startTime) ||
+            identical(entry.$2, start))
+          entry.$2,
+    ]);
+  }
+
   double distanceTravelledMeters(Patrol patrol) {
-    if (patrol.routePoints.isEmpty) return 0;
-    final locations = <PatrolLocation>[
-      if (patrol.startLocation != null) patrol.startLocation!,
-      ...patrol.routePoints.map((point) => point.location),
-      if (patrol.endLocation?.source == PatrolLocationSource.gps &&
-          patrol.endLocation!.recordedAt.isAfter(
-            patrol.routePoints.last.location.recordedAt,
-          ))
-        patrol.endLocation!,
-    ];
+    final locations = actualRouteLocations(patrol);
     var distance = 0.0;
     for (var index = 1; index < locations.length; index++) {
-      distance += _distanceBetween(
-        locations[index - 1],
-        locations[index],
-      );
+      distance += _distanceBetween(locations[index - 1], locations[index]);
     }
     return distance;
   }
 
   double distanceBetween(PatrolLocation first, PatrolLocation second) =>
       _distanceBetween(first, second);
+
+  double plannedRouteDistanceMeters(PatrolRoutePlan route) {
+    final locations = route.routeLocations;
+    var distance = 0.0;
+    for (var index = 1; index < locations.length; index++) {
+      final previous = locations[index - 1];
+      final current = locations[index];
+      distance += _distanceBetweenCoordinates(
+        previous.latitude,
+        previous.longitude,
+        current.latitude,
+        current.longitude,
+      );
+    }
+    return distance;
+  }
 
   Duration durationAt(Patrol patrol, DateTime now) {
     final start = patrol.startedAt;
@@ -62,11 +105,25 @@ class PatrolMetricsService {
   }
 
   static double _distanceBetween(PatrolLocation first, PatrolLocation second) {
+    return _distanceBetweenCoordinates(
+      first.latitude,
+      first.longitude,
+      second.latitude,
+      second.longitude,
+    );
+  }
+
+  static double _distanceBetweenCoordinates(
+    double firstLatitude,
+    double firstLongitude,
+    double secondLatitude,
+    double secondLongitude,
+  ) {
     const earthRadiusMeters = 6371000.0;
-    final latitude1 = _radians(first.latitude);
-    final latitude2 = _radians(second.latitude);
-    final latitudeDelta = _radians(second.latitude - first.latitude);
-    final longitudeDelta = _radians(second.longitude - first.longitude);
+    final latitude1 = _radians(firstLatitude);
+    final latitude2 = _radians(secondLatitude);
+    final latitudeDelta = _radians(secondLatitude - firstLatitude);
+    final longitudeDelta = _radians(secondLongitude - firstLongitude);
     final a =
         math.pow(math.sin(latitudeDelta / 2), 2) +
         math.cos(latitude1) *

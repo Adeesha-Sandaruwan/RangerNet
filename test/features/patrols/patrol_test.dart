@@ -104,9 +104,136 @@ void main() {
         metrics.distanceTravelledMeters(manualEndPatrol),
         closeTo(
           metrics.distanceBetween(start, firstFix) +
-              metrics.distanceBetween(firstFix, lastFix),
+              metrics.distanceBetween(firstFix, lastFix) +
+              metrics.distanceBetween(
+                lastFix,
+                manualEndPatrol.endLocation!,
+              ),
           0.01,
         ),
+      );
+    });
+
+    test('calculates assigned distance through optional planned stops', () {
+      final first = PatrolCoverageCheckpoint(
+        id: 'start',
+        name: 'Start',
+        latitude: 6.0,
+        longitude: 81.0,
+      );
+      final stop = PatrolCoverageCheckpoint(
+        id: 'stop',
+        name: 'Stop',
+        latitude: 6.005,
+        longitude: 81.004,
+      );
+      final end = PatrolCoverageCheckpoint(
+        id: 'end',
+        name: 'End',
+        latitude: 6.01,
+        longitude: 81.0,
+      );
+      final route = PatrolRoutePlan(
+        start: first,
+        stops: [stop],
+        end: end,
+      );
+      final timestamp = DateTime.utc(2026, 1, 1);
+      final expected =
+          metrics.distanceBetween(
+            _location(first.latitude, first.longitude, timestamp),
+            _location(stop.latitude, stop.longitude, timestamp),
+          ) +
+          metrics.distanceBetween(
+            _location(stop.latitude, stop.longitude, timestamp),
+            _location(end.latitude, end.longitude, timestamp),
+          );
+
+      expect(metrics.plannedRouteDistanceMeters(route), closeTo(expected, 0.01));
+    });
+
+    test(
+      'counts map-marked waypoints in timestamp order in actual route distance',
+      () {
+        final startedAt = DateTime.utc(2026, 1, 1, 8);
+      final start = _location(6.0, 81.0, startedAt);
+      final gps = _location(
+        6.001,
+        81.0,
+        startedAt.add(const Duration(minutes: 2)),
+      );
+      final manual = PatrolLocation(
+        latitude: 6.002,
+        longitude: 81.0,
+        recordedAt: startedAt.add(const Duration(minutes: 3)),
+        source: PatrolLocationSource.manual,
+      );
+      final end = PatrolLocation(
+        latitude: 6.003,
+        longitude: 81.0,
+        recordedAt: startedAt.add(const Duration(minutes: 4)),
+        source: PatrolLocationSource.manual,
+      );
+      final patrol = _patrol(
+        status: PatrolStatus.completedPendingSync,
+        startedAt: startedAt,
+        endedAt: end.recordedAt,
+        startLocation: start,
+        endLocation: end,
+        routePoints: [PatrolRoutePoint(id: 'gps-1', location: gps)],
+        manualWaypoints: [
+          PatrolWaypoint(
+            id: 'manual-1',
+            description: 'Manual point',
+            location: manual,
+          ),
+        ],
+      );
+      final actualRoute = metrics.actualRouteLocations(patrol);
+
+      expect(actualRoute, [start, gps, manual, end]);
+      expect(
+        metrics.distanceTravelledMeters(patrol),
+        closeTo(
+          metrics.distanceBetween(start, gps) +
+              metrics.distanceBetween(gps, manual) +
+              metrics.distanceBetween(manual, end),
+          0.01,
+        ),
+      );
+      },
+    );
+
+    test('calculates manual-only route distance when GPS is unavailable', () {
+      final startedAt = DateTime.utc(2026, 1, 1, 8);
+      final start = PatrolLocation(
+        latitude: 6.0,
+        longitude: 81.0,
+        recordedAt: startedAt,
+        source: PatrolLocationSource.manual,
+      );
+      final waypointLocation = PatrolLocation(
+        latitude: 6.001,
+        longitude: 81.0,
+        recordedAt: startedAt.add(const Duration(minutes: 3)),
+        source: PatrolLocationSource.manual,
+      );
+      final patrol = _patrol(
+        status: PatrolStatus.inProgress,
+        startedAt: startedAt,
+        startLocation: start,
+        manualWaypoints: [
+          PatrolWaypoint(
+            id: 'manual-1',
+            description: 'GPS unavailable location',
+            location: waypointLocation,
+          ),
+        ],
+      );
+
+      expect(
+        metrics.distanceTravelledMeters(patrol),
+        closeTo(metrics.distanceBetween(start, waypointLocation), 0.01),
       );
     });
 
@@ -183,6 +310,7 @@ Patrol _patrol({
   PatrolLocation? startLocation,
   PatrolLocation? endLocation,
   List<PatrolRoutePoint> routePoints = const [],
+  List<PatrolWaypoint> manualWaypoints = const [],
   List<PatrolPauseResumeEvent> pauseResumeEvents = const [],
 }) => Patrol(
   patrolId: 'patrol-1',
@@ -203,6 +331,7 @@ Patrol _patrol({
   startLocation: startLocation,
   endLocation: endLocation,
   routePoints: routePoints,
+  manualWaypoints: manualWaypoints,
   pauseResumeEvents: pauseResumeEvents,
 );
 

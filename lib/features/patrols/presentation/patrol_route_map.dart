@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../application/patrol_metrics_service.dart';
 import '../domain/patrol.dart';
 import '../domain/patrol_records.dart';
 
@@ -18,6 +19,7 @@ class PatrolRouteMap extends StatelessWidget {
   final PatrolRoutePlan? plannedRoute;
   final PatrolLocation? latestLocation;
   final double height;
+  static const _metrics = PatrolMetricsService();
 
   @override
   Widget build(BuildContext context) {
@@ -25,24 +27,17 @@ class PatrolRouteMap extends StatelessWidget {
     final plan = plannedRoute ?? currentPatrol?.plannedRoute;
     final actualStart = currentPatrol?.startLocation;
     final actualEnd = currentPatrol?.endLocation;
-    final lastRoutePoint = currentPatrol?.routePoints.isNotEmpty == true
-        ? currentPatrol!.routePoints.last.location
-        : null;
     final planned =
         plan?.routeLocations
             .map((point) => LatLng(point.latitude, point.longitude))
             .toList() ??
         const <LatLng>[];
-    final actual = <LatLng>[
-      if (currentPatrol?.startLocation != null)
-        _latLng(currentPatrol!.startLocation!),
-      ...?currentPatrol?.routePoints.map((point) => _latLng(point.location)),
-      if (currentPatrol?.routePoints.isNotEmpty == true &&
-          actualEnd?.source == PatrolLocationSource.gps &&
-          lastRoutePoint != null &&
-          actualEnd!.recordedAt.isAfter(lastRoutePoint.recordedAt))
-        _latLng(currentPatrol!.endLocation!),
-    ];
+    final actual = currentPatrol == null
+        ? const <LatLng>[]
+        : _metrics
+              .actualRouteLocations(currentPatrol)
+              .map(_latLng)
+              .toList();
     final manualPoints =
         currentPatrol?.manualWaypoints
             .map((waypoint) => _latLng(waypoint.location))
