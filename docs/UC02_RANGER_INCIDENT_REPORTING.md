@@ -25,7 +25,8 @@ The application reads the trusted role from `users/{uid}` after Firebase Auth:
 
 - `role: ranger` routes to the ranger shell with **Home**, **Incidents**, and
   **Assigned** tabs. Any ranger can act as a responder when assigned.
-- `role: manager` routes to the UC02 incident-management inbox.
+- `role: manager` routes to a manager landing dashboard. The manager selects
+  **Go to incident management** to open the UC02 incident inbox.
 
 New users can only create their own profile as a ranger. A project administrator
 must promote the manager's profile to `manager` in the Firebase Console. The
