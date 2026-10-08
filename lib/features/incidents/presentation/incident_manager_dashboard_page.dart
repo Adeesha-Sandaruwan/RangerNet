@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../domain/ranger_profile.dart';
+import '../../conservation_reports/presentation/conservation_report_page.dart';
 import 'incident_manager_inbox_page.dart';
 
 /// Landing page shown only to authenticated Park Manager accounts.
@@ -79,9 +80,50 @@ class IncidentManagerDashboardPage extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 14),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Icon(Icons.analytics_outlined, size: 38,
+                        color: Color(0xFF17613F)),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Conservation reports',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Analyse conservation data and generate reports on '
+                      'poaching hotspots, patrol coverage, wildlife conflicts, '
+                      'incident trends, and conservation outcomes.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF17613F),
+                      ),
+                      onPressed: () => Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              ConservationReportPage(manager: manager),
+                        ),
+                      ),
+                      icon: const Icon(Icons.assessment_outlined),
+                      label: const Text('Go to conservation reports'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
     ),
   );
 }
+
