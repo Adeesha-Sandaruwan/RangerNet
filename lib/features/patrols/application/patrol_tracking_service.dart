@@ -26,17 +26,14 @@ class PatrolTrackingState {
 
 class PatrolTrackingService {
   PatrolTrackingService({
-    required PatrolService patrolService,
-    required PatrolLocationProvider locationProvider,
-    PatrolMetricsService metrics = const PatrolMetricsService(),
+    required this._patrolService,
+    required this._locationProvider,
+    this._metrics = const PatrolMetricsService(),
     Uuid? uuid,
     this.maximumAccuracyMeters = 50,
     this.minimumPointDistanceMeters = 8,
     this.minimumPointInterval = const Duration(seconds: 5),
-  }) : _patrolService = patrolService,
-       _locationProvider = locationProvider,
-       _metrics = metrics,
-       _uuid = uuid ?? const Uuid();
+  }) : _uuid = uuid ?? const Uuid();
 
   final PatrolService _patrolService;
   final PatrolLocationProvider _locationProvider;
@@ -164,7 +161,8 @@ class PatrolTrackingService {
       final now = DateTime.now().toUtc();
       final lastFixAt = _latestFix?.recordedAt;
       final reference = lastFixAt ?? _trackingStartedAt;
-      if (reference != null && now.difference(reference) > const Duration(seconds: 45)) {
+      if (reference != null &&
+          now.difference(reference) > const Duration(seconds: 45)) {
         _gpsStatus = PatrolGpsStatus(
           state: PatrolGpsState.unavailable,
           accuracyMeters: _latestFix?.accuracyMeters,
@@ -173,7 +171,8 @@ class PatrolTrackingService {
               'No recent GPS fix. The saved route is preserved; retry GPS or place a manual waypoint.',
         );
         _emit();
-      } else if (_latestFix == null && _gpsStatus.state != PatrolGpsState.inaccurate) {
+      } else if (_latestFix == null &&
+          _gpsStatus.state != PatrolGpsState.inaccurate) {
         _gpsStatus = status;
         _emit();
       }

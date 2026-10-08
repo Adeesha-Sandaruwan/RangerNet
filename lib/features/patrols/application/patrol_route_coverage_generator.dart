@@ -9,8 +9,8 @@ class PatrolRouteCoverageGenerator {
   const PatrolRouteCoverageGenerator({
     this.maximumSpacingMeters = 100,
     this.maximumSections = 2000,
-    PatrolMetricsService metrics = const PatrolMetricsService(),
-  }) : _metrics = metrics;
+    this._metrics = const PatrolMetricsService(),
+  });
 
   final double maximumSpacingMeters;
   final int maximumSections;

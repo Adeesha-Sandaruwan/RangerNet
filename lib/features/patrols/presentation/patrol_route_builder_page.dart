@@ -206,9 +206,9 @@ class _PatrolRouteBuilderPageState extends State<PatrolRouteBuilderPage> {
   );
 
   List<PatrolCoverageCheckpoint> get _routeLocations => [
-    if (_start case final start?) start,
+    ?_start,
     ..._stops,
-    if (_end case final end?) end,
+    ?_end,
   ];
 
   Widget _modeButton({

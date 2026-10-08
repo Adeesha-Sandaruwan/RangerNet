@@ -6,11 +6,10 @@ import 'patrol_service.dart';
 
 class PatrolSyncService {
   PatrolSyncService({
-    required PatrolService patrolService,
-    required PatrolSyncRepository syncRepository,
+    required this._patrolService,
+    required this._syncRepository,
     required this.networkStatus,
-  }) : _patrolService = patrolService,
-       _syncRepository = syncRepository;
+  });
 
   final PatrolService _patrolService;
   final PatrolSyncRepository _syncRepository;

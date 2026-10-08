@@ -17,13 +17,11 @@ class PatrolListResult {
 
 class PatrolService {
   PatrolService({
-    required PatrolRepository repository,
-    PatrolAssignmentSource? assignmentSource,
+    required this._repository,
+    this._assignmentSource,
     this.coverageService = const PatrolCoverageService(),
     Uuid? uuid,
-  }) : _repository = repository,
-       _assignmentSource = assignmentSource,
-       _uuid = uuid ?? const Uuid();
+  }) : _uuid = uuid ?? const Uuid();
 
   final PatrolRepository _repository;
   final PatrolAssignmentSource? _assignmentSource;
