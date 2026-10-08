@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../data/incident_management_repository.dart';
 import '../domain/incident_report.dart';
 import '../domain/ranger_profile.dart';
-import 'incident_detail_page.dart';
+import 'incident_manager_detail_page.dart';
 
 /// UC02-only operations inbox for the Park Manager / Duty Supervisor.
 class IncidentManagerInboxPage extends StatefulWidget {
@@ -147,7 +147,10 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
     child: ListTile(
       onTap: () => Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
-          builder: (_) => IncidentDetailPage(report: report),
+          builder: (_) => IncidentManagerDetailPage(
+            report: report,
+            manager: widget.manager,
+          ),
         ),
       ).then((_) => _load()),
       leading: Icon(
