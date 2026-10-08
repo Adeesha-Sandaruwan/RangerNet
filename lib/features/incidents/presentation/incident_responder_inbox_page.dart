@@ -36,6 +36,10 @@ class _IncidentResponderInboxPageState
   @override
   void initState() {
     super.initState();
+    _watchAssignments();
+  }
+
+  void _watchAssignments() {
     _subscription = _repository
         .watchAssignedIncidents(widget.rangerId)
         .listen(
@@ -86,13 +90,24 @@ class _IncidentResponderInboxPageState
       _loading = true;
       _error = null;
     });
+    await _subscription?.cancel();
     try {
       final reports = await _repository.loadAssignedIncidents(widget.rangerId);
-      if (mounted) setState(() => _reports = reports);
+      if (mounted) {
+        setState(() {
+          _reports = reports;
+          _error = null;
+        });
+      }
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+        // Firestore terminates a listener after permission-denied. Recreate it
+        // on refresh so it can recover after rules or account access changes.
+        _watchAssignments();
+      }
     }
   }
 

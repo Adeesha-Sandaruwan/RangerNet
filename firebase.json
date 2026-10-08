@@ -1,1 +1,25 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"rangernet","appId":"1:991758102233:android:ee56d551a6ed620a3258c8","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"rangernet","configurations":{"android":"1:991758102233:android:ee56d551a6ed620a3258c8","web":"1:991758102233:web:b8598330553076173258c8"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "rangernet",
+          "appId": "1:991758102233:android:ee56d551a6ed620a3258c8",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "rangernet",
+          "configurations": {
+            "android": "1:991758102233:android:ee56d551a6ed620a3258c8",
+            "web": "1:991758102233:web:b8598330553076173258c8"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}
