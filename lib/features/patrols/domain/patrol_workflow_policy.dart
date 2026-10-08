@@ -60,6 +60,13 @@ class PatrolWorkflowPolicy {
         patrol.endedAt != null) {
       throw StateError('Only an unstarted assigned patrol can be saved.');
     }
+    if (patrol.area.parkName.trim().isEmpty ||
+        patrol.area.zoneName.trim().isEmpty ||
+        patrol.area.routeName.trim().isEmpty) {
+      throw ArgumentError(
+        'An assigned patrol must specify its park, zone, and route.',
+      );
+    }
   }
 
   static void validateCompletionSync(Patrol patrol) {

@@ -27,6 +27,17 @@ service cloud.firestore {
       return /databases/$(database)/documents/incidents/$(incidentId);
     }
 
+    function patrolAssignmentPath(patrolId) {
+      return /databases/$(database)/documents/patrolAssignments/$(patrolId);
+    }
+
+    function isAssignedPatrolRanger(patrolId) {
+      return isRanger()
+        && exists(patrolAssignmentPath(patrolId))
+        && get(patrolAssignmentPath(patrolId)).data.assignedRangerId
+             == request.auth.uid;
+    }
+
     function isReporter(incidentId) {
       return isRanger()
         && exists(incidentPath(incidentId))
@@ -74,6 +85,89 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['displayName']);
       allow delete: if false;
+    }
+
+    match /patrolAssignments/{patrolId} {
+      allow get, list: if isManager()
+        || (isRanger() && resource.data.assignedRangerId == request.auth.uid);
+      allow create: if isManager()
+        && request.resource.data.assignedRangerId is string
+        && exists(userPath(request.resource.data.assignedRangerId))
+        && get(userPath(request.resource.data.assignedRangerId)).data.role == 'ranger'
+        && get(userPath(request.resource.data.assignedRangerId)).data.active != false
+        && request.resource.data.parkName is string
+        && request.resource.data.zoneName is string
+        && request.resource.data.routeName is string
+        && (
+          !('centerLatitude' in request.resource.data)
+          && !('centerLongitude' in request.resource.data)
+          || (
+            request.resource.data.centerLatitude is number
+            && request.resource.data.centerLongitude is number
+            && request.resource.data.centerLatitude >= -90
+            && request.resource.data.centerLatitude <= 90
+            && request.resource.data.centerLongitude >= -180
+            && request.resource.data.centerLongitude <= 180
+          )
+        );
+      allow update: if isManager()
+        && request.resource.data.assignedRangerId is string
+        && exists(userPath(request.resource.data.assignedRangerId))
+        && get(userPath(request.resource.data.assignedRangerId)).data.role == 'ranger'
+        && get(userPath(request.resource.data.assignedRangerId)).data.active != false
+        && !exists(
+          /databases/$(database)/documents/patrols/$(patrolId)
+        );
+      allow delete: if isManager()
+        && !exists(
+          /databases/$(database)/documents/patrols/$(patrolId)
+        );
+    }
+
+    match /patrols/{patrolId} {
+      allow get, list: if isManager()
+        || (isRanger() && resource.data.rangerId == request.auth.uid);
+
+      // Patrol documents are created only at final synchronization. The
+      // assignment remains the authorization source; clients cannot create
+      // or rewrite assignments through this session collection.
+      allow create: if isAssignedPatrolRanger(patrolId)
+        && request.resource.data.patrolId == patrolId
+        && request.resource.data.rangerId == request.auth.uid
+        && request.resource.data.status == 'completedPendingSync';
+
+      allow update: if isAssignedPatrolRanger(patrolId)
+        && resource.data.rangerId == request.auth.uid
+        && resource.data.status == 'completedPendingSync'
+        && request.resource.data.status == 'completedSynced'
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'lastSyncedAt']);
+      allow delete: if false;
+
+      match /{recordCollection}/{recordId} {
+        allow get, list: if recordCollection in [
+            'routePoints', 'manualWaypoints', 'observations',
+            'photographs', 'pauseResumeEvents'
+          ] && (isManager()
+          || (isAssignedPatrolRanger(patrolId)
+              && get(
+                /databases/$(database)/documents/patrols/$(patrolId)
+              ).data.rangerId == request.auth.uid));
+        allow create: if recordCollection in [
+            'routePoints', 'manualWaypoints', 'observations',
+            'photographs', 'pauseResumeEvents'
+          ] && isAssignedPatrolRanger(patrolId)
+          && request.resource.data.id == recordId
+          && getAfter(
+            /databases/$(database)/documents/patrols/$(patrolId)
+          ).data.rangerId == request.auth.uid;
+        allow update: if recordCollection in [
+            'routePoints', 'manualWaypoints', 'observations',
+            'photographs', 'pauseResumeEvents'
+          ] && isAssignedPatrolRanger(patrolId)
+          && request.resource.data == resource.data;
+        allow delete: if false;
+      }
     }
 
     match /incidents/{incidentId} {

@@ -27,7 +27,10 @@ class LocalPatrolRepository implements PatrolRepository {
   @override
   Future<void> save(Patrol patrol) => _serializeWrite(() async {
     final patrols = (await _store.loadForRanger(patrol.rangerId)).toList();
-    final index = patrols.indexWhere((item) => item.localId == patrol.localId);
+    final index = patrols.indexWhere(
+      (item) =>
+          item.localId == patrol.localId || item.patrolId == patrol.patrolId,
+    );
     if (index < 0) {
       if (patrols.any((item) => item.patrolId == patrol.patrolId)) {
         throw StateError(
@@ -36,7 +39,8 @@ class LocalPatrolRepository implements PatrolRepository {
       }
       patrols.add(patrol);
     } else {
-      if (patrols[index].patrolId != patrol.patrolId) {
+      if (patrols[index].patrolId != patrol.patrolId ||
+          patrols[index].localId != patrol.localId) {
         throw StateError(
           'A local patrol ID cannot be reused for another patrol.',
         );

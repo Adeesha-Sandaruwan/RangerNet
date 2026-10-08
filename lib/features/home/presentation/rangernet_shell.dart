@@ -1,8 +1,18 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../incidents/presentation/incident_home_page.dart';
 import '../../incidents/presentation/incident_responder_inbox_page.dart';
+import '../../patrols/application/patrol_service.dart';
+import '../../patrols/application/patrol_sync_service.dart';
+import '../../patrols/application/patrol_tracking_service.dart';
+import '../../patrols/data/firestore_patrol_assignment_source.dart';
+import '../../patrols/data/firestore_patrol_sync_repository.dart';
+import '../../patrols/data/geolocator_patrol_location_provider.dart';
+import '../../patrols/data/local_patrol_repository.dart';
+import '../../patrols/presentation/patrol_home_page.dart';
 
 /// Navigation container for the ranger's currently implemented UC02 feature.
 /// Other use cases can add their own destinations when those features are ready.
@@ -17,6 +27,24 @@ class RangerNetShell extends StatefulWidget {
 
 class _RangerNetShellState extends State<RangerNetShell> {
   int _selectedIndex = 0;
+  late final _patrolService = PatrolService(
+    repository: LocalPatrolRepository(),
+    assignmentSource: FirestorePatrolAssignmentSource(),
+  );
+  late final _patrolTrackingService = PatrolTrackingService(
+    patrolService: _patrolService,
+    locationProvider: const GeolocatorPatrolLocationProvider(),
+  );
+  late final _patrolSyncService = PatrolSyncService(
+    patrolService: _patrolService,
+    syncRepository: FirestorePatrolSyncRepository(),
+  );
+
+  @override
+  void dispose() {
+    unawaited(_patrolTrackingService.dispose());
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +54,15 @@ class _RangerNetShellState extends State<RangerNetShell> {
         children: [
           _RangerHomePage(
             ranger: widget.ranger,
-            openIncidents: () => setState(() => _selectedIndex = 1),
+            openIncidents: () => setState(() => _selectedIndex = 2),
+          ),
+          PatrolHomePage(
+            rangerId: widget.ranger.uid,
+            rangerName:
+                widget.ranger.displayName ?? widget.ranger.email ?? 'Ranger',
+            service: _patrolService,
+            trackingService: _patrolTrackingService,
+            syncService: _patrolSyncService,
           ),
           IncidentHomePage(ranger: widget.ranger),
           IncidentResponderInboxPage(
@@ -45,6 +81,11 @@ class _RangerNetShellState extends State<RangerNetShell> {
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
             label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.route_outlined),
+            selectedIcon: Icon(Icons.route),
+            label: 'Patrols',
           ),
           NavigationDestination(
             icon: Icon(Icons.crisis_alert_outlined),

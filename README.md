@@ -1,12 +1,8 @@
 # RangerNet
 
-RangerNet is a Flutter app for wildlife conservation field work. This repository
-currently focuses on **UC02: Report and Manage Wildlife / Poaching Incidents**.
-It uses Firebase Authentication and Cloud Firestore.
-
-The project also contains an initial UC01 patrol domain and local persistence
-foundation; patrol screens, continuous tracking, and cloud sync are not yet
-implemented. See the [UC01 foundation notes](docs/UC01_PATROL_FOUNDATION.md).
+RangerNet is a Flutter app for wildlife conservation field work. This repository implements **UC01: Conduct and Record Ranger Patrol** and
+**UC02: Report and Manage Wildlife / Poaching Incidents** using Flutter,
+Firebase Authentication, and Cloud Firestore.
 
 The app supports two account roles:
 
@@ -15,8 +11,8 @@ The app supports two account roles:
 - **Park manager:** open the manager dashboard, review reports and evidence,
   assign responders, update incident status, and close resolved incidents.
 
-Patrol recording, wildlife sensor alerts, and conservation analytics are outside
-the current UC02 implementation.
+Wildlife sensor alerts and conservation analytics are outside the current
+implementation.
 
 ## What you need
 
@@ -114,6 +110,22 @@ selects **Go to incident management**.
 More detail about the implemented workflow is in
 [the UC02 guide](docs/UC02_RANGER_INCIDENT_REPORTING.md).
 
+## How patrol recording works
+
+1. A ranger opens **Patrols** and selects an assigned patrol.
+2. The ranger starts the patrol using a reliable GPS start fix or chooses a
+   manual map location when GPS is unavailable or inaccurate.
+3. GPS route points are filtered and stored locally; GPS health and accuracy
+   are shown, and the ranger can manually place waypoints when needed.
+4. The ranger adds observations and optional compressed photographs, and can
+   pause/resume, interrupt, or end early with a reason.
+5. Before completing, the ranger reviews the summary and selects an end
+   location. Completion is saved locally first and synchronized when online.
+
+Assignments are read from `patrolAssignments/{patrolId}` and completed
+records are written to `patrols/{patrolId}` and its record subcollections. See
+[the UC01 lifecycle and Firebase schema](docs/UC01_PATROL_FOUNDATION.md).
+
 ## Offline data and photos
 
 - Unsent incident drafts and reports are kept on the device and can sync when
@@ -166,8 +178,9 @@ lib/
     incidents/data/                  Firebase, location, and offline storage
     incidents/presentation/          Ranger, responder, and manager screens
     patrols/domain/                   Patrol records and lifecycle policy
-    patrols/application/              Patrol workflow service
-    patrols/data/                     Patrol local persistence
+    patrols/application/              Workflow, tracking, metrics, and sync
+    patrols/data/                     Local, Firestore, GPS, and photo adapters
+    patrols/presentation/              Ranger patrol screens
     home/presentation/                Ranger bottom navigation
 test/                                Unit and widget tests
 docs/                                UC02 workflow and Firebase rules guides

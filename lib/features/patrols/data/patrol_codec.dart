@@ -16,6 +16,8 @@ class PatrolCodec {
       'zoneName': patrol.area.zoneName,
       'routeId': patrol.area.routeId,
       'routeName': patrol.area.routeName,
+      'centerLatitude': patrol.area.centerLatitude,
+      'centerLongitude': patrol.area.centerLongitude,
     },
     'status': patrol.status.name,
     'assignedAt': _date(patrol.assignedAt),
@@ -107,6 +109,8 @@ class PatrolCodec {
         zoneName: _string(area, 'zoneName'),
         routeId: _nullableString(area['routeId']),
         routeName: _string(area, 'routeName'),
+        centerLatitude: _optionalNumber(area['centerLatitude']),
+        centerLongitude: _optionalNumber(area['centerLongitude']),
       ),
       status: _enumValue(PatrolStatus.values, json['status'], 'status'),
       assignedAt: _optionalDate(json['assignedAt']),
@@ -253,7 +257,7 @@ class PatrolCodec {
   }
 
   static String? _nullableString(Object? value) =>
-      value == null ? null : value.toString();
+      value?.toString();
 
   static int _integer(Map<String, dynamic> map, String field) {
     final value = map[field];

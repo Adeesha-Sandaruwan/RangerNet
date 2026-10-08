@@ -62,7 +62,7 @@ void main() {
         service.complete(
           rangerId: 'ranger-1',
           localId: 'local-1',
-          endLocation: null,
+          endLocation: _location(start.add(const Duration(hours: 3))),
           at: start.add(const Duration(hours: 3)),
         ),
         throwsStateError,

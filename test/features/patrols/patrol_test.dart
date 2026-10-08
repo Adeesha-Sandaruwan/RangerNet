@@ -2,9 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rangernet/features/patrols/domain/patrol.dart';
 import 'package:rangernet/features/patrols/domain/patrol_records.dart';
 import 'package:rangernet/features/patrols/domain/patrol_workflow_policy.dart';
+import 'package:rangernet/features/patrols/application/patrol_metrics_service.dart';
 
 void main() {
   group('Patrol', () {
+    const metrics = PatrolMetricsService();
+
     test('derives completion state, route distance, and active duration', () {
       final start = DateTime.utc(2026, 1, 1, 8);
       final patrol = _patrol(
@@ -18,7 +21,11 @@ void main() {
           ),
           PatrolRoutePoint(
             id: 'point-2',
-            location: _location(6.0, 81.01, start.add(const Duration(hours: 1))),
+            location: _location(
+              6.0,
+              81.01,
+              start.add(const Duration(hours: 1)),
+            ),
           ),
         ],
         pauseResumeEvents: [
@@ -31,18 +38,15 @@ void main() {
       );
 
       expect(patrol.completionState, PatrolCompletionState.active);
-      expect(patrol.distanceTravelledMeters, greaterThan(1000));
+      expect(metrics.distanceTravelledMeters(patrol), greaterThan(1000));
       expect(
-        patrol.durationAt(start.add(const Duration(hours: 1))),
+        metrics.durationAt(patrol, start.add(const Duration(hours: 1))),
         const Duration(minutes: 20),
       );
     });
 
     test('validates coordinates and coverage counts', () {
-      expect(
-        () => _location(91, 0, DateTime.utc(2026)),
-        throwsArgumentError,
-      );
+      expect(() => _location(91, 0, DateTime.utc(2026)), throwsArgumentError);
       expect(
         () => PatrolCoverage(
           totalSections: 3,

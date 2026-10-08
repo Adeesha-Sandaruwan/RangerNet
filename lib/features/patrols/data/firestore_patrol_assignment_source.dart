@@ -1,0 +1,71 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:uuid/uuid.dart';
+
+import '../domain/patrol.dart';
+import '../domain/patrol_records.dart';
+import '../domain/patrol_repository.dart';
+
+class FirestorePatrolAssignmentSource implements PatrolAssignmentSource {
+  FirestorePatrolAssignmentSource({
+    FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
+  }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _auth = auth ?? FirebaseAuth.instance;
+
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
+  static const _uuid = Uuid();
+
+  @override
+  Future<List<Patrol>> loadAssignedTo(String rangerId) async {
+    final user = _auth.currentUser;
+    if (user == null || user.uid != rangerId) {
+      throw StateError('Sign in as the assigned ranger to load patrols.');
+    }
+    final snapshot = await _firestore
+        .collection('patrolAssignments')
+        .where('assignedRangerId', isEqualTo: rangerId)
+        .get();
+    return snapshot.docs.map(_fromAssignment).toList(growable: false);
+  }
+
+  Patrol _fromAssignment(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    final rangerId = data['assignedRangerId']?.toString() ?? '';
+    if (rangerId.isEmpty) {
+      throw FormatException('Patrol assignment ${doc.id} has no ranger ID.');
+    }
+    final assignedAtValue = data['assignedAt'];
+    final assignedAt = switch (assignedAtValue) {
+      Timestamp timestamp => timestamp.toDate(),
+      String value => DateTime.tryParse(value),
+      _ => null,
+    };
+    final centerLatitude = (data['centerLatitude'] as num?)?.toDouble();
+    final centerLongitude = (data['centerLongitude'] as num?)?.toDouble();
+    if ((centerLatitude == null) != (centerLongitude == null)) {
+      throw FormatException(
+        'Patrol assignment ${doc.id} must include both map center coordinates.',
+      );
+    }
+    return Patrol(
+      patrolId: doc.id,
+      localId: _uuid.v4(),
+      rangerId: rangerId,
+      rangerName: data['assignedRangerName']?.toString() ?? '',
+      area: PatrolArea(
+        parkId: data['parkId']?.toString(),
+        parkName: data['parkName']?.toString() ?? '',
+        zoneId: data['zoneId']?.toString(),
+        zoneName: data['zoneName']?.toString() ?? '',
+        routeId: data['routeId']?.toString(),
+        routeName: data['routeName']?.toString() ?? '',
+        centerLatitude: centerLatitude,
+        centerLongitude: centerLongitude,
+      ),
+      status: PatrolStatus.assigned,
+      assignedAt: assignedAt,
+    );
+  }
+}

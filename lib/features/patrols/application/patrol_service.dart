@@ -5,16 +5,63 @@ import '../domain/patrol_records.dart';
 import '../domain/patrol_repository.dart';
 import '../domain/patrol_workflow_policy.dart';
 
+class PatrolListResult {
+  const PatrolListResult({required this.patrols, this.assignmentError});
+
+  final List<Patrol> patrols;
+  final Object? assignmentError;
+}
+
 class PatrolService {
-  PatrolService({required PatrolRepository repository, Uuid? uuid})
+  PatrolService({
+    required PatrolRepository repository,
+    PatrolAssignmentSource? assignmentSource,
+    Uuid? uuid,
+  })
     : _repository = repository,
+      _assignmentSource = assignmentSource,
       _uuid = uuid ?? const Uuid();
 
   final PatrolRepository _repository;
+  final PatrolAssignmentSource? _assignmentSource;
   final Uuid _uuid;
 
   Future<List<Patrol>> listForRanger(String rangerId) =>
       _repository.listForRanger(rangerId);
+
+  Future<PatrolListResult> loadAssignedPatrols(String rangerId) async {
+    final local = await _repository.listForRanger(rangerId);
+    final source = _assignmentSource;
+    if (source == null) {
+      return PatrolListResult(
+        patrols: List.unmodifiable(local),
+        assignmentError: StateError('No patrol assignment source is configured.'),
+      );
+    }
+    try {
+      final assignments = await source.loadAssignedTo(rangerId);
+      final merged = <String, Patrol>{};
+      for (final assignment in assignments) {
+        final current = local.where(
+          (patrol) => patrol.patrolId == assignment.patrolId,
+        );
+        final patrol = current.isEmpty ? assignment : current.first;
+        merged[patrol.patrolId] = patrol;
+        if (current.isEmpty) await _repository.save(patrol);
+      }
+      for (final patrol in local) {
+        merged.putIfAbsent(patrol.patrolId, () => patrol);
+      }
+      return PatrolListResult(
+        patrols: List.unmodifiable(merged.values),
+      );
+    } catch (error) {
+      return PatrolListResult(
+        patrols: List.unmodifiable(local),
+        assignmentError: error,
+      );
+    }
+  }
 
   Future<void> saveAssignedPatrol(Patrol patrol) async {
     PatrolWorkflowPolicy.validateAssignment(patrol);
@@ -32,6 +79,9 @@ class PatrolService {
       current: patrol.status,
       next: PatrolStatus.inProgress,
     );
+    if (patrol.status == PatrolStatus.assigned) {
+      PatrolWorkflowPolicy.validateAssignment(patrol);
+    }
     return _save(
       patrol.copyWith(
         status: PatrolStatus.inProgress,
@@ -94,7 +144,7 @@ class PatrolService {
   Future<Patrol> complete({
     required String rangerId,
     required String localId,
-    required PatrolLocation? endLocation,
+    required PatrolLocation endLocation,
     required DateTime at,
   }) async {
     final patrol = await _load(rangerId, localId);
@@ -150,6 +200,7 @@ class PatrolService {
     required String rangerId,
     required String localId,
     required String reason,
+    DateTime? at,
   }) async {
     final patrol = await _load(rangerId, localId);
     PatrolWorkflowPolicy.validateTransition(
@@ -161,6 +212,14 @@ class PatrolService {
       patrol.copyWith(
         status: PatrolStatus.interrupted,
         interruptionReason: reason.trim(),
+        pauseResumeEvents: [
+          ...patrol.pauseResumeEvents,
+          _pauseEvent(
+            PatrolPauseResumeAction.pause,
+            (at ?? DateTime.now()).toUtc(),
+            reason,
+          ),
+        ],
       ),
     );
   }
@@ -174,6 +233,9 @@ class PatrolService {
     if (patrol.status != PatrolStatus.inProgress) {
       throw StateError('Route points can only be recorded during a patrol.');
     }
+    if (point.location.source != PatrolLocationSource.gps) {
+      throw ArgumentError('A tracked route point must use GPS location.');
+    }
     _ensureUniqueId(patrol.routePoints.map((item) => item.id), point.id);
     return _save(patrol.copyWith(routePoints: [...patrol.routePoints, point]));
   }
@@ -185,6 +247,9 @@ class PatrolService {
   }) async {
     final patrol = await _load(rangerId, localId);
     PatrolWorkflowPolicy.ensureCanRecord(patrol, recordType: 'a waypoint');
+    if (waypoint.location.source != PatrolLocationSource.manual) {
+      throw ArgumentError('A manually placed waypoint must use manual location.');
+    }
     _requireText(waypoint.id, 'Waypoint ID');
     _requireText(waypoint.description, 'Waypoint description');
     _ensureUniqueId(patrol.manualWaypoints.map((item) => item.id), waypoint.id);
@@ -347,8 +412,9 @@ class PatrolService {
 
   Future<Patrol> _load(String rangerId, String localId) async {
     final patrol = await _repository.findByLocalId(rangerId, localId);
-    if (patrol == null)
+    if (patrol == null) {
       throw StateError('The saved patrol could not be found.');
+    }
     return patrol;
   }
 

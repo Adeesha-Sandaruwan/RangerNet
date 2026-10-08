@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'patrol_records.dart';
 
 class Patrol {
@@ -83,50 +81,8 @@ class Patrol {
     PatrolStatus.interrupted => PatrolCompletionState.interrupted,
   };
 
-  double get distanceTravelledMeters {
-    var distance = 0.0;
-    for (var index = 1; index < routePoints.length; index++) {
-      distance += _distanceBetween(
-        routePoints[index - 1].location,
-        routePoints[index].location,
-      );
-    }
-    return distance;
-  }
-
-  Duration durationAt(DateTime now) {
-    final start = startedAt;
-    if (start == null) return Duration.zero;
-    final finish = endedAt ?? now;
-    if (!finish.isAfter(start)) return Duration.zero;
-
-    final events = pauseResumeEvents.toList()
-      ..sort((a, b) => a.occurredAt.compareTo(b.occurredAt));
-    DateTime? pauseStartedAt;
-    var pausedDuration = Duration.zero;
-    for (final event in events) {
-      if (!event.occurredAt.isAfter(finish)) {
-        if (event.action == PatrolPauseResumeAction.pause) {
-          pauseStartedAt ??= event.occurredAt;
-        } else if (pauseStartedAt != null) {
-          final resumeAt = event.occurredAt.isBefore(finish)
-              ? event.occurredAt
-              : finish;
-          if (resumeAt.isAfter(pauseStartedAt)) {
-            pausedDuration += resumeAt.difference(pauseStartedAt);
-          }
-          pauseStartedAt = null;
-        }
-      }
-    }
-    if (pauseStartedAt != null && finish.isAfter(pauseStartedAt)) {
-      pausedDuration += finish.difference(pauseStartedAt);
-    }
-    final activeDuration = finish.difference(start) - pausedDuration;
-    return activeDuration.isNegative ? Duration.zero : activeDuration;
-  }
-
   Patrol copyWith({
+    String? localId,
     String? rangerName,
     PatrolArea? area,
     PatrolStatus? status,
@@ -149,7 +105,7 @@ class Patrol {
     bool clearCoverage = false,
   }) => Patrol(
     patrolId: patrolId,
-    localId: localId,
+    localId: localId ?? this.localId,
     rangerId: rangerId,
     rangerName: rangerName ?? this.rangerName,
     area: area ?? this.area,
@@ -190,19 +146,4 @@ class Patrol {
     PatrolStatus.aborted,
   }.contains(status);
 
-  static double _distanceBetween(PatrolLocation first, PatrolLocation second) {
-    const earthRadiusMeters = 6371000.0;
-    final lat1 = _radians(first.latitude);
-    final lat2 = _radians(second.latitude);
-    final latitudeDelta = _radians(second.latitude - first.latitude);
-    final longitudeDelta = _radians(second.longitude - first.longitude);
-    final a =
-        math.pow(math.sin(latitudeDelta / 2), 2) +
-        math.cos(lat1) *
-            math.cos(lat2) *
-            math.pow(math.sin(longitudeDelta / 2), 2);
-    return earthRadiusMeters * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-  }
-
-  static double _radians(double degrees) => degrees * math.pi / 180;
 }

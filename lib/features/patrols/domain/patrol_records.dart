@@ -13,6 +13,15 @@ enum PatrolSyncStatus { localOnly, pendingSync, syncing, synced, failed }
 
 enum PatrolLocationSource { gps, manual }
 
+enum PatrolGpsState {
+  acquiring,
+  available,
+  inaccurate,
+  disabled,
+  permissionDenied,
+  unavailable,
+}
+
 enum PatrolPauseResumeAction { pause, resume }
 
 enum PatrolCompletionState {
@@ -31,6 +40,8 @@ class PatrolArea {
     required this.zoneName,
     this.routeId,
     required this.routeName,
+    this.centerLatitude,
+    this.centerLongitude,
   });
 
   final String? parkId;
@@ -39,6 +50,8 @@ class PatrolArea {
   final String zoneName;
   final String? routeId;
   final String routeName;
+  final double? centerLatitude;
+  final double? centerLongitude;
 }
 
 class PatrolLocation {

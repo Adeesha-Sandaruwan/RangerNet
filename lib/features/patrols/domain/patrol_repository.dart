@@ -7,3 +7,11 @@ abstract interface class PatrolRepository {
 
   Future<void> save(Patrol patrol);
 }
+
+abstract interface class PatrolAssignmentSource {
+  Future<List<Patrol>> loadAssignedTo(String rangerId);
+}
+
+abstract interface class PatrolSyncRepository {
+  Future<void> syncCompletedPatrol(Patrol patrol);
+}
