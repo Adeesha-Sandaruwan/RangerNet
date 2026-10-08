@@ -144,10 +144,12 @@ More detail about the implemented workflow is in
    between them are counted as covered; uncovered sections are listed as
    potentially neglected. Inaccurate GPS points are not counted. Coverage and
    patrol changes are saved locally before synchronization.
-5. The ranger adds observations and optional compressed photographs, and can
-   pause/resume, interrupt, or end early with a reason.
-6. Before completing, the ranger reviews the summary and selects an end
-   location. Completion is saved locally first and synchronized when online.
+5. The ranger records categorized observations and optional compressed
+   photographs, and can pause/resume or interrupt the patrol. Ending early
+   requires confirmation and a reason.
+6. Before completing, the ranger reviews the summary, GPS status, and selects
+   an end location. A separate confirmation saves completion locally first;
+   offline completions remain **Pending Sync** until synchronized.
 
 Assignments are read from `patrolAssignments/{patrolId}` and completed
 records are written to `patrols/{patrolId}` and its record subcollections. See
@@ -162,7 +164,9 @@ records are written to `patrols/{patrolId}` and its record subcollections. See
   Synchronization retries automatically when connectivity returns or the app
   resumes. Rangers can also select **Sync now** in the Patrols section to retry
   pending records manually. A failed sync preserves local records and reports
-  the failure.
+  the failure. Network, GPS, GPS accuracy, sync state, and last successful sync
+  time are shown in the ranger patrol flow; retry actions are available when
+  GPS or synchronization needs attention.
 - Patrol data is isolated by ranger ID and remains on-device across
   authentication expiration. Re-authenticate as the same ranger to synchronize.
 - Device storage failures are surfaced; the prior successfully persisted

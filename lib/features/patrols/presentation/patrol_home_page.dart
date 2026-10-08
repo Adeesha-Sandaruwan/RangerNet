@@ -9,6 +9,7 @@ import '../application/patrol_tracking_service.dart';
 import '../domain/patrol.dart';
 import '../domain/patrol_network_status.dart';
 import '../domain/patrol_records.dart';
+import 'patrol_network_status_card.dart';
 import 'patrol_session_page.dart';
 
 class PatrolHomePage extends StatefulWidget {
@@ -264,23 +265,9 @@ class _PatrolHomePageState extends State<PatrolHomePage>
               ),
               const SizedBox(height: 6),
               Text('Ranger: ${widget.rangerName}'),
-              Card(
-                child: ListTile(
-                  dense: true,
-                  leading: Icon(_online == true ? Icons.wifi : Icons.wifi_off),
-                  title: Text(
-                    _online == null
-                        ? 'Checking network status'
-                        : _online!
-                        ? 'Online'
-                        : 'Offline · local patrol data remains available',
-                  ),
-                  trailing: IconButton(
-                    tooltip: 'Refresh network status',
-                    onPressed: _refreshNetworkStatus,
-                    icon: const Icon(Icons.refresh),
-                  ),
-                ),
+              PatrolNetworkStatusCard(
+                online: _online,
+                onRefresh: _refreshNetworkStatus,
               ),
               if (_syncMessage != null ||
                   _patrols.any(
@@ -335,19 +322,22 @@ class _PatrolHomePageState extends State<PatrolHomePage>
                         const SizedBox(height: 10),
                         Align(
                           alignment: Alignment.centerRight,
-                          child: FilledButton.icon(
-                            onPressed: _syncing
-                                ? null
-                                : () => _synchronizePending(manual: true),
-                            icon: _syncing
-                                ? const SizedBox.square(
-                                    dimension: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.sync),
-                            label: Text(_syncing ? 'Syncing' : 'Sync now'),
+                          child: SizedBox(
+                            height: 52,
+                            child: FilledButton.icon(
+                              onPressed: _syncing
+                                  ? null
+                                  : () => _synchronizePending(manual: true),
+                              icon: _syncing
+                                  ? const SizedBox.square(
+                                      dimension: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.sync),
+                              label: Text(_syncing ? 'Syncing' : 'Sync now'),
+                            ),
                           ),
                         ),
                       ],

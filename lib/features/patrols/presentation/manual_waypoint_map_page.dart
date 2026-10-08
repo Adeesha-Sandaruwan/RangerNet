@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -25,6 +27,12 @@ class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
   LatLng? _center;
   LatLng? _selected;
   bool _tilesUnavailable = false;
+  bool _allowPop = false;
+
+  bool get _hasUnsavedChanges =>
+      _selected != null ||
+      _latitude.text.trim().isNotEmpty ||
+      _longitude.text.trim().isNotEmpty;
 
   @override
   void initState() {
@@ -51,10 +59,46 @@ class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
   @override
   Widget build(BuildContext context) {
     final center = _center;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mark exact location on map')),
-      body: center == null ? _buildChooseCenter() : _buildMap(center),
+    return PopScope<Object?>(
+      canPop: !_hasUnsavedChanges || _allowPop,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _hasUnsavedChanges) {
+          unawaited(_confirmDiscard());
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Mark exact location on map')),
+        body: center == null ? _buildChooseCenter() : _buildMap(center),
+      ),
     );
+  }
+
+  Future<void> _confirmDiscard() async {
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Discard unsaved location?'),
+        content: const Text(
+          'The selected manual waypoint has not been added to the patrol.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep selecting'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    if (discard == true && mounted) {
+      setState(() => _allowPop = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.of(context).pop();
+      });
+    }
   }
 
   Widget _buildChooseCenter() => Center(
@@ -73,6 +117,7 @@ class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
           const SizedBox(height: 16),
           TextField(
             controller: _latitude,
+            onChanged: (_) => setState(() {}),
             keyboardType: const TextInputType.numberWithOptions(
               decimal: true,
               signed: true,
@@ -85,6 +130,7 @@ class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
           const SizedBox(height: 10),
           TextField(
             controller: _longitude,
+            onChanged: (_) => setState(() {}),
             keyboardType: const TextInputType.numberWithOptions(
               decimal: true,
               signed: true,
@@ -351,14 +397,16 @@ class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
   void _confirmSelection() {
     final point = _selected;
     if (point == null) return;
-    Navigator.of(context).pop(
-      PatrolLocation(
-        latitude: point.latitude,
-        longitude: point.longitude,
-        recordedAt: DateTime.now().toUtc(),
-        source: PatrolLocationSource.manual,
-      ),
+    setState(() => _allowPop = true);
+    final location = PatrolLocation(
+      latitude: point.latitude,
+      longitude: point.longitude,
+      recordedAt: DateTime.now().toUtc(),
+      source: PatrolLocationSource.manual,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Navigator.of(context).pop(location);
+    });
   }
 }
 

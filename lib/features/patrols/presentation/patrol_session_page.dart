@@ -15,6 +15,8 @@ import '../domain/patrol_network_status.dart';
 import '../domain/patrol_records.dart';
 import 'manual_waypoint_map_page.dart';
 import 'patrol_completion_review_page.dart';
+import 'patrol_network_status_card.dart';
+import 'patrol_primary_action_button.dart';
 import 'patrol_route_map.dart';
 
 class PatrolSessionPage extends StatefulWidget {
@@ -289,67 +291,136 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
   }
 
   Future<void> _endEarly() async {
+    final confirmed = await _confirmAction(
+      title: 'End patrol early?',
+      message:
+          'The patrol will be marked as aborted. You will be asked to record '
+          'a reason, and saved patrol data will be retained.',
+      confirmLabel: 'Continue',
+    );
+    if (confirmed != true || !mounted) return;
     final reason = await _reasonDialog(
       title: 'End patrol early',
       prompt: 'Record why the patrol is ending before completion.',
     );
     if (reason == null) return;
-    await _runAction('Patrol termination was not saved', () async {
-      await widget.trackingService.stop();
-      _patrol = await widget.service.abort(
-        rangerId: _patrol.rangerId,
-        localId: _patrol.localId,
-        reason: reason,
-        at: DateTime.now().toUtc(),
-        endLocation: _reliableLatestFix,
-      );
-    });
+    var saved = false;
+    var reasonToSave = reason;
+    while (mounted && !saved) {
+      saved = await _runAction('Patrol termination was not saved', () async {
+        await widget.trackingService.stop();
+        _patrol = await widget.service.abort(
+          rangerId: _patrol.rangerId,
+          localId: _patrol.localId,
+          reason: reasonToSave,
+          at: DateTime.now().toUtc(),
+          endLocation: _reliableLatestFix,
+        );
+      });
+      if (!saved && mounted) {
+        if (_patrol.status == PatrolStatus.inProgress) {
+          await _restartTracking();
+        }
+        final retryReason = await _reasonDialog(
+          title: 'Retry ending patrol early',
+          prompt: 'The reason is retained. Edit it if needed, then retry.',
+          initialValue: reasonToSave,
+        );
+        if (retryReason == null) return;
+        reasonToSave = retryReason;
+      }
+    }
   }
 
   Future<void> _addWaypoint() async {
     final location = await _selectManualLocation();
     if (location == null || !mounted) return;
-    final description = await _textDialog(
+    final enteredDescription = await _textDialog(
       title: 'Describe waypoint',
       label: 'Waypoint description',
     );
-    if (description == null || !mounted) return;
-    await _runAction('Waypoint was not saved', () async {
-      _patrol = await widget.service.addManualWaypoint(
-        rangerId: _patrol.rangerId,
-        localId: _patrol.localId,
-        waypoint: PatrolWaypoint(
-          id: _uuid.v4(),
-          description: description,
-          location: location,
-        ),
-      );
-    });
+    if (enteredDescription == null || !mounted) return;
+    var description = enteredDescription;
+    final waypointId = _uuid.v4();
+    var saved = false;
+    while (mounted && !saved) {
+      saved = await _runAction('Waypoint was not saved', () async {
+        _patrol = await widget.service.addManualWaypoint(
+          rangerId: _patrol.rangerId,
+          localId: _patrol.localId,
+          waypoint: PatrolWaypoint(
+            id: waypointId,
+            description: description,
+            location: location,
+          ),
+        );
+      });
+      if (!saved && mounted) {
+        final retryDescription = await _textDialog(
+          title: 'Retry saving waypoint',
+          label: 'The description is retained. Edit it if needed.',
+          initialValue: description,
+        );
+        if (retryDescription == null) return;
+        description = retryDescription;
+      }
+    }
   }
 
   Future<void> _addObservation() async {
-    final description = await _textDialog(
+    final enteredInput = await _recordInputDialog(
       title: 'Add patrol observation',
       label: 'Observation details',
       maxLines: 4,
+      categories: const [
+        'Wildlife',
+        'Habitat',
+        'Safety',
+        'Infrastructure',
+        'Other',
+      ],
     );
-    if (description == null || !mounted) return;
+    if (enteredInput == null || !mounted) return;
+    var input = enteredInput;
     var location = _reliableLatestFix;
     if (location == null) {
       location = await _selectManualLocation();
       if (location == null || !mounted) return;
     }
-    await _runAction('Observation was not saved', () async {
-      _patrol = await widget.service.addObservation(
-        rangerId: _patrol.rangerId,
-        localId: _patrol.localId,
-        observation: PatrolObservation(
-          id: _uuid.v4(),
-          description: description,
-          location: location!,
-        ),
-      );
-    });
+    var saved = false;
+    final observationId = _uuid.v4();
+    while (mounted && !saved) {
+      saved = await _runAction('Observation was not saved', () async {
+        _patrol = await widget.service.addObservation(
+          rangerId: _patrol.rangerId,
+          localId: _patrol.localId,
+          observation: PatrolObservation(
+            id: observationId,
+            description: input.description,
+            category: input.category,
+            location: location!,
+          ),
+        );
+      });
+      if (!saved && mounted) {
+        final retryInput = await _recordInputDialog(
+          title: 'Retry saving observation',
+          label: 'The details and category are retained.',
+          maxLines: 4,
+          categories: const [
+            'Wildlife',
+            'Habitat',
+            'Safety',
+            'Infrastructure',
+            'Other',
+          ],
+          initialValue: input.description,
+          initialCategory: input.category,
+        );
+        if (retryInput == null) return;
+        input = retryInput;
+      }
+    }
   }
 
   Future<void> _addPhoto(PatrolPhotoSource source) async {
@@ -385,8 +456,10 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
           builder: (_) => PatrolCompletionReviewPage(
             patrol: _patrol,
             suggestedEndLocation: _reliableLatestFix,
+            gpsStatus: _trackingState.gpsStatus,
             service: widget.service,
             syncService: widget.syncService,
+            networkStatus: widget.networkStatus,
           ),
         ),
       );
@@ -413,66 +486,200 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
   Future<String?> _reasonDialog({
     required String title,
     required String prompt,
-  }) => _textDialog(title: title, label: prompt, maxLines: 4);
+    String? initialValue,
+  }) => _textDialog(
+    title: title,
+    label: prompt,
+    maxLines: 4,
+    initialValue: initialValue,
+  );
 
   Future<String?> _textDialog({
     required String title,
     required String label,
     int maxLines = 2,
+    String? initialValue,
+  }) async => (await _recordInputDialog(
+    title: title,
+    label: label,
+    maxLines: maxLines,
+    initialValue: initialValue,
+  ))?.description;
+
+  Future<_PatrolRecordInput?> _recordInputDialog({
+    required String title,
+    required String label,
+    int maxLines = 2,
+    String? initialValue,
+    String? initialCategory,
+    List<String> categories = const [],
   }) async {
-    final controller = TextEditingController();
-    final value = await showDialog<String>(
+    final controller = TextEditingController(text: initialValue);
+    final formKey = GlobalKey<FormState>();
+    final value = await showDialog<_PatrolRecordInput>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLines: maxLines,
-          maxLength: 500,
-          decoration: InputDecoration(
-            labelText: label,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        var category = initialCategory;
+        var allowPop = false;
+        StateSetter? updateDialog;
+
+        Future<void> cancel() async {
+          if (controller.text.trim().isNotEmpty ||
+              category != initialCategory) {
+            final discard = await _confirmAction(
+              title: 'Discard unsaved changes?',
+              message: 'Your entered information will be lost.',
+              confirmLabel: 'Discard',
+            );
+            if (discard != true || !dialogContext.mounted) return;
+          }
+          updateDialog?.call(() => allowPop = true);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (dialogContext.mounted) Navigator.pop(dialogContext);
+          });
+        }
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            updateDialog = setDialogState;
+            return PopScope<_PatrolRecordInput>(
+              canPop: allowPop,
+              onPopInvokedWithResult: (didPop, _) {
+                if (!didPop) unawaited(cancel());
+              },
+              child: AlertDialog(
+              title: Text(title),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (categories.isNotEmpty) ...[
+                      DropdownButtonFormField<String>(
+                        initialValue: category,
+                        decoration: const InputDecoration(
+                          labelText: 'Observation category',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: categories
+                            .map(
+                              (option) => DropdownMenuItem(
+                                value: option,
+                                child: Text(option),
+                              ),
+                            )
+                            .toList(),
+                        validator: (selected) => selected == null
+                            ? 'Choose an observation category.'
+                            : null,
+                        onChanged: (selected) =>
+                            setDialogState(() => category = selected),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    TextFormField(
+                      controller: controller,
+                      autofocus: true,
+                      maxLines: maxLines,
+                      maxLength: 500,
+                      decoration: InputDecoration(
+                        labelText: label,
+                        border: const OutlineInputBorder(),
+                      ),
+                      validator: (text) => text == null || text.trim().isEmpty
+                          ? 'This field is required.'
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: cancel,
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    if (!formKey.currentState!.validate()) return;
+                    setDialogState(() => allowPop = true);
+                    final result = _PatrolRecordInput(
+                      controller.text.trim(),
+                      category: category,
+                    );
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (dialogContext.mounted) {
+                        Navigator.pop(dialogContext, result);
+                      }
+                    });
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            ),
+            );
+          },
+        );
+      },
     );
     controller.dispose();
-    if (value == null || value.isEmpty) return null;
     return value;
   }
 
-  Future<void> _runAction(
+  Future<bool> _runAction(
     String failureMessage,
     Future<void> Function() action,
   ) async {
-    if (_busy) return;
+    if (_busy) return false;
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
       await action();
-      await widget.trackingService.refreshPatrol(_patrol);
-      if (mounted) {
-        setState(() => _trackingState = widget.trackingService.currentState);
+      try {
+        await widget.trackingService.refreshPatrol(_patrol);
+        if (mounted) {
+          setState(() => _trackingState = widget.trackingService.currentState);
+        }
+      } catch (error) {
+        if (mounted) {
+          setState(
+            () => _error =
+                'The patrol record was saved, but its tracking display could not refresh: $error',
+          );
+        }
       }
+      return true;
     } catch (error) {
       if (mounted) setState(() => _error = '$failureMessage: $error');
+      return false;
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
+
+  Future<bool?> _confirmAction({
+    required String title,
+    required String message,
+    required String confirmLabel,
+  }) => showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: Text(confirmLabel),
+        ),
+      ],
+    ),
+  );
 
   PatrolLocation? get _reliableLatestFix {
     final fix = _trackingState.latestFix;
@@ -529,8 +736,22 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
                 ],
                 const SizedBox(height: 12),
               ],
+              PatrolNetworkStatusCard(
+                online: _online,
+                onRefresh: _refreshNetworkStatus,
+              ),
               _patrolDetailsCard(),
               if (active) _statusCard(),
+              if (!active)
+                const Card(
+                  child: ListTile(
+                    leading: Icon(Icons.gps_not_fixed),
+                    title: Text('GPS status: Not tracking'),
+                    subtitle: Text(
+                      'GPS tracking starts when this assigned patrol begins.',
+                    ),
+                  ),
+                ),
               if (_error != null)
                 Card(
                   color: const Color(0xFFFFE9E5),
@@ -538,6 +759,19 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
                     leading: const Icon(Icons.error_outline),
                     title: const Text('Action needs attention'),
                     subtitle: Text(_error!),
+                  ),
+                ),
+              if (_busy)
+                const Card(
+                  child: ListTile(
+                    leading: SizedBox.square(
+                      dimension: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    title: Text('Working…'),
+                    subtitle: Text(
+                      'Saving patrol data on this device. Please wait.',
+                    ),
                   ),
                 ),
               if (_patrol.syncInfo.status == PatrolSyncStatus.failed)
@@ -553,23 +787,23 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
                   ),
                 ),
               if (_patrol.status == PatrolStatus.assigned)
-                FilledButton.icon(
+                PatrolPrimaryActionButton(
+                  label: 'Start patrol',
+                  icon: Icons.play_arrow,
                   onPressed: _busy ? null : _startPatrol,
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('Start patrol'),
+                  busy: _busy,
                 ),
               if (_patrol.status == PatrolStatus.inProgress) ...[
-                FilledButton.icon(
+                PatrolPrimaryActionButton(
+                  label: 'Pause patrol',
+                  icon: Icons.pause,
                   onPressed: _busy ? null : _pause,
-                  icon: const Icon(Icons.pause),
-                  label: const Text('Pause patrol'),
+                  busy: _busy,
                 ),
                 OutlinedButton.icon(
                   onPressed: _busy ? null : _addWaypoint,
                   icon: const Icon(Icons.add_location_alt_outlined),
-                  label: Text(
-                    _manualWaypointActionLabel,
-                  ),
+                  label: Text(_manualWaypointActionLabel),
                 ),
                 OutlinedButton.icon(
                   onPressed: _busy ? null : _addObservation,
@@ -592,18 +826,20 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
                   label: const Text('End patrol early'),
                 ),
                 const SizedBox(height: 8),
-                FilledButton.icon(
+                PatrolPrimaryActionButton(
+                  label: 'Review and complete patrol',
+                  icon: Icons.fact_check_outlined,
                   onPressed: _busy ? null : _reviewCompletion,
-                  icon: const Icon(Icons.fact_check_outlined),
-                  label: const Text('Review and complete patrol'),
+                  busy: _busy,
                 ),
               ],
               if (_patrol.status == PatrolStatus.paused ||
                   _patrol.status == PatrolStatus.interrupted) ...[
-                FilledButton.icon(
+                PatrolPrimaryActionButton(
+                  label: 'Resume patrol',
+                  icon: Icons.play_arrow,
                   onPressed: _busy ? null : _resume,
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('Resume patrol'),
+                  busy: _busy,
                 ),
                 OutlinedButton.icon(
                   onPressed: _busy ? null : _reviewCompletion,
@@ -732,7 +968,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
       if (_patrol.manualWaypoints.isNotEmpty)
         const _RouteLegendItem(
           color: Colors.deepPurple,
-          label: 'Map-marked location',
+          label: 'Manual waypoint',
         ),
     ],
   );
@@ -755,32 +991,42 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _RouteMetric(
-                    icon: Icons.route_outlined,
-                    label: 'Actual route distance',
-                    value: distanceLabel,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _RouteMetric(
-                    icon: Icons.timer_outlined,
-                    label: 'Active duration',
-                    value: durationLabel,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _RouteMetric(
-                    icon: Icons.my_location_outlined,
-                    label: 'GPS points',
-                    value: '${_patrol.routePoints.length}',
-                  ),
-                ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final itemWidth = constraints.maxWidth < 480
+                    ? (constraints.maxWidth - 12) / 2
+                    : (constraints.maxWidth - 24) / 3;
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    SizedBox(
+                      width: itemWidth,
+                      child: _RouteMetric(
+                        icon: Icons.route_outlined,
+                        label: 'Actual route distance',
+                        value: distanceLabel,
+                      ),
+                    ),
+                    SizedBox(
+                      width: itemWidth,
+                      child: _RouteMetric(
+                        icon: Icons.timer_outlined,
+                        label: 'Active duration',
+                        value: durationLabel,
+                      ),
+                    ),
+                    SizedBox(
+                      width: itemWidth,
+                      child: _RouteMetric(
+                        icon: Icons.my_location_outlined,
+                        label: 'GPS points',
+                        value: '${_patrol.routePoints.length}',
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
             if (_patrol.manualWaypoints.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -825,21 +1071,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
                 style: const TextStyle(color: Color(0xFFB42318)),
               ),
             const Divider(),
-            Row(
-              children: [
-                Icon(_online == true ? Icons.wifi : Icons.wifi_off, size: 18),
-                const SizedBox(width: 6),
-                Text(
-                  _online == null
-                      ? 'Checking network'
-                      : _online!
-                      ? 'Online'
-                      : 'Offline · patrol saved locally',
-                ),
-                const Spacer(),
-                Text('Route points: ${_trackingState.recordedPointCount}'),
-              ],
-            ),
+            Text('Recorded GPS points: ${_trackingState.recordedPointCount}'),
             Text('Sync status: $_syncStatusLabel'),
             Text(
               'Last successful synchronization: '
@@ -862,7 +1094,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
                   TextButton.icon(
                     onPressed: _busy ? null : _addWaypoint,
                     icon: const Icon(Icons.add_location_alt_outlined),
-                    label: const Text('Mark exact location'),
+                    label: Text(_manualWaypointActionLabel),
                   ),
                 ],
               ),
@@ -915,7 +1147,8 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
   String _locationLabel(PatrolLocation location) =>
       '${location.latitude.toStringAsFixed(6)}, '
       '${location.longitude.toStringAsFixed(6)} · '
-      '${location.source.name}${location.accuracyMeters == null ? '' : ' · ±${location.accuracyMeters!.toStringAsFixed(0)} m'}';
+      '${location.source == PatrolLocationSource.gps ? 'GPS' : 'Manual'}'
+      '${location.accuracyMeters == null ? '' : ' · ±${location.accuracyMeters!.toStringAsFixed(0)} m'}';
 
   String get _syncStatusLabel => switch (_patrol.syncInfo.status) {
     PatrolSyncStatus.localOnly => 'Local only',
@@ -935,6 +1168,13 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     PatrolStatus.aborted => 'Aborted',
     PatrolStatus.interrupted => 'Interrupted',
   };
+}
+
+class _PatrolRecordInput {
+  const _PatrolRecordInput(this.description, {this.category});
+
+  final String description;
+  final String? category;
 }
 
 class _RouteMetric extends StatelessWidget {

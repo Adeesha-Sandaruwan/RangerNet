@@ -1,27 +1,37 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../application/patrol_metrics_service.dart';
 import '../application/patrol_service.dart';
 import '../application/patrol_sync_service.dart';
 import '../domain/patrol.dart';
+import '../domain/patrol_location_provider.dart';
+import '../domain/patrol_network_status.dart';
 import '../domain/patrol_records.dart';
 import 'manual_waypoint_map_page.dart';
 import 'patrol_coverage_summary.dart';
+import 'patrol_network_status_card.dart';
+import 'patrol_primary_action_button.dart';
 import 'patrol_route_map.dart';
 
 class PatrolCompletionReviewPage extends StatefulWidget {
   const PatrolCompletionReviewPage({
     required this.patrol,
     required this.suggestedEndLocation,
+    required this.gpsStatus,
     required this.service,
     required this.syncService,
+    required this.networkStatus,
     super.key,
   });
 
   final Patrol patrol;
   final PatrolLocation? suggestedEndLocation;
+  final PatrolGpsStatus gpsStatus;
   final PatrolService service;
   final PatrolSyncService syncService;
+  final PatrolNetworkStatusProvider networkStatus;
 
   @override
   State<PatrolCompletionReviewPage> createState() =>
@@ -37,11 +47,23 @@ class _PatrolCompletionReviewPageState
   bool _coverageReady = false;
   String? _coverageError;
   String? _message;
+  bool? _online;
+  StreamSubscription<bool>? _networkSubscription;
 
   @override
   void initState() {
     super.initState();
+    _networkSubscription = widget.networkStatus.onlineChanges.listen((online) {
+      if (mounted) setState(() => _online = online);
+    });
+    unawaited(_refreshNetworkStatus());
     _calculateCoverage();
+  }
+
+  @override
+  void dispose() {
+    _networkSubscription?.cancel();
+    super.dispose();
   }
 
   bool get _canConfirm =>
@@ -70,6 +92,30 @@ class _PatrolCompletionReviewPageState
 
   Future<void> _confirmCompletion() async {
     if (_busy || !_canConfirm) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Complete this patrol?'),
+        content: Text(
+          _online == false
+              ? 'The summary will be saved on this device as Pending Sync. '
+                    'You can synchronize it when the network is available.'
+              : 'The patrol summary will be saved locally before synchronization. '
+                    'You can review the saved status afterward.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Return to summary'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Complete patrol'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
     setState(() {
       _busy = true;
       _message = null;
@@ -89,6 +135,19 @@ class _PatrolCompletionReviewPageState
       }
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _refreshNetworkStatus() async {
+    try {
+      final online = await widget.networkStatus.isOnline;
+      if (mounted) setState(() => _online = online);
+    } catch (error) {
+      if (mounted) {
+        setState(
+          () => _message = 'Network status could not be checked: $error',
+        );
+      }
     }
   }
 
@@ -149,6 +208,26 @@ class _PatrolCompletionReviewPageState
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              PatrolNetworkStatusCard(
+                online: _online,
+                onRefresh: _refreshNetworkStatus,
+              ),
+              Card(
+                child: ListTile(
+                  leading: Icon(
+                    widget.gpsStatus.state == PatrolGpsState.available
+                        ? Icons.gps_fixed
+                        : Icons.gps_not_fixed,
+                  ),
+                  title: Text('GPS status: ${_gpsStatusLabel(widget.gpsStatus)}'),
+                  subtitle: Text(
+                    widget.gpsStatus.accuracyMeters == null
+                        ? widget.gpsStatus.message ??
+                              'GPS accuracy is not currently available.'
+                        : 'Accuracy ±${widget.gpsStatus.accuracyMeters!.toStringAsFixed(1)} m',
+                  ),
+                ),
+              ),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(18),
@@ -175,6 +254,18 @@ class _PatrolCompletionReviewPageState
                       _detail('Zone', _patrol.area.zoneName),
                       _detail('Ranger', _patrol.rangerName),
                       _detail('Patrol ID', _patrol.patrolId),
+                      _detail('Sync status', _syncStatusLabel),
+                      _detail(
+                        'Last successful sync',
+                        _patrol.syncInfo.lastSyncedAt == null
+                            ? 'Never'
+                            : _formatDate(_patrol.syncInfo.lastSyncedAt),
+                      ),
+                      if (_patrol.syncInfo.lastError != null)
+                        _detail(
+                          'Last sync failure',
+                          _patrol.syncInfo.lastError!,
+                        ),
                       _detail('Started', _formatDate(_patrol.startedAt)),
                       _detail(
                         'Duration',
@@ -292,22 +383,16 @@ class _PatrolCompletionReviewPageState
                 const LinearProgressIndicator(),
               if (_patrol.status == PatrolStatus.completedPendingSync ||
                   _patrol.status == PatrolStatus.completedSynced)
-                FilledButton.icon(
+                PatrolPrimaryActionButton(
+                  label: _patrol.status == PatrolStatus.completedSynced
+                      ? 'Completed'
+                      : 'Retry synchronization',
+                  icon: Icons.sync,
                   onPressed:
                       _busy || _patrol.status == PatrolStatus.completedSynced
                       ? null
                       : _synchronize,
-                  icon: _busy
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.sync),
-                  label: Text(
-                    _patrol.status == PatrolStatus.completedSynced
-                        ? 'Completed'
-                        : 'Retry synchronization',
-                  ),
+                  busy: _busy,
                 )
               else ...[
                 OutlinedButton.icon(
@@ -323,15 +408,11 @@ class _PatrolCompletionReviewPageState
                         : 'Change end location (${_endLocation!.source.name})',
                   ),
                 ),
-                FilledButton.icon(
+                PatrolPrimaryActionButton(
+                  label: 'Confirm completion',
+                  icon: Icons.check_circle_outline,
                   onPressed: _busy || !_canConfirm ? null : _confirmCompletion,
-                  icon: _busy
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.check_circle_outline),
-                  label: const Text('Confirm completion'),
+                  busy: _busy,
                 ),
               ],
               const SizedBox(height: 8),
@@ -339,6 +420,9 @@ class _PatrolCompletionReviewPageState
                 onPressed: _busy
                     ? null
                     : () => Navigator.of(context).pop(_patrol),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
                 child: const Text('Return to patrol'),
               ),
             ],
@@ -385,11 +469,28 @@ class _PatrolCompletionReviewPageState
       ? 'Not recorded'
       : date.toLocal().toString().substring(0, 16);
 
+  String get _syncStatusLabel => switch (_patrol.syncInfo.status) {
+    PatrolSyncStatus.localOnly => 'Saved on this device',
+    PatrolSyncStatus.pendingSync => 'Pending Sync',
+    PatrolSyncStatus.syncing => 'Synchronization in progress',
+    PatrolSyncStatus.synced => 'Synced',
+    PatrolSyncStatus.failed => 'Pending Sync · last attempt failed',
+  };
+
+  String _gpsStatusLabel(PatrolGpsStatus status) => switch (status.state) {
+    PatrolGpsState.acquiring => 'Searching for a position',
+    PatrolGpsState.available => 'Available',
+    PatrolGpsState.inaccurate => 'Inaccurate',
+    PatrolGpsState.disabled => 'Device location is off',
+    PatrolGpsState.permissionDenied => 'Permission unavailable',
+    PatrolGpsState.unavailable => 'Unavailable',
+  };
+
   String _locationLabel(PatrolLocation? location) => location == null
       ? 'Not recorded'
       : '${location.latitude.toStringAsFixed(6)}, '
             '${location.longitude.toStringAsFixed(6)} '
-            '(${location.source.name})';
+            '(${location.source == PatrolLocationSource.gps ? 'GPS' : 'Manual'})';
 
 }
 
