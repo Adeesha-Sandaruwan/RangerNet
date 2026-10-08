@@ -63,6 +63,12 @@ class FirestorePatrolAssignmentSource implements PatrolAssignmentSource {
         'Patrol assignment ${doc.id} must include both map center coordinates.',
       );
     }
+    final rawSections = data['plannedCoverageSections'];
+    if (rawSections != null && rawSections is! List) {
+      throw FormatException(
+        'Patrol assignment ${doc.id} has invalid coverage sections.',
+      );
+    }
     return Patrol(
       patrolId: doc.id,
       localId: _uuid.v4(),
@@ -80,6 +86,30 @@ class FirestorePatrolAssignmentSource implements PatrolAssignmentSource {
       ),
       status: PatrolStatus.assigned,
       assignedAt: assignedAt,
+      plannedCoverageSections: (rawSections as List? ?? []).map((value) {
+        if (value is! Map) {
+          throw FormatException(
+            'Patrol assignment ${doc.id} has an invalid coverage section.',
+          );
+        }
+        final section = Map<String, dynamic>.from(value);
+        final latitude = section['latitude'];
+        final longitude = section['longitude'];
+        if (section['id'] is! String ||
+            section['name'] is! String ||
+            latitude is! num ||
+            longitude is! num) {
+          throw FormatException(
+            'Patrol assignment ${doc.id} has an incomplete coverage section.',
+          );
+        }
+        return PatrolCoverageCheckpoint(
+          id: section['id'] as String,
+          name: section['name'] as String,
+          latitude: latitude.toDouble(),
+          longitude: longitude.toDouble(),
+        );
+      }),
     );
   }
 }

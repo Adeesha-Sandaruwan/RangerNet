@@ -158,6 +158,47 @@ void main() {
       );
     },
   );
+
+  test('calculates and persists planned coverage before completion', () async {
+    final start = DateTime.utc(2026, 4, 1, 8);
+    final assigned = _assignedPatrol().copyWith(
+      plannedCoverageSections: [
+        PatrolCoverageCheckpoint(
+          id: 'section-near',
+          name: 'River bend',
+          latitude: 6.1,
+          longitude: 81.2,
+        ),
+        PatrolCoverageCheckpoint(
+          id: 'section-far',
+          name: 'North ridge',
+          latitude: 7.1,
+          longitude: 82.2,
+        ),
+      ],
+    );
+    await repository.save(assigned);
+    await service.start(
+      rangerId: 'ranger-1',
+      localId: 'local-1',
+      location: _location(start),
+      at: start,
+    );
+
+    final coverage = await service.calculateCoverage(
+      rangerId: 'ranger-1',
+      localId: 'local-1',
+      calculatedAt: start.add(const Duration(minutes: 10)),
+    );
+
+    expect(coverage.coverage?.coveredSections, 1);
+    expect(coverage.coverage?.coveredSectionIds, ['section-near']);
+    expect(coverage.coverage?.uncoveredSectionIds, ['section-far']);
+    expect(
+      (await service.listForRanger('ranger-1')).single.coverage,
+      coverage.coverage,
+    );
+  });
 }
 
 class _MemoryPatrolRepository implements PatrolRepository {

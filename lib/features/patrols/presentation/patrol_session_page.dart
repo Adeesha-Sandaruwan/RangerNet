@@ -649,6 +649,11 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
             _detail('Start location', _locationLabel(_patrol.startLocation!)),
           if (_patrol.interruptionReason != null)
             _detail('Interruption', _patrol.interruptionReason!),
+          if (_patrol.plannedCoverageSections.isNotEmpty)
+            _detail(
+              'Planned coverage sections',
+              '${_patrol.plannedCoverageSections.length}',
+            ),
           _detail('Route points', '${_patrol.routePoints.length}'),
           _detail('Waypoints', '${_patrol.manualWaypoints.length}'),
           _detail('Observations', '${_patrol.observations.length}'),

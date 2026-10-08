@@ -28,6 +28,14 @@ void main() {
           routeName: 'River Route',
           centerLatitude: 6.1,
           centerLongitude: 81.2,
+          plannedCoverageSections: [
+            PatrolCoverageCheckpoint(
+              id: 'section-1',
+              name: 'River bend',
+              latitude: 6.11,
+              longitude: 81.21,
+            ),
+          ],
         ),
       );
 
@@ -35,6 +43,7 @@ void main() {
       expect(assignment.rangerId, 'ranger-1');
       expect(assignment.area.routeName, 'River Route');
       expect(assignment.area.centerLatitude, 6.1);
+      expect(assignment.plannedCoverageSections.single.name, 'River bend');
     },
   );
 
@@ -113,6 +122,7 @@ class _FakeAssignmentRepository implements PatrolAssignmentRepository {
         centerLongitude: draft.centerLongitude,
       ),
       assignedAt: DateTime.utc(2026, 10, 8),
+      plannedCoverageSections: draft.plannedCoverageSections,
     );
   }
 

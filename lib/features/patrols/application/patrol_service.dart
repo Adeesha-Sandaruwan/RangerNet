@@ -4,6 +4,7 @@ import '../domain/patrol.dart';
 import '../domain/patrol_records.dart';
 import '../domain/patrol_repository.dart';
 import '../domain/patrol_workflow_policy.dart';
+import 'patrol_coverage_service.dart';
 
 class PatrolListResult {
   const PatrolListResult({required this.patrols, this.assignmentError});
@@ -16,14 +17,15 @@ class PatrolService {
   PatrolService({
     required PatrolRepository repository,
     PatrolAssignmentSource? assignmentSource,
+    this.coverageService = const PatrolCoverageService(),
     Uuid? uuid,
-  })
-    : _repository = repository,
-      _assignmentSource = assignmentSource,
-      _uuid = uuid ?? const Uuid();
+  }) : _repository = repository,
+       _assignmentSource = assignmentSource,
+       _uuid = uuid ?? const Uuid();
 
   final PatrolRepository _repository;
   final PatrolAssignmentSource? _assignmentSource;
+  final PatrolCoverageService coverageService;
   final Uuid _uuid;
 
   Future<List<Patrol>> listForRanger(String rangerId) =>
@@ -35,7 +37,9 @@ class PatrolService {
     if (source == null) {
       return PatrolListResult(
         patrols: List.unmodifiable(local),
-        assignmentError: StateError('No patrol assignment source is configured.'),
+        assignmentError: StateError(
+          'No patrol assignment source is configured.',
+        ),
       );
     }
     try {
@@ -288,7 +292,9 @@ class PatrolService {
     final patrol = await _load(rangerId, localId);
     PatrolWorkflowPolicy.ensureCanRecord(patrol, recordType: 'a waypoint');
     if (waypoint.location.source != PatrolLocationSource.manual) {
-      throw ArgumentError('A manually placed waypoint must use manual location.');
+      throw ArgumentError(
+        'A manually placed waypoint must use manual location.',
+      );
     }
     _requireText(waypoint.id, 'Waypoint ID');
     _requireText(waypoint.description, 'Waypoint description');
@@ -344,6 +350,26 @@ class PatrolService {
     if (patrol.status == PatrolStatus.assigned) {
       throw StateError('Coverage cannot be calculated before patrol starts.');
     }
+    return _save(patrol.copyWith(coverage: coverage));
+  }
+
+  Future<Patrol> calculateCoverage({
+    required String rangerId,
+    required String localId,
+    DateTime? calculatedAt,
+    PatrolLocation? additionalLocation,
+  }) async {
+    final patrol = await _load(rangerId, localId);
+    if (patrol.status != PatrolStatus.inProgress &&
+        patrol.status != PatrolStatus.paused) {
+      throw StateError('Coverage can only be calculated for an active patrol.');
+    }
+    final coverage = coverageService.calculate(
+      patrol,
+      calculatedAt: calculatedAt,
+      additionalLocation: additionalLocation,
+    );
+    if (coverage == null) return patrol;
     return _save(patrol.copyWith(coverage: coverage));
   }
 

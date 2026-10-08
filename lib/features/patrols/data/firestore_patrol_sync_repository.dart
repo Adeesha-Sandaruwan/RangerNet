@@ -193,6 +193,16 @@ class FirestorePatrolSyncRepository implements PatrolSyncRepository {
     'zoneName': patrol.area.zoneName,
     'routeId': patrol.area.routeId,
     'routeName': patrol.area.routeName,
+    'plannedCoverageSections': patrol.plannedCoverageSections
+        .map(
+          (section) => {
+            'id': section.id,
+            'name': section.name,
+            'latitude': section.latitude,
+            'longitude': section.longitude,
+          },
+        )
+        .toList(),
     'assignedAt': patrol.assignedAt == null
         ? null
         : Timestamp.fromDate(patrol.assignedAt!.toUtc()),
@@ -211,6 +221,7 @@ class FirestorePatrolSyncRepository implements PatrolSyncRepository {
         : {
             'totalSections': patrol.coverage!.totalSections,
             'coveredSections': patrol.coverage!.coveredSections,
+            'coveredSectionIds': patrol.coverage!.coveredSectionIds,
             'uncoveredSectionIds': patrol.coverage!.uncoveredSectionIds,
             'calculatedAt': Timestamp.fromDate(
               patrol.coverage!.calculatedAt.toUtc(),

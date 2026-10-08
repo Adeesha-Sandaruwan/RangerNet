@@ -13,19 +13,21 @@ class PatrolRanger {
 }
 
 class PatrolAssignment {
-  const PatrolAssignment({
+  PatrolAssignment({
     required this.id,
     required this.rangerId,
     required this.rangerName,
     required this.area,
     required this.assignedAt,
-  });
+    Iterable<PatrolCoverageCheckpoint> plannedCoverageSections = const [],
+  }) : plannedCoverageSections = List.unmodifiable(plannedCoverageSections);
 
   final String id;
   final String rangerId;
   final String rangerName;
   final PatrolArea area;
   final DateTime assignedAt;
+  final List<PatrolCoverageCheckpoint> plannedCoverageSections;
 }
 
 class PatrolAssignmentDraft {
@@ -39,6 +41,7 @@ class PatrolAssignmentDraft {
     this.routeId,
     this.centerLatitude,
     this.centerLongitude,
+    this.plannedCoverageSections = const [],
   });
 
   final PatrolRanger ranger;
@@ -50,6 +53,7 @@ class PatrolAssignmentDraft {
   final String? routeId;
   final double? centerLatitude;
   final double? centerLongitude;
+  final Iterable<PatrolCoverageCheckpoint> plannedCoverageSections;
 
   void validate() {
     if (ranger.id.trim().isEmpty) {
@@ -82,6 +86,10 @@ class PatrolAssignmentDraft {
         'centerLongitude',
         'Must be between -180 and 180.',
       );
+    }
+    final sectionIds = plannedCoverageSections.map((section) => section.id);
+    if (sectionIds.toSet().length != sectionIds.length) {
+      throw ArgumentError('Coverage checkpoint IDs must be unique.');
     }
   }
 }

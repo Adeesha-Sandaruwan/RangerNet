@@ -15,6 +15,7 @@ class Patrol {
     this.endLocation,
     Iterable<PatrolRoutePoint> routePoints = const [],
     Iterable<PatrolWaypoint> manualWaypoints = const [],
+    Iterable<PatrolCoverageCheckpoint> plannedCoverageSections = const [],
     Iterable<PatrolObservation> observations = const [],
     Iterable<PatrolPhoto> photographs = const [],
     Iterable<PatrolPauseResumeEvent> pauseResumeEvents = const [],
@@ -24,6 +25,7 @@ class Patrol {
     this.coverage,
   }) : routePoints = List.unmodifiable(routePoints),
        manualWaypoints = List.unmodifiable(manualWaypoints),
+       plannedCoverageSections = List.unmodifiable(plannedCoverageSections),
        observations = List.unmodifiable(observations),
        photographs = List.unmodifiable(photographs),
        pauseResumeEvents = List.unmodifiable(pauseResumeEvents) {
@@ -62,6 +64,7 @@ class Patrol {
   final PatrolLocation? endLocation;
   final List<PatrolRoutePoint> routePoints;
   final List<PatrolWaypoint> manualWaypoints;
+  final List<PatrolCoverageCheckpoint> plannedCoverageSections;
   final List<PatrolObservation> observations;
   final List<PatrolPhoto> photographs;
   final List<PatrolPauseResumeEvent> pauseResumeEvents;
@@ -93,6 +96,7 @@ class Patrol {
     PatrolLocation? endLocation,
     Iterable<PatrolRoutePoint>? routePoints,
     Iterable<PatrolWaypoint>? manualWaypoints,
+    Iterable<PatrolCoverageCheckpoint>? plannedCoverageSections,
     Iterable<PatrolObservation>? observations,
     Iterable<PatrolPhoto>? photographs,
     Iterable<PatrolPauseResumeEvent>? pauseResumeEvents,
@@ -117,6 +121,8 @@ class Patrol {
     endLocation: endLocation ?? this.endLocation,
     routePoints: routePoints ?? this.routePoints,
     manualWaypoints: manualWaypoints ?? this.manualWaypoints,
+    plannedCoverageSections:
+        plannedCoverageSections ?? this.plannedCoverageSections,
     observations: observations ?? this.observations,
     photographs: photographs ?? this.photographs,
     pauseResumeEvents: pauseResumeEvents ?? this.pauseResumeEvents,

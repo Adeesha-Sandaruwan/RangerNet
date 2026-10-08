@@ -19,6 +19,16 @@ class PatrolCodec {
       'centerLatitude': patrol.area.centerLatitude,
       'centerLongitude': patrol.area.centerLongitude,
     },
+    'plannedCoverageSections': patrol.plannedCoverageSections
+        .map(
+          (section) => {
+            'id': section.id,
+            'name': section.name,
+            'latitude': section.latitude,
+            'longitude': section.longitude,
+          },
+        )
+        .toList(),
     'status': patrol.status.name,
     'assignedAt': _date(patrol.assignedAt),
     'startedAt': _date(patrol.startedAt),
@@ -87,6 +97,7 @@ class PatrolCodec {
         : {
             'totalSections': patrol.coverage!.totalSections,
             'coveredSections': patrol.coverage!.coveredSections,
+            'coveredSectionIds': patrol.coverage!.coveredSectionIds,
             'uncoveredSectionIds': patrol.coverage!.uncoveredSectionIds,
             'calculatedAt': patrol.coverage!.calculatedAt.toIso8601String(),
           },
@@ -96,6 +107,12 @@ class PatrolCodec {
     final area = _map(json['area'], 'area');
     final syncInfo = _map(json['syncInfo'], 'syncInfo');
     final rawCoverage = json['coverage'];
+    final rawCoverageSections = json['plannedCoverageSections'];
+    if (rawCoverageSections != null && rawCoverageSections is! List) {
+      throw const FormatException(
+        'Patrol field "plannedCoverageSections" must be a list.',
+      );
+    }
 
     return Patrol(
       patrolId: _string(json, 'patrolId'),
@@ -112,6 +129,15 @@ class PatrolCodec {
         centerLatitude: _optionalNumber(area['centerLatitude']),
         centerLongitude: _optionalNumber(area['centerLongitude']),
       ),
+      plannedCoverageSections: (rawCoverageSections as List? ?? []).map((item) {
+        final section = _map(item, 'planned coverage section');
+        return PatrolCoverageCheckpoint(
+          id: _string(section, 'id'),
+          name: _string(section, 'name'),
+          latitude: _number(section, 'latitude'),
+          longitude: _number(section, 'longitude'),
+        );
+      }),
       status: _enumValue(PatrolStatus.values, json['status'], 'status'),
       assignedAt: _optionalDate(json['assignedAt']),
       startedAt: _optionalDate(json['startedAt']),
@@ -155,22 +181,20 @@ class PatrolCodec {
           observationId: _nullableString(photo['observationId']),
         );
       }),
-      pauseResumeEvents: _list(
-        json['pauseResumeEvents'],
-        'pauseResumeEvents',
-      ).map((item) {
-        final event = _map(item, 'pause/resume event');
-        return PatrolPauseResumeEvent(
-          id: _string(event, 'id'),
-          action: _enumValue(
-            PatrolPauseResumeAction.values,
-            event['action'],
-            'action',
-          ),
-          occurredAt: _dateValue(event['occurredAt'], 'occurredAt'),
-          reason: _nullableString(event['reason']),
-        );
-      }),
+      pauseResumeEvents: _list(json['pauseResumeEvents'], 'pauseResumeEvents')
+          .map((item) {
+            final event = _map(item, 'pause/resume event');
+            return PatrolPauseResumeEvent(
+              id: _string(event, 'id'),
+              action: _enumValue(
+                PatrolPauseResumeAction.values,
+                event['action'],
+                'action',
+              ),
+              occurredAt: _dateValue(event['occurredAt'], 'occurredAt'),
+              reason: _nullableString(event['reason']),
+            );
+          }),
       earlyTerminationReason: _nullableString(json['earlyTerminationReason']),
       interruptionReason: _nullableString(json['interruptionReason']),
       syncInfo: PatrolSyncInfo(
@@ -220,6 +244,16 @@ class PatrolCodec {
       PatrolCoverage(
         totalSections: _integer(json, 'totalSections'),
         coveredSections: _integer(json, 'coveredSections'),
+        coveredSectionIds:
+            (json['coveredSectionIds'] as List?)?.map((value) {
+              if (value is! String) {
+                throw const FormatException(
+                  'Patrol field "coveredSectionIds" must contain strings.',
+                );
+              }
+              return value;
+            }) ??
+            const [],
         uncoveredSectionIds: _list(
           json['uncoveredSectionIds'],
           'uncoveredSectionIds',
@@ -256,8 +290,7 @@ class PatrolCodec {
     throw FormatException('Patrol field "$field" must be a string.');
   }
 
-  static String? _nullableString(Object? value) =>
-      value?.toString();
+  static String? _nullableString(Object? value) => value?.toString();
 
   static int _integer(Map<String, dynamic> map, String field) {
     final value = map[field];

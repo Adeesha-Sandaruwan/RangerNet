@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../application/patrol_assignment_service.dart';
 import '../domain/patrol_assignment.dart';
+import '../domain/patrol_records.dart';
+import 'patrol_coverage_section_map_page.dart';
 
 class PatrolAssignmentManagementPage extends StatefulWidget {
-  const PatrolAssignmentManagementPage({
-    required this.service,
-    super.key,
-  });
+  const PatrolAssignmentManagementPage({required this.service, super.key});
 
   final PatrolAssignmentService service;
 
@@ -130,6 +130,7 @@ class _PatrolAssignmentManagementPageState
                       title: Text(assignment.area.routeName),
                       subtitle: Text(
                         '${assignment.area.parkName} · ${assignment.area.zoneName}\n'
+                        '${assignment.plannedCoverageSections.length} coverage sections · '
                         'Assigned to ${assignment.rangerName} · '
                         '${assignment.assignedAt.toLocal()}',
                       ),
@@ -166,6 +167,7 @@ class _CreatePatrolAssignmentPageState
   final _routeId = TextEditingController();
   final _latitude = TextEditingController();
   final _longitude = TextEditingController();
+  List<PatrolCoverageCheckpoint> _coverageSections = const [];
   List<PatrolRanger> _rangers = const [];
   PatrolRanger? _selectedRanger;
   bool _loadingRangers = true;
@@ -220,8 +222,12 @@ class _CreatePatrolAssignmentPageState
     }
     final latitudeText = _latitude.text.trim();
     final longitudeText = _longitude.text.trim();
-    final latitude = latitudeText.isEmpty ? null : double.tryParse(latitudeText);
-    final longitude = longitudeText.isEmpty ? null : double.tryParse(longitudeText);
+    final latitude = latitudeText.isEmpty
+        ? null
+        : double.tryParse(latitudeText);
+    final longitude = longitudeText.isEmpty
+        ? null
+        : double.tryParse(longitudeText);
     if ((latitudeText.isNotEmpty && latitude == null) ||
         (longitudeText.isNotEmpty && longitude == null)) {
       setState(() => _error = 'Map coordinates must be valid numbers.');
@@ -244,6 +250,7 @@ class _CreatePatrolAssignmentPageState
           routeId: _routeId.text,
           centerLatitude: latitude,
           centerLongitude: longitude,
+          plannedCoverageSections: _coverageSections,
         ),
       );
       if (mounted) Navigator.of(context).pop(assignment);
@@ -373,6 +380,23 @@ class _CreatePatrolAssignmentPageState
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: _saving ? null : _editCoverageSections,
+                icon: const Icon(Icons.map_outlined),
+                label: Text(
+                  _coverageSections.isEmpty
+                      ? 'Mark route coverage sections'
+                      : 'Edit ${_coverageSections.length} coverage sections',
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: Text(
+                  'Coverage sections are optional. Rangers will see which '
+                  'marked sections were not reached during the patrol.',
+                ),
+              ),
               if (_error != null) ...[
                 const SizedBox(height: 16),
                 Card(
@@ -385,8 +409,7 @@ class _CreatePatrolAssignmentPageState
               ],
               const SizedBox(height: 24),
               FilledButton.icon(
-                onPressed:
-                    _saving || _loadingRangers || _rangers.isEmpty
+                onPressed: _saving || _loadingRangers || _rangers.isEmpty
                     ? null
                     : _save,
                 icon: _saving
@@ -412,8 +435,9 @@ class _CreatePatrolAssignmentPageState
           labelText: label,
           border: const OutlineInputBorder(),
         ),
-        validator: (value) =>
-            value == null || value.trim().isEmpty ? '$label is required.' : null,
+        validator: (value) => value == null || value.trim().isEmpty
+            ? '$label is required.'
+            : null,
       );
 
   Widget _optionalField(
@@ -428,4 +452,53 @@ class _CreatePatrolAssignmentPageState
       border: const OutlineInputBorder(),
     ),
   );
+
+  Future<void> _editCoverageSections() async {
+    final latitudeText = _latitude.text.trim();
+    final longitudeText = _longitude.text.trim();
+    final latitude = latitudeText.isEmpty
+        ? null
+        : double.tryParse(latitudeText);
+    final longitude = longitudeText.isEmpty
+        ? null
+        : double.tryParse(longitudeText);
+    if ((latitudeText.isNotEmpty && latitude == null) ||
+        (longitudeText.isNotEmpty && longitude == null)) {
+      setState(() => _error = 'Map center coordinates must be valid numbers.');
+      return;
+    }
+    if ((latitude == null) != (longitude == null)) {
+      setState(() => _error = 'Enter both map center coordinates, or neither.');
+      return;
+    }
+    if (latitude != null &&
+        (!latitude.isFinite || latitude < -90 || latitude > 90)) {
+      setState(
+        () => _error = 'Map center latitude must be between -90 and 90.',
+      );
+      return;
+    }
+    if (longitude != null &&
+        (!longitude.isFinite || longitude < -180 || longitude > 180)) {
+      setState(
+        () => _error = 'Map center longitude must be between -180 and 180.',
+      );
+      return;
+    }
+    final center = latitude == null || longitude == null
+        ? null
+        : LatLng(latitude, longitude);
+    final sections = await Navigator.of(context)
+        .push<List<PatrolCoverageCheckpoint>>(
+          MaterialPageRoute<List<PatrolCoverageCheckpoint>>(
+            builder: (_) => PatrolCoverageSectionMapPage(
+              initialCenter: center,
+              initialSections: _coverageSections,
+            ),
+          ),
+        );
+    if (sections != null && mounted) {
+      setState(() => _coverageSections = sections);
+    }
+  }
 }

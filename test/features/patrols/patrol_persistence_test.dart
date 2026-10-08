@@ -121,6 +121,11 @@ void main() {
       );
       expect(decoded.syncInfo.status, PatrolSyncStatus.pendingSync);
       expect(decoded.syncInfo.lastError, isNull);
+      expect(
+        decoded.plannedCoverageSections.single.name,
+        'River checkpoint',
+      );
+      expect(decoded.coverage?.coveredSectionIds, ['section-1', 'section-2']);
       expect(decoded.coverage?.uncoveredSectionIds, ['section-3']);
     },
   );
@@ -167,6 +172,14 @@ Patrol _patrol() {
       routeId: 'route-1',
       routeName: 'River Route',
     ),
+    plannedCoverageSections: [
+      PatrolCoverageCheckpoint(
+        id: 'section-1',
+        name: 'River checkpoint',
+        latitude: 6.1,
+        longitude: 81.2,
+      ),
+    ],
     status: PatrolStatus.inProgress,
     assignedAt: time.subtract(const Duration(days: 1)),
     startedAt: time,
@@ -212,6 +225,7 @@ Patrol _patrol() {
     coverage: PatrolCoverage(
       totalSections: 3,
       coveredSections: 2,
+      coveredSectionIds: const ['section-1', 'section-2'],
       uncoveredSectionIds: const ['section-3'],
       calculatedAt: time.add(const Duration(hours: 1)),
     ),

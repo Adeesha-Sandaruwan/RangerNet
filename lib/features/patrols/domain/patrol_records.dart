@@ -108,6 +108,38 @@ class PatrolWaypoint {
   final PatrolLocation location;
 }
 
+class PatrolCoverageCheckpoint {
+  PatrolCoverageCheckpoint({
+    required this.id,
+    required this.name,
+    required this.latitude,
+    required this.longitude,
+  }) {
+    if (id.trim().isEmpty || name.trim().isEmpty) {
+      throw ArgumentError('Coverage checkpoint ID and name are required.');
+    }
+    if (!latitude.isFinite || latitude < -90 || latitude > 90) {
+      throw ArgumentError.value(
+        latitude,
+        'latitude',
+        'Must be between -90 and 90.',
+      );
+    }
+    if (!longitude.isFinite || longitude < -180 || longitude > 180) {
+      throw ArgumentError.value(
+        longitude,
+        'longitude',
+        'Must be between -180 and 180.',
+      );
+    }
+  }
+
+  final String id;
+  final String name;
+  final double latitude;
+  final double longitude;
+}
+
 class PatrolObservation {
   const PatrolObservation({
     required this.id,
@@ -172,9 +204,11 @@ class PatrolCoverage {
   PatrolCoverage({
     required this.totalSections,
     required this.coveredSections,
+    Iterable<String> coveredSectionIds = const [],
     required Iterable<String> uncoveredSectionIds,
     required this.calculatedAt,
-  }) : uncoveredSectionIds = List.unmodifiable(uncoveredSectionIds) {
+  }) : coveredSectionIds = List.unmodifiable(coveredSectionIds),
+       uncoveredSectionIds = List.unmodifiable(uncoveredSectionIds) {
     if (totalSections < 0 ||
         coveredSections < 0 ||
         coveredSections > totalSections) {
@@ -185,6 +219,12 @@ class PatrolCoverage {
         'Uncovered section IDs must match the number of uncovered sections.',
       );
     }
+    if (this.coveredSectionIds.isNotEmpty &&
+        this.coveredSectionIds.length != coveredSections) {
+      throw ArgumentError(
+        'Covered section IDs must match the number of covered sections.',
+      );
+    }
     if (this.uncoveredSectionIds.toSet().length !=
         this.uncoveredSectionIds.length) {
       throw ArgumentError('Uncovered section IDs must be unique.');
@@ -193,6 +233,7 @@ class PatrolCoverage {
 
   final int totalSections;
   final int coveredSections;
+  final List<String> coveredSectionIds;
   final List<String> uncoveredSectionIds;
   final DateTime calculatedAt;
 

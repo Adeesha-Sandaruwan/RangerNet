@@ -63,6 +63,9 @@ class FirestorePatrolAssignmentRepository
       'parkName': draft.parkName.trim(),
       'zoneName': draft.zoneName.trim(),
       'routeName': draft.routeName.trim(),
+      'plannedCoverageSections': draft.plannedCoverageSections
+          .map(_coverageSectionData)
+          .toList(),
       'assignedAt': FieldValue.serverTimestamp(),
       'assignedBy': manager.uid,
     };
@@ -96,6 +99,7 @@ class FirestorePatrolAssignmentRepository
         centerLongitude: draft.centerLongitude,
       ),
       assignedAt: DateTime.now().toUtc(),
+      plannedCoverageSections: draft.plannedCoverageSections,
     );
   }
 
@@ -116,6 +120,12 @@ class FirestorePatrolAssignmentRepository
         'Assignment ${document.id} has incomplete map-center coordinates.',
       );
     }
+    final rawSections = data['plannedCoverageSections'];
+    if (rawSections != null && rawSections is! List) {
+      throw FormatException(
+        'Assignment ${document.id} has invalid coverage sections.',
+      );
+    }
     return PatrolAssignment(
       id: document.id,
       rangerId: data['assignedRangerId']?.toString() ?? '',
@@ -132,8 +142,41 @@ class FirestorePatrolAssignmentRepository
       ),
       assignedAt:
           assignedAt ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+      plannedCoverageSections: (rawSections as List? ?? []).map((value) {
+        if (value is! Map) {
+          throw FormatException(
+            'Assignment ${document.id} has an invalid coverage section.',
+          );
+        }
+        final section = Map<String, dynamic>.from(value);
+        final sectionLatitude = section['latitude'];
+        final sectionLongitude = section['longitude'];
+        if (section['id'] is! String ||
+            section['name'] is! String ||
+            sectionLatitude is! num ||
+            sectionLongitude is! num) {
+          throw FormatException(
+            'Assignment ${document.id} has an incomplete coverage section.',
+          );
+        }
+        return PatrolCoverageCheckpoint(
+          id: section['id'] as String,
+          name: section['name'] as String,
+          latitude: sectionLatitude.toDouble(),
+          longitude: sectionLongitude.toDouble(),
+        );
+      }),
     );
   }
+
+  Map<String, Object?> _coverageSectionData(
+    PatrolCoverageCheckpoint section,
+  ) => {
+    'id': section.id,
+    'name': section.name,
+    'latitude': section.latitude,
+    'longitude': section.longitude,
+  };
 
   User _requireSignedIn() {
     final user = _auth.currentUser;

@@ -32,12 +32,39 @@ class _PatrolCompletionReviewPageState
   late Patrol _patrol = widget.patrol;
   late PatrolLocation? _endLocation = widget.suggestedEndLocation;
   bool _busy = false;
+  bool _coverageReady = false;
+  String? _coverageError;
   String? _message;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateCoverage();
+  }
 
   bool get _canConfirm =>
       (_patrol.status == PatrolStatus.inProgress ||
           _patrol.status == PatrolStatus.paused) &&
-      _endLocation != null;
+      _endLocation != null &&
+      _coverageReady;
+
+  Future<void> _calculateCoverage() async {
+    if (!mounted) return;
+    setState(() {
+      _coverageReady = false;
+      _coverageError = null;
+    });
+    try {
+      _patrol = await widget.service.calculateCoverage(
+        rangerId: _patrol.rangerId,
+        localId: _patrol.localId,
+        additionalLocation: _endLocation,
+      );
+      if (mounted) setState(() => _coverageReady = true);
+    } catch (error) {
+      if (mounted) setState(() => _coverageError = error.toString());
+    }
+  }
 
   Future<void> _confirmCompletion() async {
     if (_busy || !_canConfirm) return;
@@ -102,7 +129,10 @@ class _PatrolCompletionReviewPageState
         ),
       ),
     );
-    if (location != null && mounted) setState(() => _endLocation = location);
+    if (location != null && mounted) {
+      setState(() => _endLocation = location);
+      await _calculateCoverage();
+    }
   }
 
   @override
@@ -164,17 +194,32 @@ class _PatrolCompletionReviewPageState
                       _detail('End location', _locationLabel(_endLocation)),
                       _detail(
                         'Coverage',
-                        _patrol.coverage == null
-                            ? 'Not calculated'
+                        _patrol.plannedCoverageSections.isEmpty
+                            ? 'Not configured by manager'
+                            : _patrol.coverage == null
+                            ? 'Calculation pending'
                             : '${_patrol.coverage!.coveredSections}/'
                                   '${_patrol.coverage!.totalSections} sections '
                                   '(${_patrol.coverage!.coveragePercent.toStringAsFixed(0)}%)',
                       ),
+                      if (_patrol.coverage != null)
+                        _detail(
+                          'Covered sections',
+                          _sectionNames(
+                                _patrol.coverage!.coveredSectionIds,
+                              ).isEmpty
+                              ? 'None'
+                              : _sectionNames(
+                                  _patrol.coverage!.coveredSectionIds,
+                                ).join(', '),
+                        ),
                       if (_patrol.coverage?.uncoveredSectionIds.isNotEmpty ==
                           true)
                         _detail(
                           'Uncovered sections',
-                          _patrol.coverage!.uncoveredSectionIds.join(', '),
+                          _sectionNames(
+                            _patrol.coverage!.uncoveredSectionIds,
+                          ).join(', '),
                         ),
                       if (_patrol.manualWaypoints.isNotEmpty)
                         _recordList(
@@ -236,6 +281,22 @@ class _PatrolCompletionReviewPageState
                           ),
                   ),
                 ),
+              if (_coverageError != null)
+                Card(
+                  color: const Color(0xFFFFE9E5),
+                  child: ListTile(
+                    leading: const Icon(Icons.error_outline),
+                    title: const Text('Coverage could not be calculated'),
+                    subtitle: Text(_coverageError!),
+                    trailing: IconButton(
+                      tooltip: 'Retry coverage calculation',
+                      onPressed: _busy ? null : _calculateCoverage,
+                      icon: const Icon(Icons.refresh),
+                    ),
+                  ),
+                ),
+              if (!_coverageReady && _coverageError == null)
+                const LinearProgressIndicator(),
               if (_patrol.status == PatrolStatus.completedPendingSync ||
                   _patrol.status == PatrolStatus.completedSynced)
                 FilledButton.icon(
@@ -336,4 +397,13 @@ class _PatrolCompletionReviewPageState
       : '${location.latitude.toStringAsFixed(6)}, '
             '${location.longitude.toStringAsFixed(6)} '
             '(${location.source.name})';
+
+  List<String> _sectionNames(Iterable<String> ids) => ids
+      .map((id) {
+        for (final section in _patrol.plannedCoverageSections) {
+          if (section.id == id) return section.name;
+        }
+        return id;
+      })
+      .toList(growable: false);
 }
