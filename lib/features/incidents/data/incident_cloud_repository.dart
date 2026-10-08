@@ -114,13 +114,37 @@ class IncidentCloudRepository {
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
-    // Create the parent first so authenticated-owner rules can authorize its
-    // evidence subcollection. Repeating this method is safe: document IDs are
-    // stable and every write is an idempotent set.
-    await incident.set({
-      ...metadata,
-      'status': 'Uploading',
-    }, SetOptions(merge: true));
+    // A previous attempt can have uploaded the incident successfully but
+    // failed while saving its final timeline event. Read the server copy first
+    // so a retry never changes a Reported record back to Uploading (which the
+    // rules correctly reject).
+    final existingSnapshot = await incident.get(
+      const GetOptions(source: Source.server),
+    );
+    if (existingSnapshot.exists) {
+      final existing = existingSnapshot.data()!;
+      if (existing['rangerId'] != user.uid) {
+        throw StateError('This incident ID belongs to another ranger.');
+      }
+
+      final status = existing['status']?.toString();
+      if (status == 'Reported') {
+        // The evidence is uploaded before status becomes Reported. Only make
+        // sure the final timeline event exists, then let the caller clear the
+        // local outbox entry.
+        await _ensureSubmittedTimelineEvent(incident, report);
+        return;
+      }
+      if (status != 'Uploading') {
+        throw StateError(
+          'This incident is already in the "$status" state and cannot be uploaded again.',
+        );
+      }
+    } else {
+      // Create the parent first so owner rules can authorize evidence writes.
+      await incident.set({...metadata, 'status': 'Uploading'});
+    }
+
     for (final evidence in report.evidence) {
       await incident.collection('evidence').doc(evidence.id).set({
         'fileName': evidence.fileName,
@@ -134,15 +158,34 @@ class IncidentCloudRepository {
       'submittedAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
-    await incident.collection('timeline').doc('reportSubmitted').set({
+    await _ensureSubmittedTimelineEvent(incident, report);
+  }
+
+  Future<void> _ensureSubmittedTimelineEvent(
+    DocumentReference<Map<String, dynamic>> incident,
+    IncidentReport report,
+  ) async {
+    final event = incident.collection('timeline').doc('reportSubmitted');
+    final existing = await event.get(const GetOptions(source: Source.server));
+    if (existing.exists) {
+      final data = existing.data()!;
+      if (data['actorId'] != report.rangerId ||
+          data['type'] != 'reportSubmitted') {
+        throw StateError(
+          'The incident has a conflicting submission history entry.',
+        );
+      }
+      return;
+    }
+
+    await event.set({
       'actorId': report.rangerId,
       'actorName': report.rangerEmail.isEmpty
           ? 'Reporting ranger'
           : report.rangerEmail,
       'type': 'reportSubmitted',
       'message': 'Incident report submitted by the ranger.',
-      // Keep the initial event's payload stable so retries are idempotent.
       'createdAt': Timestamp.fromDate(report.createdAt.toUtc()),
-    }, SetOptions(merge: true));
+    });
   }
 }
