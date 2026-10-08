@@ -33,6 +33,7 @@ void main() {
   });
 
   test('rejects duplicate route locations and excessive coverage size', () {
+    // These guards prevent invalid assignments and unbounded section generation.
     final start = _point('start', 'Start', 6.1, 81.2);
     final end = _point('end', 'Destination', 6.1, 81.2);
     expect(

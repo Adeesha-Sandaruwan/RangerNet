@@ -75,6 +75,7 @@ void main() {
   test(
     'counts reliable track segments so sampled sections between GPS fixes are covered',
     () {
+      // The section is far from either fix, so only segment-distance coverage can pass.
       final start = DateTime.utc(2026, 10, 8, 8);
       final patrol = _patrol(
         startLocation: _location(6.1, 81.2, start),

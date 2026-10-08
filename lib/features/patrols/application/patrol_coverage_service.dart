@@ -69,6 +69,7 @@ class PatrolCoverageService {
     PatrolLocation checkpoint,
     List<PatrolLocation> locations,
   ) {
+    // Sparse GPS samples still cover the straight-line segment between reliable fixes.
     for (var index = 1; index < locations.length; index++) {
       if (metrics.distanceToSegmentMeters(
             checkpoint,

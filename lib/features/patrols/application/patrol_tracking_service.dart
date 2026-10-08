@@ -246,6 +246,7 @@ class PatrolTrackingService {
   }
 
   Future<void> _queueFix(PatrolLocation fix) async {
+    // Serialize async local writes so rapid GPS fixes cannot reorder the track.
     final previous = _writeTail;
     final completed = Completer<void>();
     _writeTail = completed.future;
