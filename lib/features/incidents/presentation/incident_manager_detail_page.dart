@@ -79,6 +79,154 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
     }
   }
 
+  Future<void> _assignResponders() async {
+    List<RangerProfile> candidates;
+    try {
+      candidates = await _repository.loadActiveRangers();
+    } catch (error) {
+      if (mounted) setState(() => _error = 'Could not load ranger list: $error');
+      return;
+    }
+    if (!mounted) return;
+    if (candidates.isEmpty) {
+      setState(() => _error = 'No active ranger accounts are available to assign.');
+      return;
+    }
+
+    var kind = _report.assignmentKind;
+    final selected = <String>{..._report.assignedRangerIds};
+    if (kind == IncidentAssignmentKind.ranger && selected.length > 1) {
+      selected.remove(selected.last);
+    }
+    final result = await showDialog<({
+      IncidentAssignmentKind kind,
+      List<RangerProfile> responders,
+    })>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, updateDialog) => AlertDialog(
+          title: const Text('Assign response'),
+          content: SizedBox(
+            width: 440,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SegmentedButton<IncidentAssignmentKind>(
+                  segments: const [
+                    ButtonSegment(
+                      value: IncidentAssignmentKind.ranger,
+                      label: Text('One ranger'),
+                      icon: Icon(Icons.person_outline),
+                    ),
+                    ButtonSegment(
+                      value: IncidentAssignmentKind.responseTeam,
+                      label: Text('Response team'),
+                      icon: Icon(Icons.groups_outlined),
+                    ),
+                  ],
+                  selected: {kind},
+                  onSelectionChanged: (value) => updateDialog(() {
+                    kind = value.first;
+                    if (kind == IncidentAssignmentKind.ranger &&
+                        selected.length > 1) {
+                      selected.removeAll(selected.skip(1).toList());
+                    }
+                  }),
+                ),
+                const SizedBox(height: 8),
+                Text(kind == IncidentAssignmentKind.ranger
+                    ? 'Choose one ranger.'
+                    : 'Choose at least two rangers for the response team.'),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: candidates.map((ranger) {
+                      final name = ranger.displayName.isEmpty
+                          ? ranger.email
+                          : ranger.displayName;
+                      return CheckboxListTile(
+                        value: selected.contains(ranger.uid),
+                        title: Text(name),
+                        subtitle: ranger.email.isEmpty
+                            ? null
+                            : Text(ranger.email),
+                        onChanged: (checked) => updateDialog(() {
+                          if (checked == true) {
+                            if (kind == IncidentAssignmentKind.ranger) {
+                              selected
+                                ..clear()
+                                ..add(ranger.uid);
+                            } else {
+                              selected.add(ranger.uid);
+                            }
+                          } else {
+                            selected.remove(ranger.uid);
+                          }
+                        }),
+                        controlAffinity: ListTileControlAffinity.leading,
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: selected.length <
+                      (kind == IncidentAssignmentKind.ranger ? 1 : 2)
+                  ? null
+                  : () => Navigator.pop(dialogContext, (
+                      kind: kind,
+                      responders: candidates
+                          .where((item) => selected.contains(item.uid))
+                          .toList(growable: false),
+                    )),
+              child: const Text('Assign'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await _repository.assignResponders(
+        incidentId: _report.id,
+        kind: result.kind,
+        responders: result.responders,
+        managerName: widget.manager.displayName,
+      );
+      if (!mounted) return;
+      final names = result.responders
+          .map((item) => item.displayName.isEmpty ? item.email : item.displayName)
+          .toList(growable: false);
+      setState(() {
+        _report = _report.copyWith(
+          workflowStatus: IncidentWorkflowStatus.assigned,
+          assignmentKind: result.kind,
+          assignedRangerIds: result.responders.map((item) => item.uid).toList(),
+          assignedRangerNames: names,
+        );
+      });
+      await _loadTimeline();
+      _showMessage('Response assignment saved.');
+    } catch (error) {
+      if (mounted) setState(() => _error = 'Assignment was not saved: $error');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF5F8F3),
@@ -176,6 +324,31 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
                             )
                           : const Icon(Icons.save_outlined),
                       label: const Text('Save review'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text('Response assignment',
+                        style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 6),
+                    Text(_report.assignedRangerNames.isEmpty
+                        ? 'No ranger or response team assigned.'
+                        : '${_report.assignmentKind == IncidentAssignmentKind.ranger ? 'Ranger' : 'Response team'}: '
+                            '${_report.assignedRangerNames.join(', ')}'),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: _saving ? null : _assignResponders,
+                      icon: const Icon(Icons.assignment_ind_outlined),
+                      label: Text(_report.assignedRangerIds.isEmpty
+                          ? 'Assign ranger or response team'
+                          : 'Reassign response'),
                     ),
                   ],
                 ),

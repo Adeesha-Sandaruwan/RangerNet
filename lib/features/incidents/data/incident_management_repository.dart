@@ -107,6 +107,10 @@ class IncidentManagementRepository {
     }
     final actor = _requireSignedIn();
     final incident = _firestore.collection('incidents').doc(incidentId);
+    final before = await incident.get();
+    final wasAssigned = (before.data()?['assignedRangerIds'] as List<dynamic>?)
+            ?.isNotEmpty ==
+        true;
     final event = incident.collection('timeline').doc(_uuid.v4());
     final names = responders.map(_displayName).toList(growable: false);
     final batch = _firestore.batch();
@@ -123,9 +127,8 @@ class IncidentManagementRepository {
       actorId: actor.uid,
       actorName: managerName,
       type: 'assigned',
-      message: kind == IncidentAssignmentKind.ranger
-          ? 'Assigned to ${names.first}.'
-          : 'Assigned to response team: ${names.join(', ')}.',
+      message: '${wasAssigned ? 'Reassigned' : 'Assigned'} '
+          '${kind == IncidentAssignmentKind.ranger ? 'to ${names.first}' : 'to response team: ${names.join(', ')}'}.',
     ));
     await batch.commit();
   }
