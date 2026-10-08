@@ -4,6 +4,10 @@ RangerNet is a Flutter app for wildlife conservation field work. This repository
 currently focuses on **UC02: Report and Manage Wildlife / Poaching Incidents**.
 It uses Firebase Authentication and Cloud Firestore.
 
+The project also contains an initial UC01 patrol domain and local persistence
+foundation; patrol screens, continuous tracking, and cloud sync are not yet
+implemented. See the [UC01 foundation notes](docs/UC01_PATROL_FOUNDATION.md).
+
 The app supports two account roles:
 
 - **Ranger:** report incidents, save reports offline, and respond to incidents
@@ -161,6 +165,9 @@ lib/
     incidents/domain/                Incident models and workflow rules
     incidents/data/                  Firebase, location, and offline storage
     incidents/presentation/          Ranger, responder, and manager screens
+    patrols/domain/                   Patrol records and lifecycle policy
+    patrols/application/              Patrol workflow service
+    patrols/data/                     Patrol local persistence
     home/presentation/                Ranger bottom navigation
 test/                                Unit and widget tests
 docs/                                UC02 workflow and Firebase rules guides
