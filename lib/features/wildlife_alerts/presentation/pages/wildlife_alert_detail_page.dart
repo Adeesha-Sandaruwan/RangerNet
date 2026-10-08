@@ -5,6 +5,7 @@ import '../../domain/models/sensor.dart';
 import '../../domain/models/wildlife_alert.dart';
 import '../controllers/wildlife_alert_controller.dart';
 import '../dialogs/submit_response_dialog.dart';
+import '../services/alert_sound_service.dart';
 import '../widgets/alert_badges.dart';
 import '../widgets/camera_trap_live_video_feed_widget.dart';
 import '../widgets/location_history_timeline.dart';
@@ -191,6 +192,21 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
               );
             },
           ),
+          if (alert.riskLevel == AlertRiskLevel.high)
+            IconButton(
+              icon: const Icon(Icons.volume_up, color: Colors.amberAccent),
+              tooltip: 'Sound High Risk Alert Siren',
+              onPressed: () {
+                AlertSoundService.playHighRiskAlarm();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('🚨 High Risk warning alarm sounded.'),
+                    duration: Duration(seconds: 1),
+                    backgroundColor: Color(0xFFC62828),
+                  ),
+                );
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadAlertDetails,

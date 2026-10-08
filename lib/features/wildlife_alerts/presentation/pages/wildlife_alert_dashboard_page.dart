@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../domain/models/wildlife_alert.dart';
 import '../controllers/wildlife_alert_controller.dart';
 import '../dialogs/sensor_simulator_dialog.dart';
+import '../services/alert_sound_service.dart';
 import '../widgets/alert_badges.dart';
 import 'wildlife_alert_detail_page.dart';
 import 'wildlife_live_tracking_map_page.dart';
@@ -225,6 +226,14 @@ class _WildlifeAlertDashboardPageState
             value: '${controller.highRiskActiveCount}',
             color: const Color(0xFFC62828),
             icon: Icons.warning_amber_rounded,
+            onTap: () {
+              AlertSoundService.playHighRiskAlarm();
+              controller.setRiskFilter(
+                controller.filterRisk == AlertRiskLevel.high
+                    ? null
+                    : AlertRiskLevel.high,
+              );
+            },
           ),
         ),
         const SizedBox(width: 8),
@@ -254,7 +263,42 @@ class _WildlifeAlertDashboardPageState
     required String value,
     required Color color,
     required IconData icon,
+    VoidCallback? onTap,
   }) {
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              Icon(icon, size: 20, color: color),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+
     return Card(
       elevation: 0,
       color: Colors.white,
@@ -262,39 +306,13 @@ class _WildlifeAlertDashboardPageState
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(color: Colors.grey.shade300),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-                Icon(icon, size: 20, color: color),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w600,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
+      child: onTap != null
+          ? InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: onTap,
+              child: content,
+            )
+          : content,
     );
   }
 
@@ -420,11 +438,16 @@ class _WildlifeAlertDashboardPageState
             FilterChip(
               label: const Text('High Risk Only', style: TextStyle(fontSize: 11)),
               selected: controller.filterRisk == AlertRiskLevel.high,
-              onSelected: (_) => controller.setRiskFilter(
-                controller.filterRisk == AlertRiskLevel.high
-                    ? null
-                    : AlertRiskLevel.high,
-              ),
+              onSelected: (_) {
+                if (controller.filterRisk != AlertRiskLevel.high) {
+                  AlertSoundService.playHighRiskAlarm();
+                }
+                controller.setRiskFilter(
+                  controller.filterRisk == AlertRiskLevel.high
+                      ? null
+                      : AlertRiskLevel.high,
+                );
+              },
             ),
           ],
         ),
@@ -450,7 +473,12 @@ class _WildlifeAlertDashboardPageState
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: () => _openDetailPage(alert.alertId),
+        onTap: () {
+          if (alert.riskLevel == AlertRiskLevel.high) {
+            AlertSoundService.playHighRiskAlarm();
+          }
+          _openDetailPage(alert.alertId);
+        },
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(

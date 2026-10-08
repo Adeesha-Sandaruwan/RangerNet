@@ -7,6 +7,7 @@ import 'package:rangernet/features/wildlife_alerts/presentation/controllers/wild
 import 'package:rangernet/features/wildlife_alerts/presentation/widgets/alert_badges.dart';
 import 'package:rangernet/features/wildlife_alerts/presentation/widgets/camera_trap_live_video_feed_widget.dart';
 import 'package:rangernet/features/wildlife_alerts/presentation/widgets/location_history_timeline.dart';
+import 'package:rangernet/features/wildlife_alerts/presentation/services/alert_sound_service.dart';
 import 'package:rangernet/features/wildlife_alerts/presentation/widgets/wildlife_conservation_map_widget.dart';
 
 void main() {
@@ -196,6 +197,28 @@ void main() {
       await tester.tap(find.text('Capture Frame'));
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.textContaining('Live frame snapshot captured'), findsOneWidget);
+    });
+
+    test('AlertSoundService plays high risk alarm sound safely', () {
+      expect(() => AlertSoundService.playHighRiskAlarm(), returnsNormally);
+    });
+
+    testWidgets('Tapping High Risk badge triggers alarm and volume icon is visible', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: RiskLevelBadge(riskLevel: AlertRiskLevel.high, isLarge: true),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('HIGH RISK'), findsOneWidget);
+      expect(find.byIcon(Icons.volume_up), findsOneWidget);
+
+      await tester.tap(find.text('HIGH RISK'));
+      await tester.pump();
     });
   });
 }

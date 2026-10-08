@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import '../controllers/wildlife_alert_controller.dart';
+import '../../domain/models/wildlife_alert.dart';
 import '../../domain/services/wildlife_sensor_simulator.dart';
+import '../controllers/wildlife_alert_controller.dart';
+import '../services/alert_sound_service.dart';
 import '../widgets/camera_trap_live_video_feed_widget.dart';
 
 class SensorSimulatorDialog extends StatefulWidget {
@@ -27,6 +29,12 @@ class _SensorSimulatorDialogState extends State<SensorSimulatorDialog> {
     try {
       final res = await widget.controller.runSimulationScenario(action);
       setState(() => _lastResult = res);
+      final hasHighRiskAlert = res.telemetryResults.any(
+        (tr) => tr.alert?.riskLevel == AlertRiskLevel.high,
+      );
+      if (hasHighRiskAlert) {
+        AlertSoundService.playHighRiskAlarm();
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

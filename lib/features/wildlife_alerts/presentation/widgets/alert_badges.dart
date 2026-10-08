@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/models/wildlife_alert.dart';
+import '../services/alert_sound_service.dart';
 
 class RiskLevelBadge extends StatelessWidget {
   const RiskLevelBadge({required this.riskLevel, this.isLarge = false, super.key});
@@ -31,7 +32,7 @@ class RiskLevelBadge extends StatelessWidget {
         break;
     }
 
-    return Container(
+    final badge = Container(
       padding: EdgeInsets.symmetric(
         horizontal: isLarge ? 12 : 8,
         vertical: isLarge ? 6 : 4,
@@ -55,9 +56,26 @@ class RiskLevelBadge extends StatelessWidget {
               letterSpacing: 0.5,
             ),
           ),
+          if (riskLevel == AlertRiskLevel.high) ...[
+            const SizedBox(width: 4),
+            Icon(Icons.volume_up, size: isLarge ? 14 : 11, color: fg),
+          ],
         ],
       ),
     );
+
+    if (riskLevel == AlertRiskLevel.high) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: AlertSoundService.playHighRiskAlarm,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
   }
 }
 

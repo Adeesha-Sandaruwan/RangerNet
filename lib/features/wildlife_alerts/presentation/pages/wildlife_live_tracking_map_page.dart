@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../domain/models/geo_location.dart';
 import '../../domain/models/wildlife_alert.dart';
 import '../controllers/wildlife_alert_controller.dart';
+import '../services/alert_sound_service.dart';
 import '../widgets/alert_badges.dart';
 import '../widgets/wildlife_conservation_map_widget.dart';
 import 'wildlife_alert_detail_page.dart';
@@ -173,6 +174,9 @@ class _WildlifeLiveTrackingMapPageState
 
     if (res.alert != null) {
       setState(() => _lastTriggeredAlert = res.alert);
+      if (res.alert!.riskLevel == AlertRiskLevel.high) {
+        AlertSoundService.playHighRiskAlarm();
+      }
     }
     await widget.controller.loadData();
   }
@@ -307,6 +311,9 @@ class _WildlifeLiveTrackingMapPageState
                               foregroundColor: Colors.red.shade900,
                             ),
                             onPressed: () {
+                              if (_lastTriggeredAlert!.riskLevel == AlertRiskLevel.high) {
+                                AlertSoundService.playHighRiskAlarm();
+                              }
                               Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (_) => WildlifeAlertDetailPage(
