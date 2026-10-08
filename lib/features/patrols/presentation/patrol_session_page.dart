@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
@@ -11,6 +10,7 @@ import '../data/patrol_photo_picker.dart';
 import '../data/geolocator_patrol_location_provider.dart';
 import '../domain/patrol.dart';
 import '../domain/patrol_location_provider.dart';
+import '../domain/patrol_network_status.dart';
 import '../domain/patrol_records.dart';
 import 'manual_waypoint_map_page.dart';
 import 'patrol_completion_review_page.dart';
@@ -21,6 +21,7 @@ class PatrolSessionPage extends StatefulWidget {
     required this.service,
     required this.trackingService,
     required this.syncService,
+    required this.networkStatus,
     super.key,
   });
 
@@ -28,6 +29,7 @@ class PatrolSessionPage extends StatefulWidget {
   final PatrolService service;
   final PatrolTrackingService trackingService;
   final PatrolSyncService syncService;
+  final PatrolNetworkStatusProvider networkStatus;
 
   @override
   State<PatrolSessionPage> createState() => _PatrolSessionPageState();
@@ -43,9 +45,11 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     gpsStatus: PatrolGpsStatus(state: PatrolGpsState.acquiring),
   );
   StreamSubscription<PatrolTrackingState>? _trackingSubscription;
+  StreamSubscription<bool>? _networkSubscription;
   Timer? _clock;
   bool _busy = false;
   bool _reviewingCompletion = false;
+  bool? _online;
   String? _error;
 
   @override
@@ -56,6 +60,15 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     _trackingSubscription = widget.trackingService.states.listen((state) {
       if (mounted) setState(() => _trackingState = state);
     });
+    _networkSubscription = widget.networkStatus.onlineChanges.listen((online) {
+      if (mounted) setState(() => _online = online);
+      if (online &&
+          _patrol.status == PatrolStatus.completedPendingSync &&
+          !_busy) {
+        unawaited(_retryPendingSync());
+      }
+    });
+    unawaited(_refreshNetworkStatus());
     _clock = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted && _patrol.startedAt != null && _isActive) setState(() {});
     });
@@ -68,6 +81,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _trackingSubscription?.cancel();
+    _networkSubscription?.cancel();
     _clock?.cancel();
     super.dispose();
   }
@@ -88,7 +102,9 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
 
   Future<void> _restartTracking() async {
     await widget.trackingService.start(_patrol);
-    if (mounted) setState(() => _trackingState = widget.trackingService.currentState);
+    if (mounted) {
+      setState(() => _trackingState = widget.trackingService.currentState);
+    }
   }
 
   Future<void> _retryGps() async {
@@ -104,6 +120,47 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
       }
     } catch (error) {
       if (mounted) setState(() => _error = 'GPS retry failed: $error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _refreshNetworkStatus() async {
+    try {
+      final online = await widget.networkStatus.isOnline;
+      if (mounted) setState(() => _online = online);
+    } catch (error) {
+      if (mounted) {
+        setState(() => _error = 'Network status unavailable: $error');
+      }
+    }
+  }
+
+  Future<void> _retryPendingSync() async {
+    if (_busy || _patrol.status != PatrolStatus.completedPendingSync) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      _patrol = await widget.syncService.synchronize(_patrol);
+      if (mounted) setState(() {});
+    } catch (error) {
+      var message =
+          'Synchronization failed. The patrol remains in its last saved local state: $error';
+      try {
+        final saved = await widget.service.listForRanger(_patrol.rangerId);
+        for (final patrol in saved) {
+          if (patrol.localId == _patrol.localId) _patrol = patrol;
+        }
+        message =
+            'Synchronization failed. The locally saved patrol remains pending: $error';
+      } catch (storageError) {
+        message += ' Could not reload local sync status: $storageError';
+      }
+      if (mounted) {
+        setState(() => _error = message);
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -143,9 +200,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
       try {
         await widget.trackingService.start(_patrol);
         if (mounted) {
-          setState(
-            () => _trackingState = widget.trackingService.currentState,
-          );
+          setState(() => _trackingState = widget.trackingService.currentState);
         }
       } catch (error) {
         if (mounted) {
@@ -156,7 +211,9 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
         }
       }
     } catch (error) {
-      if (mounted) setState(() => _error = 'Patrol could not be started: $error');
+      if (mounted) {
+        setState(() => _error = 'Patrol could not be started: $error');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -348,11 +405,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
   Future<String?> _reasonDialog({
     required String title,
     required String prompt,
-  }) => _textDialog(
-    title: title,
-    label: prompt,
-    maxLines: 4,
-  );
+  }) => _textDialog(title: title, label: prompt, maxLines: 4);
 
   Future<String?> _textDialog({
     required String title,
@@ -541,9 +594,20 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
                   ),
                   subtitle: Text(
                     _patrol.syncInfo.lastSyncedAt == null
-                        ? 'Saved on this device.'
+                        ? 'Pending Sync · retained on this device.'
                         : 'Last synchronized ${_patrol.syncInfo.lastSyncedAt!.toLocal()}',
                   ),
+                ),
+              if (_patrol.status == PatrolStatus.completedPendingSync)
+                OutlinedButton.icon(
+                  onPressed: _busy ? null : _retryPendingSync,
+                  icon: _busy
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.sync),
+                  label: const Text('Retry Sync'),
                 ),
               if (_patrol.status == PatrolStatus.aborted ||
                   _patrol.status == PatrolStatus.incomplete)
@@ -589,6 +653,15 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
           _detail('Waypoints', '${_patrol.manualWaypoints.length}'),
           _detail('Observations', '${_patrol.observations.length}'),
           _detail('Photographs', '${_patrol.photographs.length}'),
+          _detail('Sync status', _syncStatusLabel),
+          _detail(
+            'Last successful sync',
+            _patrol.syncInfo.lastSyncedAt == null
+                ? 'Never'
+                : _formatDate(_patrol.syncInfo.lastSyncedAt!),
+          ),
+          if (_patrol.syncInfo.lastError != null)
+            _detail('Last sync failure', _patrol.syncInfo.lastError!),
         ],
       ),
     ),
@@ -612,7 +685,9 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
           children: [
             Text(gpsText, style: const TextStyle(fontWeight: FontWeight.w700)),
             if (gps.accuracyMeters != null)
-              Text('Reported accuracy: ±${gps.accuracyMeters!.toStringAsFixed(1)} m'),
+              Text(
+                'Reported accuracy: ±${gps.accuracyMeters!.toStringAsFixed(1)} m',
+              ),
             Text(gps.message ?? 'No GPS status available.'),
             if (_trackingState.error != null)
               Text(
@@ -620,30 +695,31 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
                 style: const TextStyle(color: Color(0xFFB42318)),
               ),
             const Divider(),
-            StreamBuilder<List<ConnectivityResult>>(
-              stream: Connectivity().onConnectivityChanged,
-              builder: (context, snapshot) {
-                final online =
-                    snapshot.data?.any(
-                      (result) => result != ConnectivityResult.none,
-                    ) ??
-                    false;
-                return Row(
-                  children: [
-                    Icon(
-                      online ? Icons.wifi : Icons.wifi_off,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(online ? 'Network available' : 'Network unavailable'),
-                    const Spacer(),
-                    Text(
-                      'Route points: ${_trackingState.recordedPointCount}',
-                    ),
-                  ],
-                );
-              },
+            Row(
+              children: [
+                Icon(_online == true ? Icons.wifi : Icons.wifi_off, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  _online == null
+                      ? 'Checking network'
+                      : _online!
+                      ? 'Online'
+                      : 'Offline · patrol saved locally',
+                ),
+                const Spacer(),
+                Text('Route points: ${_trackingState.recordedPointCount}'),
+              ],
             ),
+            Text('Sync status: $_syncStatusLabel'),
+            Text(
+              'Last successful synchronization: '
+              '${_patrol.syncInfo.lastSyncedAt == null ? 'never' : _formatDate(_patrol.syncInfo.lastSyncedAt!)}',
+            ),
+            if (_patrol.syncInfo.lastError != null)
+              Text(
+                'Last sync failure: ${_patrol.syncInfo.lastError}',
+                style: const TextStyle(color: Color(0xFFB42318)),
+              ),
             if (gps.state != PatrolGpsState.available)
               Wrap(
                 spacing: 8,
@@ -703,12 +779,21 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     ),
   );
 
-  String _formatDate(DateTime date) => date.toLocal().toString().substring(0, 16);
+  String _formatDate(DateTime date) =>
+      date.toLocal().toString().substring(0, 16);
 
   String _locationLabel(PatrolLocation location) =>
       '${location.latitude.toStringAsFixed(6)}, '
       '${location.longitude.toStringAsFixed(6)} · '
       '${location.source.name}${location.accuracyMeters == null ? '' : ' · ±${location.accuracyMeters!.toStringAsFixed(0)} m'}';
+
+  String get _syncStatusLabel => switch (_patrol.syncInfo.status) {
+    PatrolSyncStatus.localOnly => 'Local only',
+    PatrolSyncStatus.pendingSync => 'Pending Sync',
+    PatrolSyncStatus.syncing => 'Pending Sync · retry after interruption',
+    PatrolSyncStatus.synced => 'Synced',
+    PatrolSyncStatus.failed => 'Pending Sync · last attempt failed',
+  };
 
   String _statusLabel(PatrolStatus status) => switch (status) {
     PatrolStatus.assigned => 'Assigned',

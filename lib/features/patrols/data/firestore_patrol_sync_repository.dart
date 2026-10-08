@@ -53,50 +53,74 @@ class FirestorePatrolSyncRepository implements PatrolSyncRepository {
       });
     }
 
-    await _writeRecords(reference, 'routePoints', patrol.routePoints.map((item) => (
-      item.id,
-      {
-        'id': item.id,
-        ..._locationData(item.location),
-      },
-    )));
-    await _writeRecords(reference, 'manualWaypoints', patrol.manualWaypoints.map((item) => (
-      item.id,
-      {
-        'id': item.id,
-        'description': item.description,
-        ..._locationData(item.location),
-      },
-    )));
-    await _writeRecords(reference, 'observations', patrol.observations.map((item) => (
-      item.id,
-      {
-        'id': item.id,
-        'description': item.description,
-        'category': item.category,
-        ..._locationData(item.location),
-      },
-    )));
-    await _writeRecords(reference, 'photographs', patrol.photographs.map((item) => (
-      item.id,
-      {
-        'id': item.id,
-        'fileName': item.fileName,
-        'contentType': item.contentType,
-        'base64Data': item.base64Data,
-        'capturedAt': Timestamp.fromDate(item.capturedAt.toUtc()),
-        'observationId': item.observationId,
-      },
-    )));
-    await _writeRecords(reference, 'pauseResumeEvents', patrol.pauseResumeEvents.map((item) => (
-      item.id,
-      {
-        'id': item.id,
-        'action': item.action.name,
-        'occurredAt': Timestamp.fromDate(item.occurredAt.toUtc()),
-        'reason': item.reason,
-      },
-    )));
+    await _writeRecords(
+      reference,
+      'routePoints',
+      patrol.routePoints.map(
+        (item) => (item.id, {'id': item.id, ..._locationData(item.location)}),
+      ),
+    );
+    await _writeRecords(
+      reference,
+      'manualWaypoints',
+      patrol.manualWaypoints.map(
+        (item) => (
+          item.id,
+          {
+            'id': item.id,
+            'description': item.description,
+            ..._locationData(item.location),
+          },
+        ),
+      ),
+    );
+    await _writeRecords(
+      reference,
+      'observations',
+      patrol.observations.map(
+        (item) => (
+          item.id,
+          {
+            'id': item.id,
+            'description': item.description,
+            'category': item.category,
+            ..._locationData(item.location),
+          },
+        ),
+      ),
+    );
+    await _writeRecords(
+      reference,
+      'photographs',
+      patrol.photographs.map(
+        (item) => (
+          item.id,
+          {
+            'id': item.id,
+            'fileName': item.fileName,
+            'contentType': item.contentType,
+            'base64Data': item.base64Data,
+            'capturedAt': Timestamp.fromDate(item.capturedAt.toUtc()),
+            'observationId': item.observationId,
+          },
+        ),
+      ),
+    );
+    await _writeRecords(
+      reference,
+      'pauseResumeEvents',
+      patrol.pauseResumeEvents.map(
+        (item) => (
+          item.id,
+          {
+            'id': item.id,
+            'action': item.action.name,
+            'occurredAt': Timestamp.fromDate(item.occurredAt.toUtc()),
+            'reason': item.reason,
+          },
+        ),
+      ),
+    );
 
     await _firestore.runTransaction((transaction) async {
       final snapshot = await transaction.get(reference);
@@ -134,7 +158,11 @@ class FirestorePatrolSyncRepository implements PatrolSyncRepository {
       'pauseResumeEvents',
     };
     if (!allowedCollections.contains(collection)) {
-      throw ArgumentError.value(collection, 'collection', 'Not a patrol record collection.');
+      throw ArgumentError.value(
+        collection,
+        'collection',
+        'Not a patrol record collection.',
+      );
     }
     var batch = _firestore.batch();
     var batchSize = 0;
@@ -156,6 +184,7 @@ class FirestorePatrolSyncRepository implements PatrolSyncRepository {
 
   Map<String, Object?> _metadata(Patrol patrol) => {
     'patrolId': patrol.patrolId,
+    'localId': patrol.localId,
     'rangerId': patrol.rangerId,
     'rangerName': patrol.rangerName,
     'parkId': patrol.area.parkId,

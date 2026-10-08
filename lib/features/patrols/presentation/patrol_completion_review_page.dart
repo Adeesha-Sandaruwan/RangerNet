@@ -71,15 +71,18 @@ class _PatrolCompletionReviewPageState
         setState(() => _message = 'Patrol completion synchronized.');
       }
     } catch (error) {
-      final saved = await widget.service.listForRanger(_patrol.rangerId);
-      for (final patrol in saved) {
-        if (patrol.localId == _patrol.localId) _patrol = patrol;
+      var message =
+          'Synchronization failed after completion was saved locally: $error';
+      try {
+        final saved = await widget.service.listForRanger(_patrol.rangerId);
+        for (final patrol in saved) {
+          if (patrol.localId == _patrol.localId) _patrol = patrol;
+        }
+      } catch (storageError) {
+        message += ' Could not reload local sync status: $storageError';
       }
       if (mounted) {
-        setState(
-          () => _message =
-              'Completed and saved on this device, but synchronization failed: $error',
-        );
+        setState(() => _message = message);
       }
     } finally {
       if (mounted) setState(() => _busy = false);

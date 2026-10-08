@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 
 import '../application/patrol_service.dart';
 import '../application/patrol_sync_service.dart';
 import '../application/patrol_tracking_service.dart';
 import '../domain/patrol.dart';
+import '../domain/patrol_network_status.dart';
 import '../domain/patrol_records.dart';
 import 'patrol_session_page.dart';
 
@@ -17,6 +17,7 @@ class PatrolHomePage extends StatefulWidget {
     required this.service,
     required this.trackingService,
     required this.syncService,
+    required this.networkStatus,
     super.key,
   });
 
@@ -25,27 +26,33 @@ class PatrolHomePage extends StatefulWidget {
   final PatrolService service;
   final PatrolTrackingService trackingService;
   final PatrolSyncService syncService;
+  final PatrolNetworkStatusProvider networkStatus;
 
   @override
   State<PatrolHomePage> createState() => _PatrolHomePageState();
 }
 
-class _PatrolHomePageState extends State<PatrolHomePage> {
+class _PatrolHomePageState extends State<PatrolHomePage>
+    with WidgetsBindingObserver {
   List<Patrol> _patrols = const [];
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  StreamSubscription<bool>? _connectivitySubscription;
   bool _loading = true;
   bool _syncing = false;
+  bool? _online;
   String? _error;
   String? _assignmentWarning;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
-      results,
+    unawaited(_refreshNetworkStatus());
+    _connectivitySubscription = widget.networkStatus.onlineChanges.listen((
+      online,
     ) {
-      if (results.any((result) => result != ConnectivityResult.none)) {
+      if (mounted) setState(() => _online = online);
+      if (online) {
         unawaited(_synchronizePending());
       }
     });
@@ -54,8 +61,27 @@ class _PatrolHomePageState extends State<PatrolHomePage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _connectivitySubscription?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_load());
+      unawaited(_synchronizePending());
+      unawaited(_refreshNetworkStatus());
+    }
+  }
+
+  Future<void> _refreshNetworkStatus() async {
+    try {
+      final online = await widget.networkStatus.isOnline;
+      if (mounted) setState(() => _online = online);
+    } catch (error) {
+      if (mounted) setState(() => _assignmentWarning = 'Network status unavailable: $error');
+    }
   }
 
   Future<void> _load() async {
@@ -87,6 +113,7 @@ class _PatrolHomePageState extends State<PatrolHomePage> {
           service: widget.service,
           trackingService: widget.trackingService,
           syncService: widget.syncService,
+          networkStatus: widget.networkStatus,
         ),
       ),
     );
@@ -100,7 +127,10 @@ class _PatrolHomePageState extends State<PatrolHomePage> {
       final result = await widget.syncService.synchronizePending(
         widget.rangerId,
       );
-      if (mounted && result.synchronizedCount > 0) await _load();
+      if (mounted &&
+          (result.synchronizedCount > 0 || result.failures.isNotEmpty)) {
+        await _load();
+      }
       if (mounted && result.failures.isNotEmpty) {
         setState(
           () => _assignmentWarning =
@@ -144,6 +174,26 @@ class _PatrolHomePageState extends State<PatrolHomePage> {
               ),
               const SizedBox(height: 6),
               Text('Ranger: ${widget.rangerName}'),
+              Card(
+                child: ListTile(
+                  dense: true,
+                  leading: Icon(
+                    _online == true ? Icons.wifi : Icons.wifi_off,
+                  ),
+                  title: Text(
+                    _online == null
+                        ? 'Checking network status'
+                        : _online!
+                        ? 'Online'
+                        : 'Offline · local patrol data remains available',
+                  ),
+                  trailing: IconButton(
+                    tooltip: 'Refresh network status',
+                    onPressed: _refreshNetworkStatus,
+                    icon: const Icon(Icons.refresh),
+                  ),
+                ),
+              ),
               if (_assignmentWarning != null)
                 Card(
                   color: const Color(0xFFFFF1D6),
@@ -199,13 +249,19 @@ class _PatrolHomePageState extends State<PatrolHomePage> {
         color: const Color(0xFF17613F),
       ),
       title: Text(
-        patrol.area.routeName.isEmpty
+        patrol.status == PatrolStatus.inProgress ||
+                patrol.status == PatrolStatus.paused ||
+                patrol.status == PatrolStatus.interrupted
+            ? 'Resume patrol · ${patrol.area.routeName.isEmpty ? patrol.patrolId : patrol.area.routeName}'
+            : patrol.area.routeName.isEmpty
             ? 'Patrol ${patrol.patrolId}'
             : patrol.area.routeName,
       ),
       subtitle: Text(
         '${patrol.area.parkName} · ${patrol.area.zoneName}\n'
-        '${_statusLabel(patrol.status)} · ${_syncLabel(patrol)}',
+        '${_statusLabel(patrol.status)} · ${_syncLabel(patrol)}'
+        '\nLast successful sync: ${patrol.syncInfo.lastSyncedAt == null ? 'never' : patrol.syncInfo.lastSyncedAt!.toLocal()}'
+        '${patrol.syncInfo.lastError == null ? '' : '\nSync error: ${patrol.syncInfo.lastError}'}',
       ),
       isThreeLine: true,
       trailing: const Icon(Icons.chevron_right),
@@ -226,7 +282,7 @@ class _PatrolHomePageState extends State<PatrolHomePage> {
   String _syncLabel(Patrol patrol) => switch (patrol.syncInfo.status) {
     PatrolSyncStatus.localOnly => 'Saved on device',
     PatrolSyncStatus.pendingSync => 'Pending synchronization',
-    PatrolSyncStatus.syncing => 'Synchronizing',
+    PatrolSyncStatus.syncing => 'Pending Sync · retry after interruption',
     PatrolSyncStatus.synced => 'Synchronized',
     PatrolSyncStatus.failed => 'Synchronization needs retry',
   };

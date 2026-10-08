@@ -6,6 +6,10 @@ import '../domain/patrol.dart';
 import 'patrol_codec.dart';
 
 class PatrolLocalStore {
+  PatrolLocalStore({this.writeValue});
+
+  final Future<bool> Function(String key, String value)? writeValue;
+
   Future<List<Patrol>> loadForRanger(String rangerId) async {
     final preferences = await SharedPreferences.getInstance();
     final encoded = preferences.getString(_key(rangerId));
@@ -23,17 +27,20 @@ class PatrolLocalStore {
 
   Future<void> replaceForRanger(String rangerId, List<Patrol> patrols) async {
     if (patrols.any((patrol) => patrol.rangerId != rangerId)) {
-      throw ArgumentError('Cannot store another ranger\'s patrol in this queue.');
+      throw ArgumentError(
+        'Cannot store another ranger\'s patrol in this queue.',
+      );
     }
     final localIds = patrols.map((patrol) => patrol.localId).toSet();
     if (localIds.length != patrols.length) {
       throw ArgumentError('Patrol local IDs must be unique.');
     }
-    final preferences = await SharedPreferences.getInstance();
-    final saved = await preferences.setString(
-      _key(rangerId),
-      jsonEncode(patrols.map(PatrolCodec.encode).toList()),
-    );
+    final key = _key(rangerId);
+    final encoded = jsonEncode(patrols.map(PatrolCodec.encode).toList());
+    final writer = writeValue;
+    final saved = writer == null
+        ? await (await SharedPreferences.getInstance()).setString(key, encoded)
+        : await writer(key, encoded);
     if (!saved) {
       throw StateError('Patrol data could not be saved on this device.');
     }

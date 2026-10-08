@@ -11,6 +11,7 @@ import '../../patrols/application/patrol_tracking_service.dart';
 import '../../patrols/data/firestore_patrol_assignment_source.dart';
 import '../../patrols/data/firestore_patrol_sync_repository.dart';
 import '../../patrols/data/geolocator_patrol_location_provider.dart';
+import '../../patrols/data/connectivity_patrol_network_status_provider.dart';
 import '../../patrols/data/local_patrol_repository.dart';
 import '../../patrols/presentation/patrol_home_page.dart';
 
@@ -38,7 +39,10 @@ class _RangerNetShellState extends State<RangerNetShell> {
   late final _patrolSyncService = PatrolSyncService(
     patrolService: _patrolService,
     syncRepository: FirestorePatrolSyncRepository(),
+    networkStatus: _patrolNetworkStatus,
   );
+  late final _patrolNetworkStatus =
+      ConnectivityPatrolNetworkStatusProvider();
 
   @override
   void dispose() {
@@ -63,6 +67,7 @@ class _RangerNetShellState extends State<RangerNetShell> {
             service: _patrolService,
             trackingService: _patrolTrackingService,
             syncService: _patrolSyncService,
+            networkStatus: _patrolNetworkStatus,
           ),
           IncidentHomePage(ranger: widget.ranger),
           IncidentResponderInboxPage(

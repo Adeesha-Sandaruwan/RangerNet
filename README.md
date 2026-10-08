@@ -128,6 +128,18 @@ records are written to `patrols/{patrolId}` and its record subcollections. See
 
 ## Offline data and photos
 
+- Cached assigned patrols can start and continue offline. Patrols, route points,
+  manual waypoints, observations, photos, and pause/resume events are stored on
+  the device; unfinished patrols appear as resumable after app restart.
+- Completed patrols remain **Pending Sync** until remote confirmation.
+  Synchronization retries when connectivity returns or the app resumes, and
+  the patrol screen provides **Retry Sync**. A failed sync preserves local
+  records and reports the failure.
+- Patrol data is isolated by ranger ID and remains on-device across
+  authentication expiration. Re-authenticate as the same ranger to synchronize.
+- Device storage failures are surfaced; the prior successfully persisted
+  patrol snapshot is retained. Patrol photos are Base64 in the local record,
+  so long patrols can use substantial device storage.
 - Unsent incident drafts and reports are kept on the device and can sync when
   connectivity returns.
 - The offline queue holds up to eight reports at a time.

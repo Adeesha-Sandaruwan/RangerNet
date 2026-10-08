@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rangernet/features/patrols/data/local_patrol_repository.dart';
 import 'package:rangernet/features/patrols/data/patrol_codec.dart';
+import 'package:rangernet/features/patrols/data/patrol_local_store.dart';
 import 'package:rangernet/features/patrols/domain/patrol.dart';
 import 'package:rangernet/features/patrols/domain/patrol_records.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,6 +27,41 @@ void main() {
       expect(await repository.findByLocalId('ranger-1', 'local-1'), isNotNull);
     },
   );
+
+  test('restores an active patrol and all field records after repository restart', () async {
+    final active = _patrol();
+    await repository.save(active);
+    final restartedRepository = LocalPatrolRepository();
+
+    final restored = await restartedRepository.findByLocalId(
+      active.rangerId,
+      active.localId,
+    );
+
+    expect(restored, isNotNull);
+    expect(restored!.status, PatrolStatus.inProgress);
+    expect(restored.routePoints, hasLength(1));
+    expect(restored.manualWaypoints, hasLength(1));
+    expect(restored.observations, hasLength(1));
+    expect(restored.photographs, hasLength(1));
+    expect(restored.pauseResumeEvents, hasLength(1));
+  });
+
+  test('storage-full failure is reported and does not replace prior local data', () async {
+    final original = _patrol();
+    await repository.save(original);
+    final failingRepository = LocalPatrolRepository(
+      store: PatrolLocalStore(writeValue: (key, value) async => false),
+    );
+
+    await expectLater(
+      failingRepository.save(original.copyWith(rangerName: 'Not persisted')),
+      throwsStateError,
+    );
+
+    final saved = (await repository.listForRanger(original.rangerId)).single;
+    expect(saved.rangerName, original.rangerName);
+  });
 
   test(
     'prevents a local ID or remote patrol ID from being reassigned',
