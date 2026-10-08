@@ -6,6 +6,7 @@ import 'package:rangernet/features/wildlife_alerts/domain/models/wildlife_alert.
 import 'package:rangernet/features/wildlife_alerts/presentation/controllers/wildlife_alert_controller.dart';
 import 'package:rangernet/features/wildlife_alerts/presentation/widgets/alert_badges.dart';
 import 'package:rangernet/features/wildlife_alerts/presentation/widgets/location_history_timeline.dart';
+import 'package:rangernet/features/wildlife_alerts/presentation/widgets/wildlife_conservation_map_widget.dart';
 
 void main() {
   group('Wildlife Alerts Controller & Widgets', () {
@@ -131,6 +132,33 @@ void main() {
       expect(find.text('Telemetry Breadcrumbs (2 pings)'), findsOneWidget);
       expect(find.text('Throttled stream active'), findsOneWidget);
       expect(find.text('LATEST'), findsOneWidget);
+    });
+
+    testWidgets('WildlifeConservationMapWidget renders HUD, legend and controls', (tester) async {
+      await controller.loadData();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 600,
+              height: 400,
+              child: WildlifeConservationMapWidget(
+                zones: controller.zones,
+                animals: controller.animals,
+                sensors: controller.sensors,
+                alerts: controller.alerts,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('Yala Sector I — Live Telemetry GIS'), findsOneWidget);
+      expect(find.text('High Risk Geofence'), findsOneWidget);
+      expect(find.text('GPS Collar Breadcrumbs'), findsOneWidget);
+      expect(find.text('Camera Trap Node'), findsOneWidget);
     });
   });
 }

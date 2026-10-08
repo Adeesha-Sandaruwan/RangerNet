@@ -5,6 +5,7 @@ import '../controllers/wildlife_alert_controller.dart';
 import '../dialogs/sensor_simulator_dialog.dart';
 import '../widgets/alert_badges.dart';
 import 'wildlife_alert_detail_page.dart';
+import 'wildlife_live_tracking_map_page.dart';
 
 class WildlifeAlertDashboardPage extends StatefulWidget {
   const WildlifeAlertDashboardPage({
@@ -43,6 +44,17 @@ class _WildlifeAlertDashboardPageState
     showDialog<void>(
       context: context,
       builder: (_) => SensorSimulatorDialog(controller: widget.controller),
+    );
+  }
+
+  void _openLiveMap() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WildlifeLiveTrackingMapPage(
+          ranger: widget.ranger,
+          controller: widget.controller,
+        ),
+      ),
     );
   }
 
@@ -120,6 +132,11 @@ class _WildlifeAlertDashboardPageState
                 ],
               ),
             ),
+          ),
+          IconButton(
+            tooltip: 'Live GIS Tracking Map',
+            icon: const Icon(Icons.map_outlined, color: Color(0xFF17613F)),
+            onPressed: _openLiveMap,
           ),
           IconButton(
             tooltip: 'Live Sensor Simulator',
@@ -314,13 +331,30 @@ class _WildlifeAlertDashboardPageState
               ],
             ),
           ),
-          FilledButton.tonal(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF17613F),
-              foregroundColor: Colors.white,
-            ),
-            onPressed: _openSimulatorDialog,
-            child: const Text('Launch Simulator', style: TextStyle(fontSize: 12)),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF17613F),
+                  side: const BorderSide(color: Color(0xFF17613F)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                ),
+                onPressed: _openLiveMap,
+                icon: const Icon(Icons.map, size: 14),
+                label: const Text('Live Map', style: TextStyle(fontSize: 12)),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.tonal(
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF17613F),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                onPressed: _openSimulatorDialog,
+                child: const Text('Simulator', style: TextStyle(fontSize: 12)),
+              ),
+            ],
           ),
         ],
       ),

@@ -7,6 +7,8 @@ import '../controllers/wildlife_alert_controller.dart';
 import '../dialogs/submit_response_dialog.dart';
 import '../widgets/alert_badges.dart';
 import '../widgets/location_history_timeline.dart';
+import '../widgets/wildlife_conservation_map_widget.dart';
+import 'wildlife_live_tracking_map_page.dart';
 
 class WildlifeAlertDetailPage extends StatefulWidget {
   const WildlifeAlertDetailPage({
@@ -172,6 +174,22 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
+          IconButton(
+            tooltip: 'Open Live GIS Map',
+            icon: const Icon(Icons.map_outlined, color: Color(0xFF17613F)),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => WildlifeLiveTrackingMapPage(
+                    rangerId: widget.rangerId,
+                    rangerName: widget.rangerName,
+                    controller: widget.controller,
+                    initialAlertId: alert.alertId,
+                  ),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadAlertDetails,
@@ -447,6 +465,29 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
                           ),
                           const SizedBox(height: 16),
                         ],
+
+                        // Embedded Interactive Live Tracking GIS Map
+                        Container(
+                          height: 260,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.grey.shade400),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: WildlifeConservationMapWidget(
+                              zones: widget.controller.zones,
+                              animals: widget.controller.animals,
+                              sensors: widget.controller.sensors,
+                              alerts: widget.controller.alerts,
+                              selectedAlert: alert,
+                              selectedAnimalId: alert.targetId,
+                              highlightBreadcrumbs: alert.locationHistory,
+                              initialZoom: 1.25,
+                            ),
+                          ),
+                        ),
 
                         // Location Breadcrumb Trail
                         LocationHistoryTimeline(
