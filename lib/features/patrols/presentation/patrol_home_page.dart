@@ -36,6 +36,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
     with WidgetsBindingObserver {
   List<Patrol> _patrols = const [];
   StreamSubscription<bool>? _connectivitySubscription;
+  StreamSubscription<PatrolListResult>? _assignmentSubscription;
   bool _loading = true;
   bool _syncing = false;
   bool? _online;
@@ -47,12 +48,33 @@ class _PatrolHomePageState extends State<PatrolHomePage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _load();
+    _assignmentSubscription = widget.service
+        .watchAssignedPatrols(widget.rangerId)
+        .listen(
+          (result) {
+            if (!mounted) return;
+            setState(() {
+              _patrols = result.patrols;
+              _assignmentWarning = result.assignmentError?.toString();
+              _loading = false;
+            });
+          },
+          onError: (Object error) {
+            if (mounted) {
+              setState(() {
+                _assignmentWarning =
+                    'Live assignment updates are unavailable: $error';
+              });
+            }
+          },
+        );
     unawaited(_refreshNetworkStatus());
     _connectivitySubscription = widget.networkStatus.onlineChanges.listen((
       online,
     ) {
       if (mounted) setState(() => _online = online);
       if (online) {
+        unawaited(_load());
         unawaited(_synchronizePending());
       }
     });
@@ -63,6 +85,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _connectivitySubscription?.cancel();
+    _assignmentSubscription?.cancel();
     super.dispose();
   }
 
@@ -80,7 +103,11 @@ class _PatrolHomePageState extends State<PatrolHomePage>
       final online = await widget.networkStatus.isOnline;
       if (mounted) setState(() => _online = online);
     } catch (error) {
-      if (mounted) setState(() => _assignmentWarning = 'Network status unavailable: $error');
+      if (mounted) {
+        setState(
+          () => _assignmentWarning = 'Network status unavailable: $error',
+        );
+      }
     }
   }
 
@@ -177,9 +204,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
               Card(
                 child: ListTile(
                   dense: true,
-                  leading: Icon(
-                    _online == true ? Icons.wifi : Icons.wifi_off,
-                  ),
+                  leading: Icon(_online == true ? Icons.wifi : Icons.wifi_off),
                   title: Text(
                     _online == null
                         ? 'Checking network status'
@@ -199,9 +224,14 @@ class _PatrolHomePageState extends State<PatrolHomePage>
                   color: const Color(0xFFFFF1D6),
                   child: ListTile(
                     leading: const Icon(Icons.cloud_off_outlined),
-                    title: const Text('Showing patrols saved on this device'),
-                    subtitle: Text(
-                      'Could not refresh assignments: $_assignmentWarning',
+                    title: const Text(
+                      'Patrol assignment update needs attention',
+                    ),
+                    subtitle: Text(_assignmentWarning!),
+                    trailing: IconButton(
+                      tooltip: 'Retry assignment refresh',
+                      onPressed: _loading ? null : _load,
+                      icon: const Icon(Icons.refresh),
                     ),
                   ),
                 ),

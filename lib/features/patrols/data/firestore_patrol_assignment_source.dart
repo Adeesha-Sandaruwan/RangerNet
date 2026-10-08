@@ -19,15 +19,29 @@ class FirestorePatrolAssignmentSource implements PatrolAssignmentSource {
 
   @override
   Future<List<Patrol>> loadAssignedTo(String rangerId) async {
+    final snapshot = await _assignedQuery(rangerId).get(
+      const GetOptions(source: Source.server),
+    );
+    return snapshot.docs.map(_fromAssignment).toList(growable: false);
+  }
+
+  @override
+  Stream<List<Patrol>> watchAssignedTo(String rangerId) =>
+      _assignedQuery(rangerId)
+          .snapshots()
+          .map(
+            (snapshot) =>
+                snapshot.docs.map(_fromAssignment).toList(growable: false),
+          );
+
+  Query<Map<String, dynamic>> _assignedQuery(String rangerId) {
     final user = _auth.currentUser;
     if (user == null || user.uid != rangerId) {
       throw StateError('Sign in as the assigned ranger to load patrols.');
     }
-    final snapshot = await _firestore
+    return _firestore
         .collection('patrolAssignments')
-        .where('assignedRangerId', isEqualTo: rangerId)
-        .get();
-    return snapshot.docs.map(_fromAssignment).toList(growable: false);
+        .where('assignedRangerId', isEqualTo: rangerId);
   }
 
   Patrol _fromAssignment(QueryDocumentSnapshot<Map<String, dynamic>> doc) {

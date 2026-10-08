@@ -40,27 +40,67 @@ class PatrolService {
     }
     try {
       final assignments = await source.loadAssignedTo(rangerId);
-      final merged = <String, Patrol>{};
-      for (final assignment in assignments) {
-        final current = local.where(
-          (patrol) => patrol.patrolId == assignment.patrolId,
-        );
-        final patrol = current.isEmpty ? assignment : current.first;
-        merged[patrol.patrolId] = patrol;
-        if (current.isEmpty) await _repository.save(patrol);
-      }
-      for (final patrol in local) {
-        merged.putIfAbsent(patrol.patrolId, () => patrol);
-      }
-      return PatrolListResult(
-        patrols: List.unmodifiable(merged.values),
-      );
+      return await _mergeAssignments(rangerId, local, assignments);
     } catch (error) {
       return PatrolListResult(
         patrols: List.unmodifiable(local),
         assignmentError: error,
       );
     }
+  }
+
+  Stream<PatrolListResult> watchAssignedPatrols(String rangerId) {
+    final source = _assignmentSource;
+    if (source == null) {
+      return Stream.error(
+        StateError('No patrol assignment source is configured.'),
+      );
+    }
+    return source.watchAssignedTo(rangerId).asyncMap((assignments) async {
+      final local = await _repository.listForRanger(rangerId);
+      return _mergeAssignments(rangerId, local, assignments);
+    });
+  }
+
+  Future<PatrolListResult> _mergeAssignments(
+    String rangerId,
+    List<Patrol> local,
+    List<Patrol> assignments,
+  ) async {
+    final merged = <String, Patrol>{};
+    final persistenceErrors = <String>[];
+    for (final assignment in assignments) {
+      if (assignment.rangerId != rangerId) {
+        persistenceErrors.add(
+          'The assignment source returned a patrol for a different ranger.',
+        );
+        continue;
+      }
+      final current = local.where(
+        (patrol) => patrol.patrolId == assignment.patrolId,
+      );
+      final patrol = current.isEmpty ? assignment : current.first;
+      merged[patrol.patrolId] = patrol;
+      if (current.isEmpty) {
+        try {
+          await _repository.save(patrol);
+        } catch (error) {
+          persistenceErrors.add(
+            'Assignment ${assignment.patrolId} loaded from server but '
+            'could not be cached locally: $error',
+          );
+        }
+      }
+    }
+    for (final patrol in local) {
+      merged.putIfAbsent(patrol.patrolId, () => patrol);
+    }
+    return PatrolListResult(
+      patrols: List.unmodifiable(merged.values),
+      assignmentError: persistenceErrors.isEmpty
+          ? null
+          : StateError(persistenceErrors.join('\n')),
+    );
   }
 
   Future<void> saveAssignedPatrol(Patrol patrol) async {

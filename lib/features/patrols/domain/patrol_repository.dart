@@ -10,6 +10,8 @@ abstract interface class PatrolRepository {
 
 abstract interface class PatrolAssignmentSource {
   Future<List<Patrol>> loadAssignedTo(String rangerId);
+
+  Stream<List<Patrol>> watchAssignedTo(String rangerId);
 }
 
 abstract interface class PatrolSyncRepository {

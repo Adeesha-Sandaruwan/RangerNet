@@ -93,6 +93,13 @@ If the app already created that profile as a ranger, update its `role` to
 `manager`. Sign out and sign in again. The manager opens a dashboard first, then
 selects **Go to incident management**.
 
+From the manager dashboard, select **Manage patrol assignments** → **Assign
+patrol**. Choose an active ranger, enter the park, zone, and route, and
+optionally enter both map-center coordinates. Select **Create patrol
+assignment**. The patrol then appears in that ranger's **Patrols** tab after
+they refresh or reopen the list. Assignment creation is manager-only under
+the Firestore rules.
+
 ## How incident reporting works
 
 1. A ranger opens **Incidents** and starts a report.
