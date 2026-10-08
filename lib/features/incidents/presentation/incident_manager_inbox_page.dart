@@ -7,6 +7,7 @@ import '../data/incident_management_repository.dart';
 import '../domain/incident_report.dart';
 import '../domain/ranger_profile.dart';
 import 'incident_manager_detail_page.dart';
+import 'widgets/incident_status_badges.dart';
 
 /// UC02-only operations inbox for the Park Manager / Duty Supervisor.
 class IncidentManagerInboxPage extends StatefulWidget {
@@ -133,7 +134,7 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
               padding: const EdgeInsets.all(16),
               children: [
                 Text(
-                  'UC02 · Wildlife / poaching incidents',
+                  'Wildlife / poaching incidents',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 4),
@@ -220,12 +221,20 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
             : const Color(0xFF17613F),
       ),
       title: Text(report.title),
-      subtitle: Text(
-        '${report.type.label} · ${report.severity.label} · '
-        '${report.workflowStatus.label}\n'
-        '${report.rangerEmail} · ${_date(report.createdAt)}',
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${report.type.label} · ${report.rangerEmail}'),
+          const SizedBox(height: 6),
+          IncidentStatusBadges(
+            severity: report.severity,
+            status: report.workflowStatus,
+          ),
+          const SizedBox(height: 4),
+          Text(_date(report.createdAt)),
+        ],
       ),
-      isThreeLine: true,
+      isThreeLine: false,
       trailing: const Icon(Icons.chevron_right),
     ),
   );

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../data/incident_management_repository.dart';
 import '../domain/incident_report.dart';
 import 'incident_responder_detail_page.dart';
+import 'widgets/incident_status_badges.dart';
 
 /// Assigned UC02 cases for a ranger acting as an incident responder.
 class IncidentResponderInboxPage extends StatefulWidget {
@@ -118,7 +119,7 @@ class _IncidentResponderInboxPageState
             padding: const EdgeInsets.all(16),
             children: [
               Text(
-                'UC02 · Response work',
+                'Response work',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 4),
@@ -179,11 +180,18 @@ class _IncidentResponderInboxPageState
             : const Color(0xFF17613F),
       ),
       title: Text(report.title),
-      subtitle: Text(
-        '${report.type.label} · ${report.severity.label}\n'
-        '${report.workflowStatus.label} · ${report.parkOrBlock}',
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${report.type.label} · ${report.parkOrBlock}'),
+          const SizedBox(height: 6),
+          IncidentStatusBadges(
+            severity: report.severity,
+            status: report.workflowStatus,
+          ),
+        ],
       ),
-      isThreeLine: true,
+      isThreeLine: false,
       trailing: const Icon(Icons.chevron_right),
     ),
   );
