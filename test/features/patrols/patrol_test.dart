@@ -45,6 +45,71 @@ void main() {
       );
     });
 
+    test('includes the start and recorded GPS end in route distance', () {
+      final startedAt = DateTime.utc(2026, 1, 1, 8);
+      final start = _location(6.0, 81.0, startedAt);
+      final firstFix = _location(
+        6.001,
+        81.0,
+        startedAt.add(const Duration(minutes: 2)),
+      );
+      final lastFix = _location(
+        6.002,
+        81.0,
+        startedAt.add(const Duration(minutes: 4)),
+      );
+      final gpsEnd = _location(
+        6.003,
+        81.0,
+        startedAt.add(const Duration(minutes: 5)),
+      );
+      final patrol = _patrol(
+        status: PatrolStatus.completedPendingSync,
+        startedAt: startedAt,
+        endedAt: startedAt.add(const Duration(minutes: 5)),
+        startLocation: start,
+        endLocation: gpsEnd,
+        routePoints: [
+          PatrolRoutePoint(id: 'point-1', location: firstFix),
+          PatrolRoutePoint(id: 'point-2', location: lastFix),
+        ],
+      );
+      final expectedDistance =
+          metrics.distanceBetween(start, firstFix) +
+          metrics.distanceBetween(firstFix, lastFix) +
+          metrics.distanceBetween(lastFix, gpsEnd);
+
+      expect(
+        metrics.distanceTravelledMeters(patrol),
+        closeTo(expectedDistance, 0.01),
+      );
+
+      final manualEndPatrol = _patrol(
+        status: PatrolStatus.completedPendingSync,
+        startedAt: startedAt,
+        endedAt: startedAt.add(const Duration(minutes: 5)),
+        startLocation: start,
+        endLocation: PatrolLocation(
+          latitude: 6.01,
+          longitude: 81.0,
+          recordedAt: startedAt.add(const Duration(minutes: 5)),
+          source: PatrolLocationSource.manual,
+        ),
+        routePoints: [
+          PatrolRoutePoint(id: 'point-1', location: firstFix),
+          PatrolRoutePoint(id: 'point-2', location: lastFix),
+        ],
+      );
+      expect(
+        metrics.distanceTravelledMeters(manualEndPatrol),
+        closeTo(
+          metrics.distanceBetween(start, firstFix) +
+              metrics.distanceBetween(firstFix, lastFix),
+          0.01,
+        ),
+      );
+    });
+
     test('validates coordinates and coverage counts', () {
       expect(() => _location(91, 0, DateTime.utc(2026)), throwsArgumentError);
       expect(
@@ -114,7 +179,9 @@ void main() {
 Patrol _patrol({
   PatrolStatus status = PatrolStatus.assigned,
   DateTime? startedAt,
+  DateTime? endedAt,
   PatrolLocation? startLocation,
+  PatrolLocation? endLocation,
   List<PatrolRoutePoint> routePoints = const [],
   List<PatrolPauseResumeEvent> pauseResumeEvents = const [],
 }) => Patrol(
@@ -132,7 +199,9 @@ Patrol _patrol({
   ),
   status: status,
   startedAt: startedAt,
+  endedAt: endedAt,
   startLocation: startLocation,
+  endLocation: endLocation,
   routePoints: routePoints,
   pauseResumeEvents: pauseResumeEvents,
 );

@@ -30,9 +30,12 @@ class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
   void initState() {
     super.initState();
     final area = widget.patrol.area;
+    final plannedStart = widget.patrol.plannedRoute?.start;
     final location = widget.initialLocation ?? widget.patrol.startLocation;
-    final centerLat = area.centerLatitude ?? location?.latitude;
-    final centerLng = area.centerLongitude ?? location?.longitude;
+    final centerLat =
+        area.centerLatitude ?? plannedStart?.latitude ?? location?.latitude;
+    final centerLng =
+        area.centerLongitude ?? plannedStart?.longitude ?? location?.longitude;
     if (centerLat != null && centerLng != null) {
       _center = LatLng(centerLat, centerLng);
     }
@@ -49,7 +52,7 @@ class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
   Widget build(BuildContext context) {
     final center = _center;
     return Scaffold(
-      appBar: AppBar(title: const Text('Place a manual waypoint')),
+      appBar: AppBar(title: const Text('Mark exact location on map')),
       body: center == null ? _buildChooseCenter() : _buildMap(center),
     );
   }
@@ -101,168 +104,231 @@ class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
     ),
   );
 
-  Widget _buildMap(LatLng center) => Column(
-    children: [
-      if (_tilesUnavailable)
-        const MaterialBanner(
-          content: Text(
-            'Map tiles are unavailable. The marker still records the location '
-            'you select, but verify it against the assigned area.',
-          ),
-          leading: Icon(Icons.map_outlined),
-          actions: [SizedBox.shrink()],
+  Widget _buildMap(LatLng center) {
+    final actualRoute = <LatLng>[
+      if (widget.patrol.startLocation != null)
+        LatLng(
+          widget.patrol.startLocation!.latitude,
+          widget.patrol.startLocation!.longitude,
         ),
-      const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Text(
-          'Tap the map to place a waypoint. OpenStreetMap tiles need a network '
-          'connection; your selected coordinate is saved locally.',
-        ),
+      ...widget.patrol.routePoints.map(
+        (point) => LatLng(point.location.latitude, point.location.longitude),
       ),
-      Expanded(
-        child: FlutterMap(
-          options: MapOptions(
-            initialCenter: center,
-            initialZoom: 15,
-            onTap: (_, point) => setState(() => _selected = point),
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'lk.rangernet.rangernet',
-              errorTileCallback: (_, _, _) {
-                if (_tilesUnavailable || !mounted) return;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) setState(() => _tilesUnavailable = true);
-                });
-              },
-            ),
-            if (widget.patrol.routePoints.isNotEmpty)
-              PolylineLayer(
-                polylines: [
-                  Polyline(
-                    points: widget.patrol.routePoints
-                        .map(
-                          (point) => LatLng(
-                            point.location.latitude,
-                            point.location.longitude,
-                          ),
-                        )
-                        .toList(),
-                    strokeWidth: 4,
-                    color: const Color(0xFF17613F),
-                  ),
-                ],
-              ),
-            if (widget.patrol.plannedRoute case final route?)
-              PolylineLayer(
-                polylines: [
-                  Polyline(
-                    points: route.routeLocations
-                        .map(
-                          (point) => LatLng(point.latitude, point.longitude),
-                        )
-                        .toList(),
-                    strokeWidth: 5,
-                    color: const Color(0xFF17613F),
-                  ),
-                ],
-              ),
-            MarkerLayer(
-              markers: [
-                if (widget.patrol.plannedRoute case final route?) ...[
-                  Marker(
-                    point: LatLng(
-                      route.start.latitude,
-                      route.start.longitude,
-                    ),
-                    child: const Icon(
-                      Icons.trip_origin,
-                      color: Color(0xFF17613F),
-                      size: 34,
-                    ),
-                  ),
-                  ...route.stops.indexed.map(
-                    (entry) => Marker(
-                      point: LatLng(
-                        entry.$2.latitude,
-                        entry.$2.longitude,
-                      ),
-                      child: CircleAvatar(
-                        radius: 12,
-                        backgroundColor: const Color(0xFF4677A8),
-                        child: Text(
-                          '${entry.$1 + 1}',
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Marker(
-                    point: LatLng(route.end.latitude, route.end.longitude),
-                    child: const Icon(
-                      Icons.flag,
-                      color: Colors.deepOrange,
-                      size: 34,
-                    ),
-                  ),
-                ],
-                ...widget.patrol.manualWaypoints.map(
-                  (waypoint) => Marker(
-                    point: LatLng(
-                      waypoint.location.latitude,
-                      waypoint.location.longitude,
-                    ),
-                    child: const Icon(
-                      Icons.location_on,
-                      color: Color(0xFFB54735),
-                      size: 38,
-                    ),
-                  ),
-                ),
-                if (_selected != null)
-                  Marker(
-                    point: _selected!,
-                    child: const Icon(
-                      Icons.add_location_alt,
-                      color: Color(0xFF17613F),
-                      size: 42,
-                    ),
-                  ),
-              ],
-            ),
-            const RichAttributionWidget(
-              attributions: [
-                TextSourceAttribution('OpenStreetMap contributors'),
-              ],
-            ),
-          ],
+      if (widget.patrol.routePoints.isNotEmpty &&
+          widget.patrol.endLocation?.source == PatrolLocationSource.gps &&
+          widget.patrol.endLocation!.recordedAt.isAfter(
+            widget.patrol.routePoints.last.location.recordedAt,
+          ))
+        LatLng(
+          widget.patrol.endLocation!.latitude,
+          widget.patrol.endLocation!.longitude,
         ),
-      ),
-      SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
+    ];
+    return Column(
+      children: [
+        if (_tilesUnavailable)
+          const MaterialBanner(
+            content: Text(
+              'Map tiles are unavailable. The marker still records the location '
+              'you select, but verify it against the assigned area.',
+            ),
+            leading: Icon(Icons.map_outlined),
+            actions: [SizedBox.shrink()],
+          ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
             children: [
-              Expanded(
-                child: Text(
-                  _selected == null
-                      ? 'No location selected'
-                      : '${_selected!.latitude.toStringAsFixed(6)}, '
-                            '${_selected!.longitude.toStringAsFixed(6)} · Manual',
-                ),
+              Text(
+                'Tap the map to mark the exact location. This records a manual '
+                'point and does not change the manager-assigned route.',
               ),
-              FilledButton(
-                onPressed: _selected == null ? null : _confirmSelection,
-                child: const Text('Use location'),
+              SizedBox(height: 4),
+              Text(
+                'Map tiles need internet access; selected coordinates are saved '
+                'to the patrol on this device.',
+                style: TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+              SizedBox(height: 6),
+              Wrap(
+                spacing: 14,
+                children: [
+                  _MapLegend(color: Color(0xFF17613F), label: 'Assigned route'),
+                  _MapLegend(color: Color(0xFF2673B8), label: 'GPS track'),
+                  _MapLegend(color: Color(0xFFB54735), label: 'Saved point'),
+                ],
               ),
             ],
           ),
         ),
-      ),
-    ],
-  );
+        Expanded(
+          child: FlutterMap(
+            options: MapOptions(
+              initialCameraFit: _cameraFit(center),
+              onTap: (_, point) => setState(() => _selected = point),
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'lk.rangernet.rangernet',
+                errorTileCallback: (_, _, _) {
+                  if (_tilesUnavailable || !mounted) return;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) setState(() => _tilesUnavailable = true);
+                  });
+                },
+              ),
+              if (actualRoute.length > 1)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: actualRoute,
+                      strokeWidth: 4,
+                      color: const Color(0xFF2673B8),
+                    ),
+                  ],
+                ),
+              if (widget.patrol.plannedRoute case final route?)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: route.routeLocations
+                          .map(
+                            (point) => LatLng(point.latitude, point.longitude),
+                          )
+                          .toList(),
+                      strokeWidth: 5,
+                      color: const Color(0xFF17613F),
+                    ),
+                  ],
+                ),
+              MarkerLayer(
+                markers: [
+                  if (widget.patrol.plannedRoute case final route?) ...[
+                    Marker(
+                      point: LatLng(
+                        route.start.latitude,
+                        route.start.longitude,
+                      ),
+                      child: const Icon(
+                        Icons.trip_origin,
+                        color: Color(0xFF17613F),
+                        size: 34,
+                      ),
+                    ),
+                    ...route.stops.indexed.map(
+                      (entry) => Marker(
+                        point: LatLng(entry.$2.latitude, entry.$2.longitude),
+                        child: CircleAvatar(
+                          radius: 12,
+                          backgroundColor: const Color(0xFF4677A8),
+                          child: Text(
+                            '${entry.$1 + 1}',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Marker(
+                      point: LatLng(route.end.latitude, route.end.longitude),
+                      child: const Icon(
+                        Icons.flag,
+                        color: Colors.deepOrange,
+                        size: 34,
+                      ),
+                    ),
+                  ],
+                  ...widget.patrol.manualWaypoints.map(
+                    (waypoint) => Marker(
+                      point: LatLng(
+                        waypoint.location.latitude,
+                        waypoint.location.longitude,
+                      ),
+                      child: const Icon(
+                        Icons.location_on,
+                        color: Color(0xFFB54735),
+                        size: 38,
+                      ),
+                    ),
+                  ),
+                  if (_selected != null)
+                    Marker(
+                      point: _selected!,
+                      child: const Icon(
+                        Icons.add_location_alt,
+                        color: Color(0xFF17613F),
+                        size: 42,
+                      ),
+                    ),
+                ],
+              ),
+              const RichAttributionWidget(
+                attributions: [
+                  TextSourceAttribution('OpenStreetMap contributors'),
+                ],
+              ),
+            ],
+          ),
+        ),
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _selected == null
+                        ? 'No location selected'
+                        : '${_selected!.latitude.toStringAsFixed(6)}, '
+                              '${_selected!.longitude.toStringAsFixed(6)} · Manual',
+                  ),
+                ),
+                FilledButton(
+                  onPressed: _selected == null ? null : _confirmSelection,
+                  child: const Text('Use location'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  CameraFit _cameraFit(LatLng center) {
+    final planned =
+        widget.patrol.plannedRoute?.routeLocations
+            .map((point) => LatLng(point.latitude, point.longitude))
+            .toList() ??
+        const <LatLng>[];
+    final actual = widget.patrol.routePoints
+        .map(
+          (point) => LatLng(point.location.latitude, point.location.longitude),
+        )
+        .toList();
+    final manual = widget.patrol.manualWaypoints
+        .map(
+          (waypoint) =>
+              LatLng(waypoint.location.latitude, waypoint.location.longitude),
+        )
+        .toList();
+    final points = [
+      ...planned,
+      if (widget.patrol.startLocation case final start?)
+        LatLng(start.latitude, start.longitude),
+      ...actual,
+      ...manual,
+    ];
+    if (points.isEmpty) {
+      return CameraFit.coordinates(coordinates: [center], maxZoom: 15);
+    }
+    return CameraFit.coordinates(
+      coordinates: points,
+      maxZoom: 15,
+      padding: const EdgeInsets.all(48),
+    );
+  }
 
   void _openMapAtEnteredCenter() {
     final latitude = double.tryParse(_latitude.text.trim());
@@ -278,6 +344,7 @@ class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
       );
       return;
     }
+
     setState(() => _center = LatLng(latitude, longitude));
   }
 
@@ -293,4 +360,28 @@ class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
       ),
     );
   }
+}
+
+class _MapLegend extends StatelessWidget {
+  const _MapLegend({required this.color, required this.label});
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: 12,
+        height: 4,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+      const SizedBox(width: 5),
+      Text(label, style: Theme.of(context).textTheme.bodySmall),
+    ],
+  );
 }

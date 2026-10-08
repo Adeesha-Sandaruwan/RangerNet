@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../application/patrol_service.dart';
 import '../application/patrol_sync_service.dart';
 import '../application/patrol_tracking_service.dart';
+import '../application/patrol_metrics_service.dart';
 import '../data/patrol_photo_picker.dart';
 import '../data/geolocator_patrol_location_provider.dart';
 import '../domain/patrol.dart';
@@ -40,6 +41,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     with WidgetsBindingObserver {
   static const _uuid = Uuid();
   static const _maxGpsAccuracyMeters = 50.0;
+  static const _metrics = PatrolMetricsService();
 
   late Patrol _patrol = widget.patrol;
   PatrolTrackingState _trackingState = const PatrolTrackingState(
@@ -485,6 +487,10 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
   @override
   Widget build(BuildContext context) {
     final active = _isActive;
+    final showRouteMap =
+        _patrol.plannedRoute != null ||
+        _patrol.startLocation != null ||
+        _patrol.routePoints.isNotEmpty;
     return Scaffold(
       backgroundColor: const Color(0xFFF5F8F3),
       appBar: AppBar(title: const Text('Patrol details')),
@@ -494,18 +500,25 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              if (_patrol.plannedRoute != null) ...[
+              if (showRouteMap) ...[
                 Text(
-                  'Assigned route',
+                  _patrol.plannedRoute == null
+                      ? 'Recorded patrol route'
+                      : 'Assigned route and actual track',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
-                PatrolRouteMap(patrol: _patrol, height: 280),
-                const SizedBox(height: 8),
-                const Text(
-                  'Green: planned route · Blue: recorded GPS track · '
-                  'S: start · E: destination',
+                PatrolRouteMap(
+                  patrol: _patrol,
+                  latestLocation: _reliableLatestFix,
+                  height: 280,
                 ),
+                const SizedBox(height: 8),
+                _routeLegend(),
+                if (_patrol.startedAt != null) ...[
+                  const SizedBox(height: 10),
+                  _liveRouteSummary(),
+                ],
                 const SizedBox(height: 12),
               ],
               _patrolDetailsCard(),
@@ -546,7 +559,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
                 OutlinedButton.icon(
                   onPressed: _busy ? null : _addWaypoint,
                   icon: const Icon(Icons.add_location_alt_outlined),
-                  label: const Text('Place manual waypoint on map'),
+                  label: const Text('Mark exact location on map'),
                 ),
                 OutlinedButton.icon(
                   onPressed: _busy ? null : _addObservation,
@@ -692,6 +705,74 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     ),
   );
 
+  Widget _routeLegend() => Wrap(
+    spacing: 14,
+    runSpacing: 8,
+    children: [
+      if (_patrol.plannedRoute != null)
+        const _RouteLegendItem(
+          color: Color(0xFF17613F),
+          label: 'Manager assigned',
+        ),
+      if (_patrol.startLocation != null || _patrol.routePoints.isNotEmpty)
+        const _RouteLegendItem(
+          color: Color(0xFF2673B8),
+          label: 'Ranger recorded track',
+        ),
+      if (_patrol.manualWaypoints.isNotEmpty)
+        const _RouteLegendItem(
+          color: Colors.deepPurple,
+          label: 'Map-marked location',
+        ),
+    ],
+  );
+
+  Widget _liveRouteSummary() {
+    final distanceMeters = _metrics.distanceTravelledMeters(_patrol);
+    final duration = _metrics.durationAt(_patrol, DateTime.now());
+    final distanceLabel = distanceMeters >= 1000
+        ? '${(distanceMeters / 1000).toStringAsFixed(2)} km'
+        : '${distanceMeters.toStringAsFixed(0)} m';
+    final durationLabel =
+        '${duration.inHours.toString().padLeft(2, '0')}:'
+        '${duration.inMinutes.remainder(60).toString().padLeft(2, '0')}';
+
+    return Card(
+      margin: EdgeInsets.zero,
+      color: const Color(0xFFEAF2EC),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: _RouteMetric(
+                icon: Icons.route_outlined,
+                label: 'Recorded distance',
+                value: distanceLabel,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _RouteMetric(
+                icon: Icons.timer_outlined,
+                label: 'Active time',
+                value: durationLabel,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _RouteMetric(
+                icon: Icons.my_location_outlined,
+                label: 'GPS points',
+                value: '${_patrol.routePoints.length}',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _statusCard() {
     final gps = _trackingState.gpsStatus;
     final gpsText = switch (gps.state) {
@@ -757,7 +838,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
                   TextButton.icon(
                     onPressed: _busy ? null : _addWaypoint,
                     icon: const Icon(Icons.add_location_alt_outlined),
-                    label: const Text('Place manual waypoint'),
+                    label: const Text('Mark exact location'),
                   ),
                 ],
               ),
@@ -830,4 +911,57 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     PatrolStatus.aborted => 'Aborted',
     PatrolStatus.interrupted => 'Interrupted',
   };
+}
+
+class _RouteMetric extends StatelessWidget {
+  const _RouteMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, size: 18, color: const Color(0xFF17613F)),
+      const SizedBox(height: 4),
+      Text(label, style: Theme.of(context).textTheme.labelSmall),
+      const SizedBox(height: 2),
+      Text(
+        value,
+        style: Theme.of(
+          context,
+        ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+      ),
+    ],
+  );
+}
+
+class _RouteLegendItem extends StatelessWidget {
+  const _RouteLegendItem({required this.color, required this.label});
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: 12,
+        height: 4,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+      const SizedBox(width: 6),
+      Text(label, style: Theme.of(context).textTheme.bodySmall),
+    ],
+  );
 }

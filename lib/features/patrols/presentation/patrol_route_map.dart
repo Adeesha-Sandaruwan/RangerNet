@@ -9,19 +9,27 @@ class PatrolRouteMap extends StatelessWidget {
   const PatrolRouteMap({
     this.patrol,
     this.plannedRoute,
+    this.latestLocation,
     this.height = 260,
     super.key,
   });
 
   final Patrol? patrol;
   final PatrolRoutePlan? plannedRoute;
+  final PatrolLocation? latestLocation;
   final double height;
 
   @override
   Widget build(BuildContext context) {
     final currentPatrol = patrol;
     final plan = plannedRoute ?? currentPatrol?.plannedRoute;
-    final planned = plan?.routeLocations
+    final actualStart = currentPatrol?.startLocation;
+    final actualEnd = currentPatrol?.endLocation;
+    final lastRoutePoint = currentPatrol?.routePoints.isNotEmpty == true
+        ? currentPatrol!.routePoints.last.location
+        : null;
+    final planned =
+        plan?.routeLocations
             .map((point) => LatLng(point.latitude, point.longitude))
             .toList() ??
         const <LatLng>[];
@@ -29,10 +37,23 @@ class PatrolRouteMap extends StatelessWidget {
       if (currentPatrol?.startLocation != null)
         _latLng(currentPatrol!.startLocation!),
       ...?currentPatrol?.routePoints.map((point) => _latLng(point.location)),
-      if (currentPatrol?.endLocation != null)
+      if (currentPatrol?.routePoints.isNotEmpty == true &&
+          actualEnd?.source == PatrolLocationSource.gps &&
+          lastRoutePoint != null &&
+          actualEnd!.recordedAt.isAfter(lastRoutePoint.recordedAt))
         _latLng(currentPatrol!.endLocation!),
     ];
-    final allPoints = [...planned, ...actual];
+    final manualPoints =
+        currentPatrol?.manualWaypoints
+            .map((waypoint) => _latLng(waypoint.location))
+            .toList() ??
+        const <LatLng>[];
+    final allPoints = [
+      ...planned,
+      ...actual,
+      ...manualPoints,
+      if (latestLocation != null) _latLng(latestLocation!),
+    ];
     if (allPoints.isEmpty) return const SizedBox.shrink();
 
     return SizedBox(
@@ -46,10 +67,7 @@ class PatrolRouteMap extends StatelessWidget {
                     bounds: LatLngBounds.fromPoints(allPoints),
                     padding: const EdgeInsets.all(36),
                   )
-                : CameraFit.coordinates(
-                    coordinates: allPoints,
-                    maxZoom: 14,
-                  ),
+                : CameraFit.coordinates(coordinates: allPoints, maxZoom: 14),
           ),
           children: [
             TileLayer(
@@ -89,6 +107,17 @@ class PatrolRouteMap extends StatelessWidget {
                   ),
                   _marker(plan.end, 'E', Colors.deepOrange),
                 ],
+                if (plan == null && actualStart != null)
+                  Marker(
+                    point: _latLng(actualStart),
+                    width: 36,
+                    height: 40,
+                    child: const Icon(
+                      Icons.trip_origin,
+                      color: Color(0xFF17613F),
+                      size: 32,
+                    ),
+                  ),
                 ...?currentPatrol?.manualWaypoints.map(
                   (waypoint) => Marker(
                     point: _latLng(waypoint.location),
@@ -101,6 +130,34 @@ class PatrolRouteMap extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (actualEnd != null &&
+                    actualEnd.source == PatrolLocationSource.manual)
+                  Marker(
+                    point: _latLng(actualEnd),
+                    width: 36,
+                    height: 40,
+                    child: const Icon(
+                      Icons.flag_outlined,
+                      color: Colors.deepPurple,
+                      size: 32,
+                    ),
+                  ),
+                if (latestLocation != null)
+                  Marker(
+                    point: _latLng(latestLocation!),
+                    width: 28,
+                    height: 28,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2673B8),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black26, blurRadius: 4),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
             const RichAttributionWidget(

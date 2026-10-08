@@ -1,7 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:uuid/uuid.dart';
-
 import '../domain/patrol.dart';
 import '../domain/patrol_records.dart';
 import '../domain/patrol_repository.dart';
@@ -16,8 +14,6 @@ class FirestorePatrolAssignmentSource implements PatrolAssignmentSource {
 
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
-  static const _uuid = Uuid();
-
   @override
   Future<List<Patrol>> loadAssignedTo(String rangerId) async {
     final snapshot = await _assignedQuery(
@@ -70,7 +66,7 @@ class FirestorePatrolAssignmentSource implements PatrolAssignmentSource {
         plannedRoute?.start.longitude ?? centerLongitude;
     return Patrol(
       patrolId: doc.id,
-      localId: _uuid.v4(),
+      localId: 'assignment-${doc.id}',
       rangerId: rangerId,
       rangerName: data['assignedRangerName']?.toString() ?? '',
       area: PatrolArea(

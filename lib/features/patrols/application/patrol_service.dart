@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:uuid/uuid.dart';
 
 import '../domain/patrol.dart';
@@ -27,6 +29,7 @@ class PatrolService {
   final PatrolAssignmentSource? _assignmentSource;
   final PatrolCoverageService coverageService;
   final Uuid _uuid;
+  Future<void> _assignmentMergeTail = Future<void>.value();
 
   Future<List<Patrol>> listForRanger(String rangerId) =>
       _repository.listForRanger(rangerId);
@@ -44,7 +47,7 @@ class PatrolService {
     }
     try {
       final assignments = await source.loadAssignedTo(rangerId);
-      return await _mergeAssignments(rangerId, local, assignments);
+      return await _mergeAssignments(rangerId, assignments);
     } catch (error) {
       return PatrolListResult(
         patrols: List.unmodifiable(local),
@@ -60,60 +63,75 @@ class PatrolService {
         StateError('No patrol assignment source is configured.'),
       );
     }
-    return source.watchAssignedTo(rangerId).asyncMap((assignments) async {
-      final local = await _repository.listForRanger(rangerId);
-      return _mergeAssignments(rangerId, local, assignments);
-    });
+    return source.watchAssignedTo(
+      rangerId,
+    ).asyncMap((assignments) => _mergeAssignments(rangerId, assignments));
   }
 
   Future<PatrolListResult> _mergeAssignments(
     String rangerId,
-    List<Patrol> local,
     List<Patrol> assignments,
-  ) async {
-    final merged = <String, Patrol>{};
-    final persistenceErrors = <String>[];
-    for (final assignment in assignments) {
-      if (assignment.rangerId != rangerId) {
-        persistenceErrors.add(
-          'The assignment source returned a patrol for a different ranger.',
-        );
-        continue;
-      }
-      final current = local.where(
-        (patrol) => patrol.patrolId == assignment.patrolId,
-      );
-      final patrol = current.isEmpty
-          ? assignment
-          : current.first.status == PatrolStatus.assigned
-          ? current.first.copyWith(
-              rangerName: assignment.rangerName,
-              area: assignment.area,
-              plannedRoute: assignment.plannedRoute,
-              clearPlannedRoute: assignment.plannedRoute == null,
-            )
-          : current.first;
-      merged[patrol.patrolId] = patrol;
-      if (current.isEmpty || current.first.status == PatrolStatus.assigned) {
-        try {
-          await _repository.save(patrol);
-        } catch (error) {
+  ) {
+    return _serializeAssignmentMerge(() async {
+      // Refresh inside the serialized section so concurrent startup/live
+      // assignment updates merge against the latest local IDs.
+      final local = await _repository.listForRanger(rangerId);
+      final merged = <String, Patrol>{};
+      final persistenceErrors = <String>[];
+      for (final assignment in assignments) {
+        if (assignment.rangerId != rangerId) {
           persistenceErrors.add(
-            'Assignment ${assignment.patrolId} loaded from server but '
-            'could not be cached locally: $error',
+            'The assignment source returned a patrol for a different ranger.',
           );
+          continue;
+        }
+        final current = local.where(
+          (patrol) => patrol.patrolId == assignment.patrolId,
+        );
+        final patrol = current.isEmpty
+            ? assignment
+            : current.first.status == PatrolStatus.assigned
+            ? current.first.copyWith(
+                rangerName: assignment.rangerName,
+                area: assignment.area,
+                plannedRoute: assignment.plannedRoute,
+                clearPlannedRoute: assignment.plannedRoute == null,
+              )
+            : current.first;
+        merged[patrol.patrolId] = patrol;
+        if (current.isEmpty || current.first.status == PatrolStatus.assigned) {
+          try {
+            await _repository.save(patrol);
+          } catch (error) {
+            persistenceErrors.add(
+              'Assignment ${assignment.patrolId} loaded from server but '
+              'could not be cached locally: $error',
+            );
+          }
         }
       }
+      for (final patrol in local) {
+        merged.putIfAbsent(patrol.patrolId, () => patrol);
+      }
+      return PatrolListResult(
+        patrols: List.unmodifiable(merged.values),
+        assignmentError: persistenceErrors.isEmpty
+            ? null
+            : StateError(persistenceErrors.join('\n')),
+      );
+    });
+  }
+
+  Future<T> _serializeAssignmentMerge<T>(Future<T> Function() operation) async {
+    final previous = _assignmentMergeTail;
+    final completed = Completer<void>();
+    _assignmentMergeTail = completed.future;
+    await previous;
+    try {
+      return await operation();
+    } finally {
+      completed.complete();
     }
-    for (final patrol in local) {
-      merged.putIfAbsent(patrol.patrolId, () => patrol);
-    }
-    return PatrolListResult(
-      patrols: List.unmodifiable(merged.values),
-      assignmentError: persistenceErrors.isEmpty
-          ? null
-          : StateError(persistenceErrors.join('\n')),
-    );
   }
 
   Future<void> saveAssignedPatrol(Patrol patrol) async {

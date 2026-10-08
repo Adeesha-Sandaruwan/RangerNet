@@ -84,6 +84,32 @@ void main() {
   );
 
   test(
+    'concurrent startup and live refresh preserve the same cached local ID',
+    () async {
+      final repository = _MemoryPatrolRepository();
+      final service = PatrolService(
+        repository: repository,
+        assignmentSource: _ConcurrentAssignmentSource(
+          _assignedPatrol(),
+          _assignedPatrol().copyWith(localId: 'different-fetch-local-id'),
+        ),
+      );
+
+      final results = await Future.wait([
+        service.loadAssignedPatrols('ranger-1'),
+        service.watchAssignedPatrols('ranger-1').first,
+      ]);
+
+      expect(results.every((result) => result.assignmentError == null), isTrue);
+      final cached = await repository.listForRanger('ranger-1');
+      expect(cached, hasLength(1));
+      expect(results.map((result) => result.patrols.single.localId).toSet(), {
+        cached.single.localId,
+      });
+    },
+  );
+
+  test(
     'new map route is merged into cached assigned patrol without changing local ID',
     () async {
       final remoteAssignment = _assignedPatrol();
@@ -136,6 +162,18 @@ class _MemoryPatrolRepository implements PatrolRepository {
   @override
   Future<void> save(Patrol patrol) async {
     if (failWrites) throw StateError('Device storage is full');
+    final conflict = _patrols.values.where(
+      (existing) =>
+          existing.localId == patrol.localId ||
+          existing.patrolId == patrol.patrolId,
+    );
+    if (conflict.isNotEmpty &&
+        (conflict.first.localId != patrol.localId ||
+            conflict.first.patrolId != patrol.patrolId)) {
+      throw StateError(
+        'A local patrol ID cannot be reused for another patrol.',
+      );
+    }
     _patrols[patrol.localId] = patrol;
   }
 }
@@ -159,6 +197,25 @@ class _FakeAssignmentSource implements PatrolAssignmentSource {
       assignments.where((patrol) => patrol.rangerId == rangerId).toList(),
     );
   }
+}
+
+class _ConcurrentAssignmentSource implements PatrolAssignmentSource {
+  const _ConcurrentAssignmentSource(
+    this.loadedAssignment,
+    this.watchedAssignment,
+  );
+
+  final Patrol loadedAssignment;
+  final Patrol watchedAssignment;
+
+  @override
+  Future<List<Patrol>> loadAssignedTo(String rangerId) async => [
+    loadedAssignment,
+  ];
+
+  @override
+  Stream<List<Patrol>> watchAssignedTo(String rangerId) =>
+      Stream.value([watchedAssignment]);
 }
 
 Patrol _assignedPatrol() => Patrol(

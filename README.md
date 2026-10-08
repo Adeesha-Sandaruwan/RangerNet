@@ -95,10 +95,13 @@ selects **Go to incident management**.
 
 From the manager dashboard, select **Manage patrol assignments** → **Assign
 patrol**. Choose an active ranger, enter the park, zone, and route, and
-optionally enter both map-center coordinates. To calculate route coverage,
-select **Mark route coverage sections** and tap the map once for each section
-that must be patrolled. Select **Create patrol assignment**. The patrol then
-appears in that ranger's **Patrols** tab after they refresh or reopen the list.
+select **Select route on map**. Tap the map to select the start, add optional
+stops in visit order, then select the destination. Choose **Generate route
+coverage** to preview the connected route and its coverage sections, then
+choose **Create patrol assignment** to save and assign it. No coordinates need
+to be typed manually. The preview connects selected points with straight map
+segments, so verify the line follows accessible patrol tracks. The patrol then
+appears in that ranger's **Patrols** tab.
 Assignment creation is manager-only under the Firestore rules.
 
 ## How incident reporting works
@@ -124,11 +127,15 @@ More detail about the implemented workflow is in
 2. The ranger starts the patrol using a reliable GPS start fix or chooses a
    manual map location when GPS is unavailable or inaccurate.
 3. GPS route points are filtered and stored locally; GPS health and accuracy
-   are shown, and the ranger can manually place waypoints when needed.
-4. When the manager defined route coverage sections, the completion review
-   reports the sections reached within 100 m of a recorded GPS point or manual
-   waypoint, and lists any uncovered sections. Inaccurate GPS points are not
-   counted.
+   are shown, and the ranger can mark exact manual locations on the map when
+   needed. These manual locations do not modify the manager-assigned route.
+4. The ranger can compare the assigned route with the actual recorded GPS track
+   on the map and view recorded distance, active patrol time, and GPS point
+   count. Distance uses the start, saved GPS points, and a later GPS end fix;
+   manual waypoints are not treated as traveled distance. During completion
+   review, generated route sections reached within 100 m of a recorded GPS
+   point or manual waypoint are reported; uncovered sections are listed.
+   Inaccurate GPS points are not counted.
 5. The ranger adds observations and optional compressed photographs, and can
    pause/resume, interrupt, or end early with a reason.
 6. Before completing, the ranger reviews the summary and selects an end

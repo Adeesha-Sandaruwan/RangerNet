@@ -7,11 +7,21 @@ class PatrolMetricsService {
   const PatrolMetricsService();
 
   double distanceTravelledMeters(Patrol patrol) {
+    if (patrol.routePoints.isEmpty) return 0;
+    final locations = <PatrolLocation>[
+      if (patrol.startLocation != null) patrol.startLocation!,
+      ...patrol.routePoints.map((point) => point.location),
+      if (patrol.endLocation?.source == PatrolLocationSource.gps &&
+          patrol.endLocation!.recordedAt.isAfter(
+            patrol.routePoints.last.location.recordedAt,
+          ))
+        patrol.endLocation!,
+    ];
     var distance = 0.0;
-    for (var index = 1; index < patrol.routePoints.length; index++) {
+    for (var index = 1; index < locations.length; index++) {
       distance += _distanceBetween(
-        patrol.routePoints[index - 1].location,
-        patrol.routePoints[index].location,
+        locations[index - 1],
+        locations[index],
       );
     }
     return distance;

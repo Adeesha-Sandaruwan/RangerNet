@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../application/patrol_metrics_service.dart';
 import '../application/patrol_service.dart';
 import '../application/patrol_sync_service.dart';
 import '../application/patrol_tracking_service.dart';
@@ -34,6 +35,8 @@ class PatrolHomePage extends StatefulWidget {
 
 class _PatrolHomePageState extends State<PatrolHomePage>
     with WidgetsBindingObserver {
+  static const _metrics = PatrolMetricsService();
+
   List<Patrol> _patrols = const [];
   StreamSubscription<bool>? _connectivitySubscription;
   StreamSubscription<PatrolListResult>? _assignmentSubscription;
@@ -269,35 +272,147 @@ class _PatrolHomePageState extends State<PatrolHomePage>
     ),
   );
 
-  Widget _patrolCard(Patrol patrol) => Card(
-    child: ListTile(
-      onTap: () => _open(patrol),
-      leading: Icon(
-        patrol.status == PatrolStatus.assigned
-            ? Icons.assignment_outlined
-            : Icons.route,
-        color: const Color(0xFF17613F),
+  Widget _patrolCard(Patrol patrol) {
+    final routeName = patrol.area.routeName.isEmpty
+        ? 'Patrol ${patrol.patrolId}'
+        : patrol.area.routeName;
+    final duration = _metrics.durationAt(patrol, DateTime.now());
+    final distance = _metrics.distanceTravelledMeters(patrol);
+    final hasStarted = patrol.startedAt != null;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _open(patrol),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const CircleAvatar(
+                    backgroundColor: Color(0xFFEAF2EC),
+                    child: Icon(Icons.route, color: Color(0xFF17613F)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          routeName,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        Text(
+                          '${patrol.area.parkName} · ${patrol.area.zoneName}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _StatusChip(
+                    label: _statusLabel(patrol.status),
+                    icon: patrol.status == PatrolStatus.assigned
+                        ? Icons.assignment_outlined
+                        : Icons.route_outlined,
+                  ),
+                  _StatusChip(
+                    label: _syncLabel(patrol),
+                    icon: patrol.syncInfo.status == PatrolSyncStatus.synced
+                        ? Icons.cloud_done_outlined
+                        : Icons.cloud_outlined,
+                  ),
+                ],
+              ),
+              if (patrol.plannedRoute case final route?) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.map_outlined,
+                      size: 18,
+                      color: Color(0xFF17613F),
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${route.start.name} → ${route.end.name}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          Text(
+                            '${route.stops.length} optional stop${route.stops.length == 1 ? '' : 's'} · '
+                            '${route.coverageSections.length} coverage sections',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (hasStarted) ...[
+                const SizedBox(height: 12),
+                const Divider(height: 1),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _PatrolCardMetric(
+                        label: 'Recorded distance',
+                        value: distance >= 1000
+                            ? '${(distance / 1000).toStringAsFixed(2)} km'
+                            : '${distance.toStringAsFixed(0)} m',
+                      ),
+                    ),
+                    Expanded(
+                      child: _PatrolCardMetric(
+                        label: 'Active time',
+                        value: '${duration.inHours}h '
+                            '${duration.inMinutes.remainder(60)}m',
+                      ),
+                    ),
+                    Expanded(
+                      child: _PatrolCardMetric(
+                        label: 'GPS points',
+                        value: '${patrol.routePoints.length}',
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 10),
+              Text(
+                'Last successful sync: '
+                '${patrol.syncInfo.lastSyncedAt == null ? 'Never' : patrol.syncInfo.lastSyncedAt!.toLocal().toString().substring(0, 16)}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              if (patrol.syncInfo.lastError != null)
+                Text(
+                  patrol.syncInfo.lastError!,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFFB42318),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
-      title: Text(
-        patrol.status == PatrolStatus.inProgress ||
-                patrol.status == PatrolStatus.paused ||
-                patrol.status == PatrolStatus.interrupted
-            ? 'Resume patrol · ${patrol.area.routeName.isEmpty ? patrol.patrolId : patrol.area.routeName}'
-            : patrol.area.routeName.isEmpty
-            ? 'Patrol ${patrol.patrolId}'
-            : patrol.area.routeName,
-      ),
-      subtitle: Text(
-        '${patrol.area.parkName} · ${patrol.area.zoneName}\n'
-        '${_statusLabel(patrol.status)} · ${_syncLabel(patrol)}'
-        '${patrol.plannedRoute == null ? '' : '\nAssigned route map available'}'
-        '\nLast successful sync: ${patrol.syncInfo.lastSyncedAt == null ? 'never' : patrol.syncInfo.lastSyncedAt!.toLocal()}'
-        '${patrol.syncInfo.lastError == null ? '' : '\nSync error: ${patrol.syncInfo.lastError}'}',
-      ),
-      isThreeLine: true,
-      trailing: const Icon(Icons.chevron_right),
-    ),
-  );
+    );
+  }
 
   String _statusLabel(PatrolStatus status) => switch (status) {
     PatrolStatus.assigned => 'Assigned',
@@ -317,4 +432,35 @@ class _PatrolHomePageState extends State<PatrolHomePage>
     PatrolSyncStatus.synced => 'Synchronized',
     PatrolSyncStatus.failed => 'Synchronization needs retry',
   };
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.label, required this.icon});
+
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Chip(
+    avatar: Icon(icon, size: 16),
+    label: Text(label),
+    visualDensity: VisualDensity.compact,
+  );
+}
+
+class _PatrolCardMetric extends StatelessWidget {
+  const _PatrolCardMetric({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label, style: Theme.of(context).textTheme.labelSmall),
+      const SizedBox(height: 3),
+      Text(value, style: Theme.of(context).textTheme.titleSmall),
+    ],
+  );
 }
