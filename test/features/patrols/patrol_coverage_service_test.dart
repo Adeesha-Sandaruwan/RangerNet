@@ -71,6 +71,68 @@ void main() {
       expect(service.calculate(_patrol()), isNull);
     },
   );
+
+  test(
+    'counts reliable track segments so sampled sections between GPS fixes are covered',
+    () {
+      final start = DateTime.utc(2026, 10, 8, 8);
+      final patrol = _patrol(
+        startLocation: _location(6.1, 81.2, start),
+        routePoints: [
+          PatrolRoutePoint(
+            id: 'gps-end',
+            location: _location(
+              6.1,
+              81.203,
+              start.add(const Duration(minutes: 5)),
+            ),
+          ),
+        ],
+        plannedRoute: PatrolRoutePlan(
+          start: _section('route-start', 'Start', 6.1, 81.2),
+          end: _section('route-end', 'End', 6.1, 81.203),
+          coverageSections: [
+            _section('middle', 'Middle section', 6.1, 81.2015),
+          ],
+        ),
+      );
+
+      final coverage = service.calculate(patrol, calculatedAt: start);
+
+      expect(coverage?.coveredSectionIds, ['middle']);
+      expect(coverage?.uncoveredSectionIds, isEmpty);
+    },
+  );
+
+  test('does not infer coverage from inaccurate GPS fixes', () {
+    final start = DateTime.utc(2026, 10, 8, 8);
+    final patrol = _patrol(
+      startLocation: _location(6.1, 81.2, start),
+      routePoints: [
+        PatrolRoutePoint(
+          id: 'inaccurate-end',
+          location: _location(
+            6.1,
+            81.203,
+            start.add(const Duration(minutes: 5)),
+            accuracy: 120,
+          ),
+        ),
+      ],
+      plannedRoute: PatrolRoutePlan(
+        start: _section('route-start', 'Start', 6.1, 81.2),
+        end: _section('route-end', 'End', 6.1, 81.203),
+        coverageSections: [
+          _section('middle', 'Middle section', 6.1, 81.2015),
+        ],
+      ),
+    );
+
+    final coverage = service.calculate(patrol, calculatedAt: start);
+
+    expect(coverage?.coveredSectionIds, isEmpty);
+    expect(coverage?.uncoveredSectionIds, ['middle']);
+  });
 }
 
 Patrol _patrol({

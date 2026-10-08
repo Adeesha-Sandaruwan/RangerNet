@@ -6,6 +6,7 @@ import '../application/patrol_sync_service.dart';
 import '../domain/patrol.dart';
 import '../domain/patrol_records.dart';
 import 'manual_waypoint_map_page.dart';
+import 'patrol_coverage_summary.dart';
 import 'patrol_route_map.dart';
 
 class PatrolCompletionReviewPage extends StatefulWidget {
@@ -202,34 +203,16 @@ class _PatrolCompletionReviewPageState
                         _locationLabel(_patrol.startLocation),
                       ),
                       _detail('End location', _locationLabel(_endLocation)),
-                      _detail(
-                        'Coverage',
-                        _patrol.plannedCoverageSections.isEmpty
-                            ? 'Not configured by manager'
-                            : _patrol.coverage == null
-                            ? 'Calculation pending'
-                            : '${_patrol.coverage!.coveredSections}/'
-                                  '${_patrol.coverage!.totalSections} sections '
-                                  '(${_patrol.coverage!.coveragePercent.toStringAsFixed(0)}%)',
-                      ),
-                      if (_patrol.coverage != null)
+                      if (_patrol.plannedCoverageSections.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        if (_patrol.coverage case final coverage?)
+                          PatrolCoverageSummary(coverage: coverage)
+                        else
+                          const _CoveragePendingMessage(),
+                      ] else
                         _detail(
-                          'Covered sections',
-                          _sectionNames(
-                                _patrol.coverage!.coveredSectionIds,
-                              ).isEmpty
-                              ? 'None'
-                              : _sectionNames(
-                                  _patrol.coverage!.coveredSectionIds,
-                                ).join(', '),
-                        ),
-                      if (_patrol.coverage?.uncoveredSectionIds.isNotEmpty ==
-                          true)
-                        _detail(
-                          'Uncovered sections',
-                          _sectionNames(
-                            _patrol.coverage!.uncoveredSectionIds,
-                          ).join(', '),
+                          'Actual patrol coverage',
+                          'No assigned coverage sections',
                         ),
                       if (_patrol.manualWaypoints.isNotEmpty)
                         _recordList(
@@ -408,12 +391,14 @@ class _PatrolCompletionReviewPageState
             '${location.longitude.toStringAsFixed(6)} '
             '(${location.source.name})';
 
-  List<String> _sectionNames(Iterable<String> ids) => ids
-      .map((id) {
-        for (final section in _patrol.plannedCoverageSections) {
-          if (section.id == id) return section.name;
-        }
-        return id;
-      })
-      .toList(growable: false);
+}
+
+class _CoveragePendingMessage extends StatelessWidget {
+  const _CoveragePendingMessage();
+
+  @override
+  Widget build(BuildContext context) => const Text(
+    'Coverage calculation is pending.',
+    style: TextStyle(color: Colors.black54),
+  );
 }

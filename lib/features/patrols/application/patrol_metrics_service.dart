@@ -57,6 +57,39 @@ class PatrolMetricsService {
   double distanceBetween(PatrolLocation first, PatrolLocation second) =>
       _distanceBetween(first, second);
 
+  double distanceToSegmentMeters(
+    PatrolLocation point,
+    PatrolLocation segmentStart,
+    PatrolLocation segmentEnd,
+  ) {
+    const earthRadiusMeters = 6371000.0;
+    final latitudeRadians = _radians(point.latitude);
+    final metersPerDegree = earthRadiusMeters * math.pi / 180;
+
+    (double, double) project(PatrolLocation location) => (
+      (location.longitude - point.longitude) *
+          math.cos(latitudeRadians) *
+          metersPerDegree,
+      (location.latitude - point.latitude) * metersPerDegree,
+    );
+
+    final start = project(segmentStart);
+    final end = project(segmentEnd);
+    final deltaX = end.$1 - start.$1;
+    final deltaY = end.$2 - start.$2;
+    final lengthSquared = deltaX * deltaX + deltaY * deltaY;
+    if (lengthSquared == 0) {
+      return math.sqrt(start.$1 * start.$1 + start.$2 * start.$2);
+    }
+
+    final fraction = (-(start.$1 * deltaX + start.$2 * deltaY) /
+            lengthSquared)
+        .clamp(0.0, 1.0);
+    final nearestX = start.$1 + fraction * deltaX;
+    final nearestY = start.$2 + fraction * deltaY;
+    return math.sqrt(nearestX * nearestX + nearestY * nearestY);
+  }
+
   double plannedRouteDistanceMeters(PatrolRoutePlan route) {
     final locations = route.routeLocations;
     var distance = 0.0;

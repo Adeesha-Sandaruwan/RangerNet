@@ -9,6 +9,7 @@ import '../domain/patrol.dart';
 import '../domain/patrol_records.dart';
 import '../domain/patrol_review.dart';
 import '../../incidents/domain/ranger_profile.dart';
+import 'patrol_coverage_summary.dart';
 import 'patrol_route_map.dart';
 
 enum _ReviewFilter { all, pending, reviewed, followUp }
@@ -483,16 +484,7 @@ class _CompletedPatrolReviewDetailPageState
                     ),
                     if (_patrol.coverage case final coverage?) ...[
                       const Divider(),
-                      _DetailRow(
-                        label: 'Coverage',
-                        value:
-                            '${coverage.coveredSections}/${coverage.totalSections} sections',
-                      ),
-                      if (coverage.uncoveredSectionIds.isNotEmpty)
-                        _DetailRow(
-                          label: 'Uncovered sections',
-                          value: coverage.uncoveredSectionIds.join(', '),
-                        ),
+                      PatrolCoverageSummary(coverage: coverage),
                     ],
                   ],
                 ),

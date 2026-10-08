@@ -140,8 +140,10 @@ More detail about the implemented workflow is in
    count. Distance follows the start, GPS fixes, map-marked waypoints, and end
    location in timestamp order. Segments between these sparse points are
    straight-line estimates. During completion review, generated route sections
-   reached within 100 m of a recorded GPS point or manual waypoint are reported;
-   uncovered sections are listed. Inaccurate GPS points are not counted.
+   within 100 m of reliable GPS/manual points or the estimated track segment
+   between them are counted as covered; uncovered sections are listed as
+   potentially neglected. Inaccurate GPS points are not counted. Coverage and
+   patrol changes are saved locally before synchronization.
 5. The ranger adds observations and optional compressed photographs, and can
    pause/resume, interrupt, or end early with a reason.
 6. Before completing, the ranger reviews the summary and selects an end
@@ -157,9 +159,10 @@ records are written to `patrols/{patrolId}` and its record subcollections. See
   manual waypoints, observations, photos, and pause/resume events are stored on
   the device; unfinished patrols appear as resumable after app restart.
 - Completed patrols remain **Pending Sync** until remote confirmation.
-  Synchronization retries when connectivity returns or the app resumes, and
-  the patrol screen provides **Retry Sync**. A failed sync preserves local
-  records and reports the failure.
+  Synchronization retries automatically when connectivity returns or the app
+  resumes. Rangers can also select **Sync now** in the Patrols section to retry
+  pending records manually. A failed sync preserves local records and reports
+  the failure.
 - Patrol data is isolated by ranger ID and remains on-device across
   authentication expiration. Re-authenticate as the same ranger to synchronize.
 - Device storage failures are surfaced; the prior successfully persisted

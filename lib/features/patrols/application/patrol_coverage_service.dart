@@ -22,12 +22,10 @@ class PatrolCoverageService {
     if (sections.isEmpty) return null;
 
     final recordedLocations = <PatrolLocation>[
-      ?patrol.startLocation,
-      ?patrol.endLocation,
+      ...metrics.actualRouteLocations(patrol),
       ?additionalLocation,
-      ...patrol.routePoints.map((point) => point.location),
-      ...patrol.manualWaypoints.map((waypoint) => waypoint.location),
-    ].where(_isReliable);
+    ]..sort((first, second) => first.recordedAt.compareTo(second.recordedAt));
+    final reliableLocations = recordedLocations.where(_isReliable).toList();
     final recordedAt = (calculatedAt ?? DateTime.now()).toUtc();
 
     final coveredIds = <String>{};
@@ -39,11 +37,13 @@ class PatrolCoverageService {
         recordedAt: recordedAt,
         source: PatrolLocationSource.manual,
       );
-      final covered = recordedLocations.any(
-        (location) =>
-            metrics.distanceBetween(location, checkpoint) <=
-            coverageRadiusMeters,
-      );
+      final covered =
+          reliableLocations.any(
+            (location) =>
+                metrics.distanceBetween(location, checkpoint) <=
+                coverageRadiusMeters,
+          ) ||
+          _trackPassesWithinRadius(checkpoint, reliableLocations);
       if (covered) {
         coveredIds.add(section.id);
       } else {
@@ -64,4 +64,21 @@ class PatrolCoverageService {
       location.source == PatrolLocationSource.manual ||
       location.accuracyMeters == null ||
       location.accuracyMeters! <= maximumGpsAccuracyMeters;
+
+  bool _trackPassesWithinRadius(
+    PatrolLocation checkpoint,
+    List<PatrolLocation> locations,
+  ) {
+    for (var index = 1; index < locations.length; index++) {
+      if (metrics.distanceToSegmentMeters(
+            checkpoint,
+            locations[index - 1],
+            locations[index],
+          ) <=
+          coverageRadiusMeters) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

@@ -43,9 +43,12 @@ class _PatrolHomePageState extends State<PatrolHomePage>
   Timer? _clock;
   bool _loading = true;
   bool _syncing = false;
+  bool _syncRequestedAgain = false;
   bool? _online;
   String? _error;
   String? _assignmentWarning;
+  String? _syncMessage;
+  bool _syncFailed = false;
 
   @override
   void initState() {
@@ -171,29 +174,55 @@ class _PatrolHomePageState extends State<PatrolHomePage>
     await _load();
   }
 
-  Future<void> _synchronizePending() async {
-    if (_syncing) return;
+  Future<void> _synchronizePending({bool manual = false}) async {
+    if (_syncing) {
+      _syncRequestedAgain = true;
+      return;
+    }
     _syncing = true;
+    if (mounted) {
+      setState(() {
+        _syncMessage = null;
+        _syncFailed = false;
+      });
+    }
     try {
-      final result = await widget.syncService.synchronizePending(
-        widget.rangerId,
-      );
-      if (mounted &&
-          (result.synchronizedCount > 0 || result.failures.isNotEmpty)) {
-        await _load();
-      }
-      if (mounted && result.failures.isNotEmpty) {
-        setState(
-          () => _assignmentWarning =
-              'Patrol sync needs retry: ${result.failures.first}',
+      do {
+        _syncRequestedAgain = false;
+        final result = await widget.syncService.synchronizePending(
+          widget.rangerId,
         );
-      }
+        if (mounted &&
+            (result.synchronizedCount > 0 || result.failures.isNotEmpty)) {
+          await _load();
+        }
+        if (mounted) {
+          setState(() {
+            _syncFailed = result.failures.isNotEmpty;
+            _syncMessage = result.failures.isNotEmpty
+                ? 'Could not sync ${result.failures.length} patrol(s). '
+                      '${result.failures.first}'
+                : result.synchronizedCount > 0
+                ? 'Synced ${result.synchronizedCount} patrol(s) successfully.'
+                : manual
+                ? 'No patrols are waiting to sync.'
+                : null;
+          });
+        }
+      } while (_syncRequestedAgain &&
+          mounted &&
+          await widget.networkStatus.isOnline);
     } catch (error) {
       if (mounted) {
-        setState(() => _assignmentWarning = 'Patrol sync failed: $error');
+        setState(() {
+          _syncFailed = true;
+          _syncMessage =
+              'Patrol sync failed. Local patrol data is retained: $error';
+        });
       }
     } finally {
       _syncing = false;
+      if (mounted) setState(() {});
     }
   }
 
@@ -204,6 +233,16 @@ class _PatrolHomePageState extends State<PatrolHomePage>
       title: const Text('Ranger patrols'),
       backgroundColor: const Color(0xFFF5F8F3),
       actions: [
+        IconButton(
+          tooltip: _syncing ? 'Synchronizing patrols' : 'Synchronize patrols',
+          onPressed: _syncing ? null : () => _synchronizePending(manual: true),
+          icon: _syncing
+              ? const SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.cloud_sync_outlined),
+        ),
         IconButton(
           tooltip: 'Refresh assigned patrols',
           onPressed: _loading ? null : _load,
@@ -243,6 +282,78 @@ class _PatrolHomePageState extends State<PatrolHomePage>
                   ),
                 ),
               ),
+              if (_syncMessage != null ||
+                  _patrols.any(
+                    (patrol) =>
+                        patrol.status == PatrolStatus.completedPendingSync,
+                  ))
+                Card(
+                  color: _syncFailed
+                      ? const Color(0xFFFFF1D6)
+                      : const Color(0xFFEAF2EC),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Icon(
+                                _syncing
+                                    ? Icons.sync
+                                    : _syncFailed
+                                    ? Icons.sync_problem
+                                    : Icons.cloud_done_outlined,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _syncing
+                                        ? 'Synchronizing patrols'
+                                        : _syncMessage ??
+                                              '${_patrols.where((patrol) => patrol.status == PatrolStatus.completedPendingSync).length} patrol(s) waiting to sync',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleSmall,
+                                  ),
+                                  const SizedBox(height: 3),
+                                  const Text(
+                                    'Patrol records remain saved on this device until sync succeeds.',
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: FilledButton.icon(
+                            onPressed: _syncing
+                                ? null
+                                : () => _synchronizePending(manual: true),
+                            icon: _syncing
+                                ? const SizedBox.square(
+                                    dimension: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.sync),
+                            label: Text(_syncing ? 'Syncing' : 'Sync now'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               if (_assignmentWarning != null)
                 Card(
                   color: const Color(0xFFFFF1D6),
@@ -402,7 +513,8 @@ class _PatrolHomePageState extends State<PatrolHomePage>
                     Expanded(
                       child: _PatrolCardMetric(
                         label: 'Active duration',
-                        value: '${duration.inHours}h '
+                        value:
+                            '${duration.inHours}h '
                             '${duration.inMinutes.remainder(60)}m',
                       ),
                     ),

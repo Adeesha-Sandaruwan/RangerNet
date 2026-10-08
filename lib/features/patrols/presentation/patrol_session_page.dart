@@ -484,6 +484,14 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     return fix;
   }
 
+  String get _manualWaypointActionLabel {
+    final gpsState = _trackingState.gpsStatus.state;
+    if (gpsState == PatrolGpsState.available) {
+      return 'Add manual waypoint on map';
+    }
+    return 'GPS unavailable/inaccurate — mark manual waypoint';
+  }
+
   @override
   Widget build(BuildContext context) {
     final active = _isActive;
@@ -559,7 +567,9 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
                 OutlinedButton.icon(
                   onPressed: _busy ? null : _addWaypoint,
                   icon: const Icon(Icons.add_location_alt_outlined),
-                  label: const Text('Mark exact location on map'),
+                  label: Text(
+                    _manualWaypointActionLabel,
+                  ),
                 ),
                 OutlinedButton.icon(
                   onPressed: _busy ? null : _addObservation,
