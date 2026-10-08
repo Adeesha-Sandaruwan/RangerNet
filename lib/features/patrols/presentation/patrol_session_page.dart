@@ -14,6 +14,7 @@ import '../domain/patrol_network_status.dart';
 import '../domain/patrol_records.dart';
 import 'manual_waypoint_map_page.dart';
 import 'patrol_completion_review_page.dart';
+import 'patrol_route_map.dart';
 
 class PatrolSessionPage extends StatefulWidget {
   const PatrolSessionPage({
@@ -58,7 +59,12 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     WidgetsBinding.instance.addObserver(this);
     _trackingState = widget.trackingService.currentState;
     _trackingSubscription = widget.trackingService.states.listen((state) {
-      if (mounted) setState(() => _trackingState = state);
+      if (mounted) {
+        setState(() {
+          _trackingState = state;
+          _patrol = state.patrol ?? _patrol;
+        });
+      }
     });
     _networkSubscription = widget.networkStatus.onlineChanges.listen((online) {
       if (mounted) setState(() => _online = online);
@@ -488,6 +494,20 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              if (_patrol.plannedRoute != null) ...[
+                Text(
+                  'Assigned route',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                PatrolRouteMap(patrol: _patrol, height: 280),
+                const SizedBox(height: 8),
+                const Text(
+                  'Green: planned route · Blue: recorded GPS track · '
+                  'S: start · E: destination',
+                ),
+                const SizedBox(height: 12),
+              ],
               _patrolDetailsCard(),
               if (active) _statusCard(),
               if (_error != null)

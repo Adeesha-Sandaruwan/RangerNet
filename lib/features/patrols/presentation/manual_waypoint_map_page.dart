@@ -154,8 +154,59 @@ class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
                   ),
                 ],
               ),
+            if (widget.patrol.plannedRoute case final route?)
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: route.routeLocations
+                        .map(
+                          (point) => LatLng(point.latitude, point.longitude),
+                        )
+                        .toList(),
+                    strokeWidth: 5,
+                    color: const Color(0xFF17613F),
+                  ),
+                ],
+              ),
             MarkerLayer(
               markers: [
+                if (widget.patrol.plannedRoute case final route?) ...[
+                  Marker(
+                    point: LatLng(
+                      route.start.latitude,
+                      route.start.longitude,
+                    ),
+                    child: const Icon(
+                      Icons.trip_origin,
+                      color: Color(0xFF17613F),
+                      size: 34,
+                    ),
+                  ),
+                  ...route.stops.indexed.map(
+                    (entry) => Marker(
+                      point: LatLng(
+                        entry.$2.latitude,
+                        entry.$2.longitude,
+                      ),
+                      child: CircleAvatar(
+                        radius: 12,
+                        backgroundColor: const Color(0xFF4677A8),
+                        child: Text(
+                          '${entry.$1 + 1}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Marker(
+                    point: LatLng(route.end.latitude, route.end.longitude),
+                    child: const Icon(
+                      Icons.flag,
+                      color: Colors.deepOrange,
+                      size: 34,
+                    ),
+                  ),
+                ],
                 ...widget.patrol.manualWaypoints.map(
                   (waypoint) => Marker(
                     point: LatLng(

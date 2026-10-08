@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
 
 import '../application/patrol_assignment_service.dart';
 import '../domain/patrol_assignment.dart';
 import '../domain/patrol_records.dart';
-import 'patrol_coverage_section_map_page.dart';
+import 'patrol_route_builder_page.dart';
+import 'patrol_route_map.dart';
 
 class PatrolAssignmentManagementPage extends StatefulWidget {
   const PatrolAssignmentManagementPage({required this.service, super.key});
@@ -130,6 +130,7 @@ class _PatrolAssignmentManagementPageState
                       title: Text(assignment.area.routeName),
                       subtitle: Text(
                         '${assignment.area.parkName} · ${assignment.area.zoneName}\n'
+                        '${assignment.plannedRoute?.stops.length ?? 0} optional stops · '
                         '${assignment.plannedCoverageSections.length} coverage sections · '
                         'Assigned to ${assignment.rangerName} · '
                         '${assignment.assignedAt.toLocal()}',
@@ -165,9 +166,7 @@ class _CreatePatrolAssignmentPageState
   final _parkId = TextEditingController();
   final _zoneId = TextEditingController();
   final _routeId = TextEditingController();
-  final _latitude = TextEditingController();
-  final _longitude = TextEditingController();
-  List<PatrolCoverageCheckpoint> _coverageSections = const [];
+  PatrolRoutePlan? _plannedRoute;
   List<PatrolRanger> _rangers = const [];
   PatrolRanger? _selectedRanger;
   bool _loadingRangers = true;
@@ -188,8 +187,6 @@ class _CreatePatrolAssignmentPageState
     _parkId.dispose();
     _zoneId.dispose();
     _routeId.dispose();
-    _latitude.dispose();
-    _longitude.dispose();
     super.dispose();
   }
 
@@ -220,17 +217,11 @@ class _CreatePatrolAssignmentPageState
       setState(() => _error = 'Select an active ranger before assigning.');
       return;
     }
-    final latitudeText = _latitude.text.trim();
-    final longitudeText = _longitude.text.trim();
-    final latitude = latitudeText.isEmpty
-        ? null
-        : double.tryParse(latitudeText);
-    final longitude = longitudeText.isEmpty
-        ? null
-        : double.tryParse(longitudeText);
-    if ((latitudeText.isNotEmpty && latitude == null) ||
-        (longitudeText.isNotEmpty && longitude == null)) {
-      setState(() => _error = 'Map coordinates must be valid numbers.');
+    final plannedRoute = _plannedRoute;
+    if (plannedRoute == null) {
+      setState(
+        () => _error = 'Select a route start and destination on the map.',
+      );
       return;
     }
 
@@ -248,9 +239,7 @@ class _CreatePatrolAssignmentPageState
           parkId: _parkId.text,
           zoneId: _zoneId.text,
           routeId: _routeId.text,
-          centerLatitude: latitude,
-          centerLongitude: longitude,
-          plannedCoverageSections: _coverageSections,
+          plannedRoute: plannedRoute,
         ),
       );
       if (mounted) Navigator.of(context).pop(assignment);
@@ -346,57 +335,36 @@ class _CreatePatrolAssignmentPageState
               _optionalField(_routeId, 'Route ID (optional)'),
               const SizedBox(height: 24),
               Text(
-                '3. Optional map start center',
+                '3. Build route on map',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 6),
               const Text(
-                'Both coordinates are needed. This gives manual map selection '
-                'a useful center; it does not define a route boundary.',
+                'Choose the start and destination by tapping the map. Add '
+                'optional stops in the order the ranger should visit them. '
+                'The route and coverage sections are generated from those '
+                'map selections.',
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _optionalField(
-                      _latitude,
-                      'Latitude',
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                        signed: true,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _optionalField(
-                      _longitude,
-                      'Longitude',
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                        signed: true,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
               OutlinedButton.icon(
-                onPressed: _saving ? null : _editCoverageSections,
+                onPressed: _saving ? null : _buildRoute,
                 icon: const Icon(Icons.map_outlined),
                 label: Text(
-                  _coverageSections.isEmpty
-                      ? 'Mark route coverage sections'
-                      : 'Edit ${_coverageSections.length} coverage sections',
+                  _plannedRoute == null
+                      ? 'Select route on map'
+                      : 'Edit route on map',
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.only(top: 6),
-                child: Text(
-                  'Coverage sections are optional. Rangers will see which '
-                  'marked sections were not reached during the patrol.',
+              if (_plannedRoute case final route?) ...[
+                const SizedBox(height: 12),
+                PatrolRouteMap(plannedRoute: route, height: 240),
+                const SizedBox(height: 6),
+                Text(
+                  'Route generated · ${route.stops.length} optional stop(s) · '
+                  '${route.coverageSections.length} coverage sections. '
+                  'The route is saved with the assignment.',
                 ),
-              ),
+              ],
               if (_error != null) ...[
                 const SizedBox(height: 16),
                 Card(
@@ -418,7 +386,7 @@ class _CreatePatrolAssignmentPageState
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.assignment_turned_in_outlined),
-                label: const Text('Create patrol assignment'),
+                label: const Text('Save route and assign patrol'),
               ),
             ],
           ),
@@ -453,52 +421,12 @@ class _CreatePatrolAssignmentPageState
     ),
   );
 
-  Future<void> _editCoverageSections() async {
-    final latitudeText = _latitude.text.trim();
-    final longitudeText = _longitude.text.trim();
-    final latitude = latitudeText.isEmpty
-        ? null
-        : double.tryParse(latitudeText);
-    final longitude = longitudeText.isEmpty
-        ? null
-        : double.tryParse(longitudeText);
-    if ((latitudeText.isNotEmpty && latitude == null) ||
-        (longitudeText.isNotEmpty && longitude == null)) {
-      setState(() => _error = 'Map center coordinates must be valid numbers.');
-      return;
-    }
-    if ((latitude == null) != (longitude == null)) {
-      setState(() => _error = 'Enter both map center coordinates, or neither.');
-      return;
-    }
-    if (latitude != null &&
-        (!latitude.isFinite || latitude < -90 || latitude > 90)) {
-      setState(
-        () => _error = 'Map center latitude must be between -90 and 90.',
-      );
-      return;
-    }
-    if (longitude != null &&
-        (!longitude.isFinite || longitude < -180 || longitude > 180)) {
-      setState(
-        () => _error = 'Map center longitude must be between -180 and 180.',
-      );
-      return;
-    }
-    final center = latitude == null || longitude == null
-        ? null
-        : LatLng(latitude, longitude);
-    final sections = await Navigator.of(context)
-        .push<List<PatrolCoverageCheckpoint>>(
-          MaterialPageRoute<List<PatrolCoverageCheckpoint>>(
-            builder: (_) => PatrolCoverageSectionMapPage(
-              initialCenter: center,
-              initialSections: _coverageSections,
-            ),
-          ),
-        );
-    if (sections != null && mounted) {
-      setState(() => _coverageSections = sections);
-    }
+  Future<void> _buildRoute() async {
+    final route = await Navigator.of(context).push<PatrolRoutePlan>(
+      MaterialPageRoute<PatrolRoutePlan>(
+        builder: (_) => PatrolRouteBuilderPage(initialRoute: _plannedRoute),
+      ),
+    );
+    if (route != null && mounted) setState(() => _plannedRoute = route);
   }
 }

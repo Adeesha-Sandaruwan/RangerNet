@@ -6,6 +6,7 @@ import '../application/patrol_sync_service.dart';
 import '../domain/patrol.dart';
 import '../domain/patrol_records.dart';
 import 'manual_waypoint_map_page.dart';
+import 'patrol_route_map.dart';
 
 class PatrolCompletionReviewPage extends StatefulWidget {
   const PatrolCompletionReviewPage({
@@ -153,6 +154,15 @@ class _PatrolCompletionReviewPageState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (_patrol.plannedRoute != null) ...[
+                        PatrolRouteMap(patrol: _patrol, height: 280),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Green: assigned route · Blue: recorded GPS track · '
+                          'S: start · E: destination',
+                        ),
+                        const SizedBox(height: 14),
+                      ],
                       Text(
                         _patrol.area.routeName.isEmpty
                             ? 'Patrol ${_patrol.patrolId}'

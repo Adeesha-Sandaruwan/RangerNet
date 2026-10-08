@@ -28,40 +28,46 @@ void main() {
     },
   );
 
-  test('restores an active patrol and all field records after repository restart', () async {
-    final active = _patrol();
-    await repository.save(active);
-    final restartedRepository = LocalPatrolRepository();
+  test(
+    'restores an active patrol and all field records after repository restart',
+    () async {
+      final active = _patrol();
+      await repository.save(active);
+      final restartedRepository = LocalPatrolRepository();
 
-    final restored = await restartedRepository.findByLocalId(
-      active.rangerId,
-      active.localId,
-    );
+      final restored = await restartedRepository.findByLocalId(
+        active.rangerId,
+        active.localId,
+      );
 
-    expect(restored, isNotNull);
-    expect(restored!.status, PatrolStatus.inProgress);
-    expect(restored.routePoints, hasLength(1));
-    expect(restored.manualWaypoints, hasLength(1));
-    expect(restored.observations, hasLength(1));
-    expect(restored.photographs, hasLength(1));
-    expect(restored.pauseResumeEvents, hasLength(1));
-  });
+      expect(restored, isNotNull);
+      expect(restored!.status, PatrolStatus.inProgress);
+      expect(restored.routePoints, hasLength(1));
+      expect(restored.manualWaypoints, hasLength(1));
+      expect(restored.observations, hasLength(1));
+      expect(restored.photographs, hasLength(1));
+      expect(restored.pauseResumeEvents, hasLength(1));
+    },
+  );
 
-  test('storage-full failure is reported and does not replace prior local data', () async {
-    final original = _patrol();
-    await repository.save(original);
-    final failingRepository = LocalPatrolRepository(
-      store: PatrolLocalStore(writeValue: (key, value) async => false),
-    );
+  test(
+    'storage-full failure is reported and does not replace prior local data',
+    () async {
+      final original = _patrol();
+      await repository.save(original);
+      final failingRepository = LocalPatrolRepository(
+        store: PatrolLocalStore(writeValue: (key, value) async => false),
+      );
 
-    await expectLater(
-      failingRepository.save(original.copyWith(rangerName: 'Not persisted')),
-      throwsStateError,
-    );
+      await expectLater(
+        failingRepository.save(original.copyWith(rangerName: 'Not persisted')),
+        throwsStateError,
+      );
 
-    final saved = (await repository.listForRanger(original.rangerId)).single;
-    expect(saved.rangerName, original.rangerName);
-  });
+      final saved = (await repository.listForRanger(original.rangerId)).single;
+      expect(saved.rangerName, original.rangerName);
+    },
+  );
 
   test(
     'prevents a local ID or remote patrol ID from being reassigned',
@@ -121,10 +127,7 @@ void main() {
       );
       expect(decoded.syncInfo.status, PatrolSyncStatus.pendingSync);
       expect(decoded.syncInfo.lastError, isNull);
-      expect(
-        decoded.plannedCoverageSections.single.name,
-        'River checkpoint',
-      );
+      expect(decoded.plannedRoute?.stops.single.name, 'River bend');
       expect(decoded.coverage?.coveredSectionIds, ['section-1', 'section-2']);
       expect(decoded.coverage?.uncoveredSectionIds, ['section-3']);
     },
@@ -172,14 +175,36 @@ Patrol _patrol() {
       routeId: 'route-1',
       routeName: 'River Route',
     ),
-    plannedCoverageSections: [
-      PatrolCoverageCheckpoint(
-        id: 'section-1',
-        name: 'River checkpoint',
+    plannedRoute: PatrolRoutePlan(
+      start: PatrolCoverageCheckpoint(
+        id: 'route-start',
+        name: 'Start',
         latitude: 6.1,
         longitude: 81.2,
       ),
-    ],
+      stops: [
+        PatrolCoverageCheckpoint(
+          id: 'stop-1',
+          name: 'River bend',
+          latitude: 6.15,
+          longitude: 81.25,
+        ),
+      ],
+      end: PatrolCoverageCheckpoint(
+        id: 'route-end',
+        name: 'Destination',
+        latitude: 6.2,
+        longitude: 81.3,
+      ),
+      coverageSections: [
+        PatrolCoverageCheckpoint(
+          id: 'section-1',
+          name: 'River checkpoint',
+          latitude: 6.1,
+          longitude: 81.2,
+        ),
+      ],
+    ),
     status: PatrolStatus.inProgress,
     assignedAt: time.subtract(const Duration(days: 1)),
     startedAt: time,

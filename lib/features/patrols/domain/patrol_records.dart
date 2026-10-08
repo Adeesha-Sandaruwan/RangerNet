@@ -140,6 +140,39 @@ class PatrolCoverageCheckpoint {
   final double longitude;
 }
 
+class PatrolRoutePlan {
+  PatrolRoutePlan({
+    required this.start,
+    required this.end,
+    Iterable<PatrolCoverageCheckpoint> stops = const [],
+    Iterable<PatrolCoverageCheckpoint> coverageSections = const [],
+  }) : stops = List.unmodifiable(stops),
+       coverageSections = List.unmodifiable(coverageSections) {
+    final routeIds = [start.id, ...this.stops.map((stop) => stop.id), end.id];
+    if (routeIds.toSet().length != routeIds.length) {
+      throw ArgumentError('Route start, stop, and end IDs must be unique.');
+    }
+    final coverageIds = this.coverageSections.map((section) => section.id);
+    if (coverageIds.toSet().length != coverageIds.length) {
+      throw ArgumentError('Route coverage section IDs must be unique.');
+    }
+    if (this.coverageSections.length > 2000) {
+      throw ArgumentError('A patrol route cannot exceed 2000 coverage sections.');
+    }
+  }
+
+  final PatrolCoverageCheckpoint start;
+  final PatrolCoverageCheckpoint end;
+  final List<PatrolCoverageCheckpoint> stops;
+  final List<PatrolCoverageCheckpoint> coverageSections;
+
+  List<PatrolCoverageCheckpoint> get routeLocations => [
+    start,
+    ...stops,
+    end,
+  ];
+}
+
 class PatrolObservation {
   const PatrolObservation({
     required this.id,

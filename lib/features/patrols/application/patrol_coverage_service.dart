@@ -18,7 +18,7 @@ class PatrolCoverageService {
     DateTime? calculatedAt,
     PatrolLocation? additionalLocation,
   }) {
-    final sections = patrol.plannedCoverageSections;
+    final sections = patrol.plannedRoute?.coverageSections ?? const [];
     if (sections.isEmpty) return null;
 
     final recordedLocations = <PatrolLocation>[

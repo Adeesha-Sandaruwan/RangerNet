@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../domain/patrol.dart';
 import '../domain/patrol_records.dart';
 import '../domain/patrol_repository.dart';
+import 'patrol_route_plan_codec.dart';
 
 class FirestorePatrolAssignmentSource implements PatrolAssignmentSource {
   FirestorePatrolAssignmentSource({
@@ -19,20 +20,18 @@ class FirestorePatrolAssignmentSource implements PatrolAssignmentSource {
 
   @override
   Future<List<Patrol>> loadAssignedTo(String rangerId) async {
-    final snapshot = await _assignedQuery(rangerId).get(
-      const GetOptions(source: Source.server),
-    );
+    final snapshot = await _assignedQuery(
+      rangerId,
+    ).get(const GetOptions(source: Source.server));
     return snapshot.docs.map(_fromAssignment).toList(growable: false);
   }
 
   @override
   Stream<List<Patrol>> watchAssignedTo(String rangerId) =>
-      _assignedQuery(rangerId)
-          .snapshots()
-          .map(
-            (snapshot) =>
-                snapshot.docs.map(_fromAssignment).toList(growable: false),
-          );
+      _assignedQuery(rangerId).snapshots().map(
+        (snapshot) =>
+            snapshot.docs.map(_fromAssignment).toList(growable: false),
+      );
 
   Query<Map<String, dynamic>> _assignedQuery(String rangerId) {
     final user = _auth.currentUser;
@@ -63,12 +62,12 @@ class FirestorePatrolAssignmentSource implements PatrolAssignmentSource {
         'Patrol assignment ${doc.id} must include both map center coordinates.',
       );
     }
-    final rawSections = data['plannedCoverageSections'];
-    if (rawSections != null && rawSections is! List) {
-      throw FormatException(
-        'Patrol assignment ${doc.id} has invalid coverage sections.',
-      );
-    }
+    final plannedRoute = data['plannedRoute'] == null
+        ? null
+        : PatrolRoutePlanCodec.decode(data['plannedRoute']);
+    final areaCenterLatitude = plannedRoute?.start.latitude ?? centerLatitude;
+    final areaCenterLongitude =
+        plannedRoute?.start.longitude ?? centerLongitude;
     return Patrol(
       patrolId: doc.id,
       localId: _uuid.v4(),
@@ -81,35 +80,12 @@ class FirestorePatrolAssignmentSource implements PatrolAssignmentSource {
         zoneName: data['zoneName']?.toString() ?? '',
         routeId: data['routeId']?.toString(),
         routeName: data['routeName']?.toString() ?? '',
-        centerLatitude: centerLatitude,
-        centerLongitude: centerLongitude,
+        centerLatitude: areaCenterLatitude,
+        centerLongitude: areaCenterLongitude,
       ),
       status: PatrolStatus.assigned,
       assignedAt: assignedAt,
-      plannedCoverageSections: (rawSections as List? ?? []).map((value) {
-        if (value is! Map) {
-          throw FormatException(
-            'Patrol assignment ${doc.id} has an invalid coverage section.',
-          );
-        }
-        final section = Map<String, dynamic>.from(value);
-        final latitude = section['latitude'];
-        final longitude = section['longitude'];
-        if (section['id'] is! String ||
-            section['name'] is! String ||
-            latitude is! num ||
-            longitude is! num) {
-          throw FormatException(
-            'Patrol assignment ${doc.id} has an incomplete coverage section.',
-          );
-        }
-        return PatrolCoverageCheckpoint(
-          id: section['id'] as String,
-          name: section['name'] as String,
-          latitude: latitude.toDouble(),
-          longitude: longitude.toDouble(),
-        );
-      }),
+      plannedRoute: plannedRoute,
     );
   }
 }

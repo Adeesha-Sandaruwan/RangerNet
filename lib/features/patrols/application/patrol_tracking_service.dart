@@ -11,12 +11,14 @@ import 'patrol_service.dart';
 class PatrolTrackingState {
   const PatrolTrackingState({
     required this.gpsStatus,
+    this.patrol,
     this.latestFix,
     this.recordedPointCount = 0,
     this.error,
   });
 
   final PatrolGpsStatus gpsStatus;
+  final Patrol? patrol;
   final PatrolLocation? latestFix;
   final int recordedPointCount;
   final String? error;
@@ -63,6 +65,7 @@ class PatrolTrackingService {
 
   PatrolTrackingState get currentState => PatrolTrackingState(
     gpsStatus: _gpsStatus,
+    patrol: _patrol,
     latestFix: _latestFix,
     recordedPointCount: _patrol?.routePoints.length ?? 0,
     error: _error,

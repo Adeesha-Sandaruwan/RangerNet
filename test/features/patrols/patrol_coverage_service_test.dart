@@ -43,12 +43,16 @@ void main() {
             ),
           ),
         ],
-        plannedCoverageSections: [
-          _section('start', 'Start section', 6.1, 81.2),
-          _section('gps', 'GPS section', 6.1003, 81.2),
-          _section('manual', 'Manual section', 6.3, 81.2),
-          _section('uncovered', 'Uncovered section', 6.4, 81.2),
-        ],
+        plannedRoute: PatrolRoutePlan(
+          start: _section('route-start', 'Start', 6.1, 81.2),
+          end: _section('route-end', 'End', 6.4, 81.2),
+          coverageSections: [
+            _section('start', 'Start section', 6.1, 81.2),
+            _section('gps', 'GPS section', 6.1003, 81.2),
+            _section('manual', 'Manual section', 6.3, 81.2),
+            _section('uncovered', 'Uncovered section', 6.4, 81.2),
+          ],
+        ),
       );
 
       final coverage = service.calculate(patrol, calculatedAt: start);
@@ -73,7 +77,7 @@ Patrol _patrol({
   PatrolLocation? startLocation,
   List<PatrolRoutePoint> routePoints = const [],
   List<PatrolWaypoint> manualWaypoints = const [],
-  List<PatrolCoverageCheckpoint> plannedCoverageSections = const [],
+  PatrolRoutePlan? plannedRoute,
 }) => Patrol(
   patrolId: 'patrol-1',
   localId: 'local-1',
@@ -89,7 +93,7 @@ Patrol _patrol({
   startLocation: startLocation,
   routePoints: routePoints,
   manualWaypoints: manualWaypoints,
-  plannedCoverageSections: plannedCoverageSections,
+  plannedRoute: plannedRoute,
 );
 
 PatrolCoverageCheckpoint _section(

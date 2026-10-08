@@ -82,6 +82,36 @@ void main() {
       );
     },
   );
+
+  test(
+    'new map route is merged into cached assigned patrol without changing local ID',
+    () async {
+      final remoteAssignment = _assignedPatrol();
+      final cachedAssignment = remoteAssignment.copyWith(
+        plannedRoute: null,
+        clearPlannedRoute: true,
+      );
+      final repository = _MemoryPatrolRepository()..seed(cachedAssignment);
+      final service = PatrolService(
+        repository: repository,
+        assignmentSource: _FakeAssignmentSource([remoteAssignment]),
+      );
+
+      final result = await service.loadAssignedPatrols('ranger-1');
+      final patrol = result.patrols.single;
+
+      expect(patrol.localId, cachedAssignment.localId);
+      expect(patrol.plannedRoute?.start.name, 'Start');
+      expect(patrol.plannedRoute?.stops.single.name, 'River bend');
+      expect(
+        (await repository.findByLocalId(
+          'ranger-1',
+          cachedAssignment.localId,
+        ))?.plannedRoute,
+        isNotNull,
+      );
+    },
+  );
 }
 
 class _MemoryPatrolRepository implements PatrolRepository {
@@ -142,4 +172,34 @@ Patrol _assignedPatrol() => Patrol(
     routeName: 'River Route',
   ),
   assignedAt: DateTime.utc(2026, 10, 8),
+  plannedRoute: PatrolRoutePlan(
+    start: PatrolCoverageCheckpoint(
+      id: 'route-start',
+      name: 'Start',
+      latitude: 6.1,
+      longitude: 81.2,
+    ),
+    stops: [
+      PatrolCoverageCheckpoint(
+        id: 'stop-1',
+        name: 'River bend',
+        latitude: 6.11,
+        longitude: 81.21,
+      ),
+    ],
+    end: PatrolCoverageCheckpoint(
+      id: 'route-end',
+      name: 'Destination',
+      latitude: 6.12,
+      longitude: 81.22,
+    ),
+    coverageSections: [
+      PatrolCoverageCheckpoint(
+        id: 'section-1',
+        name: 'Route section 1',
+        latitude: 6.1,
+        longitude: 81.2,
+      ),
+    ],
+  ),
 );

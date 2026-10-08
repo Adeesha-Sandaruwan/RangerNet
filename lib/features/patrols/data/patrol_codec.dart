@@ -1,5 +1,6 @@
 import '../domain/patrol.dart';
 import '../domain/patrol_records.dart';
+import 'patrol_route_plan_codec.dart';
 
 class PatrolCodec {
   const PatrolCodec._();
@@ -19,16 +20,9 @@ class PatrolCodec {
       'centerLatitude': patrol.area.centerLatitude,
       'centerLongitude': patrol.area.centerLongitude,
     },
-    'plannedCoverageSections': patrol.plannedCoverageSections
-        .map(
-          (section) => {
-            'id': section.id,
-            'name': section.name,
-            'latitude': section.latitude,
-            'longitude': section.longitude,
-          },
-        )
-        .toList(),
+    'plannedRoute': patrol.plannedRoute == null
+        ? null
+        : PatrolRoutePlanCodec.encode(patrol.plannedRoute!),
     'status': patrol.status.name,
     'assignedAt': _date(patrol.assignedAt),
     'startedAt': _date(patrol.startedAt),
@@ -107,12 +101,6 @@ class PatrolCodec {
     final area = _map(json['area'], 'area');
     final syncInfo = _map(json['syncInfo'], 'syncInfo');
     final rawCoverage = json['coverage'];
-    final rawCoverageSections = json['plannedCoverageSections'];
-    if (rawCoverageSections != null && rawCoverageSections is! List) {
-      throw const FormatException(
-        'Patrol field "plannedCoverageSections" must be a list.',
-      );
-    }
 
     return Patrol(
       patrolId: _string(json, 'patrolId'),
@@ -129,15 +117,9 @@ class PatrolCodec {
         centerLatitude: _optionalNumber(area['centerLatitude']),
         centerLongitude: _optionalNumber(area['centerLongitude']),
       ),
-      plannedCoverageSections: (rawCoverageSections as List? ?? []).map((item) {
-        final section = _map(item, 'planned coverage section');
-        return PatrolCoverageCheckpoint(
-          id: _string(section, 'id'),
-          name: _string(section, 'name'),
-          latitude: _number(section, 'latitude'),
-          longitude: _number(section, 'longitude'),
-        );
-      }),
+      plannedRoute: json['plannedRoute'] == null
+          ? null
+          : PatrolRoutePlanCodec.decode(json['plannedRoute']),
       status: _enumValue(PatrolStatus.values, json['status'], 'status'),
       assignedAt: _optionalDate(json['assignedAt']),
       startedAt: _optionalDate(json['startedAt']),

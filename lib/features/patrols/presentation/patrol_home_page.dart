@@ -290,6 +290,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
       subtitle: Text(
         '${patrol.area.parkName} · ${patrol.area.zoneName}\n'
         '${_statusLabel(patrol.status)} · ${_syncLabel(patrol)}'
+        '${patrol.plannedRoute == null ? '' : '\nAssigned route map available'}'
         '\nLast successful sync: ${patrol.syncInfo.lastSyncedAt == null ? 'never' : patrol.syncInfo.lastSyncedAt!.toLocal()}'
         '${patrol.syncInfo.lastError == null ? '' : '\nSync error: ${patrol.syncInfo.lastError}'}',
       ),

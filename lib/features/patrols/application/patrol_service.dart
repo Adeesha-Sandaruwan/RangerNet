@@ -83,9 +83,18 @@ class PatrolService {
       final current = local.where(
         (patrol) => patrol.patrolId == assignment.patrolId,
       );
-      final patrol = current.isEmpty ? assignment : current.first;
+      final patrol = current.isEmpty
+          ? assignment
+          : current.first.status == PatrolStatus.assigned
+          ? current.first.copyWith(
+              rangerName: assignment.rangerName,
+              area: assignment.area,
+              plannedRoute: assignment.plannedRoute,
+              clearPlannedRoute: assignment.plannedRoute == null,
+            )
+          : current.first;
       merged[patrol.patrolId] = patrol;
-      if (current.isEmpty) {
+      if (current.isEmpty || current.first.status == PatrolStatus.assigned) {
         try {
           await _repository.save(patrol);
         } catch (error) {

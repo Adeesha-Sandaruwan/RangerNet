@@ -26,16 +26,7 @@ void main() {
           parkName: 'North Park',
           zoneName: 'North Zone',
           routeName: 'River Route',
-          centerLatitude: 6.1,
-          centerLongitude: 81.2,
-          plannedCoverageSections: [
-            PatrolCoverageCheckpoint(
-              id: 'section-1',
-              name: 'River bend',
-              latitude: 6.11,
-              longitude: 81.21,
-            ),
-          ],
+          plannedRoute: _route(),
         ),
       );
 
@@ -43,7 +34,7 @@ void main() {
       expect(assignment.rangerId, 'ranger-1');
       expect(assignment.area.routeName, 'River Route');
       expect(assignment.area.centerLatitude, 6.1);
-      expect(assignment.plannedCoverageSections.single.name, 'River bend');
+      expect(assignment.plannedRoute?.stops.single.name, 'River bend');
     },
   );
 
@@ -61,6 +52,7 @@ void main() {
             parkName: 'North Park',
             zoneName: ' ',
             routeName: 'River Route',
+            plannedRoute: _route(),
           ),
         ),
         throwsArgumentError,
@@ -69,7 +61,7 @@ void main() {
     },
   );
 
-  test('requires coordinate pairs and validates their ranges', () async {
+  test('route start, destination, and generated coverage are required', () async {
     final ranger = const PatrolRanger(
       id: 'ranger-1',
       name: 'Ranger One',
@@ -82,20 +74,10 @@ void main() {
           parkName: 'North Park',
           zoneName: 'North Zone',
           routeName: 'River Route',
-          centerLatitude: 6.1,
-        ),
-      ),
-      throwsArgumentError,
-    );
-    await expectLater(
-      service.createAssignment(
-        PatrolAssignmentDraft(
-          ranger: ranger,
-          parkName: 'North Park',
-          zoneName: 'North Zone',
-          routeName: 'River Route',
-          centerLatitude: 96,
-          centerLongitude: 81,
+          plannedRoute: PatrolRoutePlan(
+            start: _point('start', 'Start', 6.1, 81.2),
+            end: _point('end', 'End', 6.2, 81.3),
+          ),
         ),
       ),
       throwsArgumentError,
@@ -118,11 +100,11 @@ class _FakeAssignmentRepository implements PatrolAssignmentRepository {
         parkName: draft.parkName,
         zoneName: draft.zoneName,
         routeName: draft.routeName,
-        centerLatitude: draft.centerLatitude,
-        centerLongitude: draft.centerLongitude,
+        centerLatitude: draft.plannedRoute.start.latitude,
+        centerLongitude: draft.plannedRoute.start.longitude,
       ),
       assignedAt: DateTime.utc(2026, 10, 8),
-      plannedCoverageSections: draft.plannedCoverageSections,
+      plannedRoute: draft.plannedRoute,
     );
   }
 
@@ -132,3 +114,22 @@ class _FakeAssignmentRepository implements PatrolAssignmentRepository {
   @override
   Future<List<PatrolAssignment>> loadAssignments() async => const [];
 }
+
+PatrolRoutePlan _route() => PatrolRoutePlan(
+  start: _point('start', 'Start', 6.1, 81.2),
+  stops: [_point('stop-1', 'River bend', 6.15, 81.25)],
+  end: _point('end', 'Destination', 6.2, 81.3),
+  coverageSections: [_point('section-1', 'Route section 1', 6.1, 81.2)],
+);
+
+PatrolCoverageCheckpoint _point(
+  String id,
+  String name,
+  double latitude,
+  double longitude,
+) => PatrolCoverageCheckpoint(
+  id: id,
+  name: name,
+  latitude: latitude,
+  longitude: longitude,
+);

@@ -162,20 +162,34 @@ void main() {
   test('calculates and persists planned coverage before completion', () async {
     final start = DateTime.utc(2026, 4, 1, 8);
     final assigned = _assignedPatrol().copyWith(
-      plannedCoverageSections: [
-        PatrolCoverageCheckpoint(
-          id: 'section-near',
-          name: 'River bend',
+      plannedRoute: PatrolRoutePlan(
+        start: PatrolCoverageCheckpoint(
+          id: 'route-start',
+          name: 'Start',
           latitude: 6.1,
           longitude: 81.2,
         ),
-        PatrolCoverageCheckpoint(
-          id: 'section-far',
-          name: 'North ridge',
+        end: PatrolCoverageCheckpoint(
+          id: 'route-end',
+          name: 'End',
           latitude: 7.1,
           longitude: 82.2,
         ),
-      ],
+        coverageSections: [
+          PatrolCoverageCheckpoint(
+            id: 'section-near',
+            name: 'River bend',
+            latitude: 6.1,
+            longitude: 81.2,
+          ),
+          PatrolCoverageCheckpoint(
+            id: 'section-far',
+            name: 'North ridge',
+            latitude: 7.1,
+            longitude: 82.2,
+          ),
+        ],
+      ),
     );
     await repository.save(assigned);
     await service.start(

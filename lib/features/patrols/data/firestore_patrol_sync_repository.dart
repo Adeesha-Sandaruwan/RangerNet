@@ -5,6 +5,7 @@ import '../domain/patrol.dart';
 import '../domain/patrol_records.dart';
 import '../domain/patrol_repository.dart';
 import '../application/patrol_metrics_service.dart';
+import 'patrol_route_plan_codec.dart';
 
 class FirestorePatrolSyncRepository implements PatrolSyncRepository {
   FirestorePatrolSyncRepository({
@@ -193,16 +194,9 @@ class FirestorePatrolSyncRepository implements PatrolSyncRepository {
     'zoneName': patrol.area.zoneName,
     'routeId': patrol.area.routeId,
     'routeName': patrol.area.routeName,
-    'plannedCoverageSections': patrol.plannedCoverageSections
-        .map(
-          (section) => {
-            'id': section.id,
-            'name': section.name,
-            'latitude': section.latitude,
-            'longitude': section.longitude,
-          },
-        )
-        .toList(),
+    'plannedRoute': patrol.plannedRoute == null
+        ? null
+        : PatrolRoutePlanCodec.encode(patrol.plannedRoute!),
     'assignedAt': patrol.assignedAt == null
         ? null
         : Timestamp.fromDate(patrol.assignedAt!.toUtc()),

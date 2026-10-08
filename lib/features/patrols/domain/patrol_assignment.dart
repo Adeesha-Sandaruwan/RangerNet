@@ -19,15 +19,17 @@ class PatrolAssignment {
     required this.rangerName,
     required this.area,
     required this.assignedAt,
-    Iterable<PatrolCoverageCheckpoint> plannedCoverageSections = const [],
-  }) : plannedCoverageSections = List.unmodifiable(plannedCoverageSections);
+    this.plannedRoute,
+  });
 
   final String id;
   final String rangerId;
   final String rangerName;
   final PatrolArea area;
   final DateTime assignedAt;
-  final List<PatrolCoverageCheckpoint> plannedCoverageSections;
+  final PatrolRoutePlan? plannedRoute;
+  List<PatrolCoverageCheckpoint> get plannedCoverageSections =>
+      plannedRoute?.coverageSections ?? const [];
 }
 
 class PatrolAssignmentDraft {
@@ -39,9 +41,7 @@ class PatrolAssignmentDraft {
     this.parkId,
     this.zoneId,
     this.routeId,
-    this.centerLatitude,
-    this.centerLongitude,
-    this.plannedCoverageSections = const [],
+    required this.plannedRoute,
   });
 
   final PatrolRanger ranger;
@@ -51,9 +51,7 @@ class PatrolAssignmentDraft {
   final String? parkId;
   final String? zoneId;
   final String? routeId;
-  final double? centerLatitude;
-  final double? centerLongitude;
-  final Iterable<PatrolCoverageCheckpoint> plannedCoverageSections;
+  final PatrolRoutePlan plannedRoute;
 
   void validate() {
     if (ranger.id.trim().isEmpty) {
@@ -64,32 +62,10 @@ class PatrolAssignmentDraft {
         routeName.trim().isEmpty) {
       throw ArgumentError('Park, zone, and route are required.');
     }
-    if ((centerLatitude == null) != (centerLongitude == null)) {
-      throw ArgumentError('Provide both map center coordinates, or neither.');
-    }
-    if (centerLatitude != null &&
-        (!centerLatitude!.isFinite ||
-            centerLatitude! < -90 ||
-            centerLatitude! > 90)) {
-      throw ArgumentError.value(
-        centerLatitude,
-        'centerLatitude',
-        'Must be between -90 and 90.',
+    if (plannedRoute.coverageSections.isEmpty) {
+      throw ArgumentError(
+        'Generate route coverage before creating the patrol assignment.',
       );
-    }
-    if (centerLongitude != null &&
-        (!centerLongitude!.isFinite ||
-            centerLongitude! < -180 ||
-            centerLongitude! > 180)) {
-      throw ArgumentError.value(
-        centerLongitude,
-        'centerLongitude',
-        'Must be between -180 and 180.',
-      );
-    }
-    final sectionIds = plannedCoverageSections.map((section) => section.id);
-    if (sectionIds.toSet().length != sectionIds.length) {
-      throw ArgumentError('Coverage checkpoint IDs must be unique.');
     }
   }
 }
