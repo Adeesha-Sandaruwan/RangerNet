@@ -50,6 +50,16 @@ service cloud.firestore {
       return isManager() || isReporter(incidentId) || isAssignedResponder(incidentId);
     }
 
+    // Use the incident document being authorized directly for collection
+    // queries. Firestore must be able to prove that every query result is
+    // readable; re-reading the same incident with get() can make an otherwise
+    // properly constrained arrayContains query fail authorization.
+    function canReadIncidentDocument(data) {
+      return isManager()
+        || (isRanger() && data.rangerId == request.auth.uid)
+        || (isRanger() && request.auth.uid in data.assignedRangerIds);
+    }
+
     match /users/{userId} {
       // A user may read their own role; managers can list ranger profiles to assign.
       allow get: if signedIn() && (request.auth.uid == userId || isManager());
@@ -78,7 +88,7 @@ service cloud.firestore {
         && request.resource.data.rangerId == request.auth.uid
         && request.resource.data.status == 'Uploading';
 
-      allow get, list: if canReadIncident(incidentId);
+      allow get, list: if canReadIncidentDocument(resource.data);
 
       // Reporter sync is limited to completing its own Uploading record.
       allow update: if (
