@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
@@ -80,7 +82,7 @@ class _ReportExportBarState extends State<ReportExportBar> {
     try {
       final bytes = _exportService.exportCsv(widget.result);
       final fileName = _fileName('csv');
-      Printing.sharePdf(bytes: bytes, filename: fileName);
+      Printing.sharePdf(bytes: Uint8List.fromList(bytes), filename: fileName);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('$fileName exported')),
@@ -100,7 +102,7 @@ class _ReportExportBarState extends State<ReportExportBar> {
       final bytes = await _exportService.exportPdf(widget.result);
       final fileName = _fileName('pdf');
       await Printing.sharePdf(
-        bytes: bytes,
+        bytes: Uint8List.fromList(bytes),
         filename: fileName,
       );
       if (mounted) {
