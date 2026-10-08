@@ -19,13 +19,32 @@ enum IncidentType {
 enum IncidentSeverity {
   low('Low'),
   medium('Medium'),
-  high('High');
+  high('High'),
+  critical('Critical');
 
   const IncidentSeverity(this.label);
   final String label;
 }
 
 enum IncidentStatus { draft, pendingSync, reported, syncFailed }
+
+enum IncidentWorkflowStatus {
+  reported('Reported'),
+  underReview('Under review'),
+  assigned('Assigned'),
+  responseInProgress('Response in progress'),
+  resolved('Resolved — manager confirmation required'),
+  followUpRequired('Follow-up required'),
+  monitoring('Monitoring'),
+  closed('Closed'),
+  duplicate('Duplicate'),
+  rejected('Rejected / invalid');
+
+  const IncidentWorkflowStatus(this.label);
+  final String label;
+}
+
+enum IncidentAssignmentKind { ranger, responseTeam }
 
 class IncidentEvidence {
   const IncidentEvidence({
@@ -75,6 +94,10 @@ class IncidentReport {
     required this.evidence,
     this.patrolId,
     this.manualLocation = false,
+    this.workflowStatus = IncidentWorkflowStatus.reported,
+    this.assignmentKind = IncidentAssignmentKind.ranger,
+    this.assignedRangerIds = const [],
+    this.assignedRangerNames = const [],
   });
 
   final String id;
@@ -94,15 +117,26 @@ class IncidentReport {
   final List<IncidentEvidence> evidence;
   final String? patrolId;
   final bool manualLocation;
+  final IncidentWorkflowStatus workflowStatus;
+  final IncidentAssignmentKind assignmentKind;
+  final List<String> assignedRangerIds;
+  final List<String> assignedRangerNames;
 
-  IncidentReport copyWith({IncidentStatus? status}) => IncidentReport(
+  IncidentReport copyWith({
+    IncidentStatus? status,
+    IncidentSeverity? severity,
+    IncidentWorkflowStatus? workflowStatus,
+    IncidentAssignmentKind? assignmentKind,
+    List<String>? assignedRangerIds,
+    List<String>? assignedRangerNames,
+  }) => IncidentReport(
     id: id,
     rangerId: rangerId,
     rangerEmail: rangerEmail,
     type: type,
     title: title,
     description: description,
-    severity: severity,
+    severity: severity ?? this.severity,
     activeThreat: activeThreat,
     latitude: latitude,
     longitude: longitude,
@@ -113,6 +147,10 @@ class IncidentReport {
     evidence: evidence,
     patrolId: patrolId,
     manualLocation: manualLocation,
+    workflowStatus: workflowStatus ?? this.workflowStatus,
+    assignmentKind: assignmentKind ?? this.assignmentKind,
+    assignedRangerIds: assignedRangerIds ?? this.assignedRangerIds,
+    assignedRangerNames: assignedRangerNames ?? this.assignedRangerNames,
   );
 
   Map<String, Object?> toJson() => {
@@ -133,6 +171,10 @@ class IncidentReport {
     'evidence': evidence.map((item) => item.toJson()).toList(),
     'patrolId': patrolId,
     'manualLocation': manualLocation,
+    'workflowStatus': workflowStatus.name,
+    'assignmentKind': assignmentKind.name,
+    'assignedRangerIds': assignedRangerIds,
+    'assignedRangerNames': assignedRangerNames,
   };
 
   factory IncidentReport.fromJson(Map<String, dynamic> json) => IncidentReport(
@@ -159,5 +201,20 @@ class IncidentReport {
         .toList(growable: false),
     patrolId: json['patrolId'] as String?,
     manualLocation: json['manualLocation'] as bool? ?? false,
+    workflowStatus: IncidentWorkflowStatus.values.firstWhere(
+      (value) => value.name == json['workflowStatus'],
+      orElse: () => IncidentWorkflowStatus.reported,
+    ),
+    assignmentKind: IncidentAssignmentKind.values.firstWhere(
+      (value) => value.name == json['assignmentKind'],
+      orElse: () => IncidentAssignmentKind.ranger,
+    ),
+    assignedRangerIds: (json['assignedRangerIds'] as List<dynamic>? ?? const [])
+        .map((value) => value.toString())
+        .toList(growable: false),
+    assignedRangerNames:
+        (json['assignedRangerNames'] as List<dynamic>? ?? const [])
+            .map((value) => value.toString())
+            .toList(growable: false),
   );
 }

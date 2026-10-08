@@ -8,6 +8,7 @@ import '../data/incident_cloud_repository.dart';
 import '../data/incident_local_store.dart';
 import '../domain/incident_report.dart';
 import 'incident_detail_page.dart';
+import 'widgets/incident_status_badges.dart';
 import 'incident_report_page.dart';
 
 class IncidentHomePage extends StatefulWidget {
@@ -64,7 +65,9 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
         if (mounted) setState(() => _reportedReports = reports);
       } catch (error) {
         if (mounted) {
-          setState(() => _message = 'Saved locally; cloud list unavailable: $error');
+          setState(
+            () => _message = 'Saved locally; cloud list unavailable: $error',
+          );
         }
       }
     } catch (error) {
@@ -106,7 +109,9 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
     try {
       await _store.clearDraft(widget.ranger.uid);
       await _refreshQueue();
-      if (mounted) setState(() => _message = 'Unfinished incident draft discarded.');
+      if (mounted) {
+        setState(() => _message = 'Unfinished incident draft discarded.');
+      }
     } catch (error) {
       if (mounted) setState(() => _message = 'Could not discard draft: $error');
     }
@@ -382,11 +387,20 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
       onTap: () => _openDetails(report),
       leading: const Icon(Icons.cloud_done, color: Color(0xFF21834D)),
       title: Text(report.title),
-      subtitle: Text(
-        '${report.type.label} · ${report.severity.label} · '
-        '${report.createdAt.toLocal().toString().substring(0, 16)}',
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${report.type.label} · ${report.parkOrBlock}'),
+          const SizedBox(height: 6),
+          IncidentStatusBadges(
+            severity: report.severity,
+            status: report.workflowStatus,
+          ),
+          const SizedBox(height: 4),
+          Text(report.createdAt.toLocal().toString().substring(0, 16)),
+        ],
       ),
-      trailing: const Chip(label: Text('Reported')),
+      isThreeLine: false,
     ),
   );
 

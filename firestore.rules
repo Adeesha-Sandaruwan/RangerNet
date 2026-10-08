@@ -1,10 +1,3 @@
-# UC02 Firestore roles and security rules
-
-Replace the existing rules in **Firebase Console → Firestore Database → Rules**
-with the complete rules below, then select **Publish**. The old owner-only rule
-set does not permit manager review or responder access.
-
-```text
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -166,35 +159,3 @@ service cloud.firestore {
     }
   }
 }
-```
-
-## Provision the manager account
-
-Manager role cannot be selected or created by the mobile app. In the Firebase
-Console, open **Firestore Database → Data**, create a `users` collection if it
-does not exist, and add a document whose document ID is the manager's Firebase
-Authentication UID. Add these fields:
-
-| Field | Type | Value |
-|---|---|---|
-| `uid` | string | Same as the document ID |
-| `email` | string | Manager's sign-in email |
-| `displayName` | string | Manager's display name |
-| `role` | string | `manager` |
-| `active` | boolean | `true` |
-
-Create a normal Authentication account for every ranger/responder. The app
-creates a `users/{uid}` profile with role `ranger` at first sign-in. A ranger
-profile must exist before a manager can assign that account.
-
-## Access model
-
-- Rangers can create their own incident and read it.
-- Managers can review all incidents, list ranger profiles, and manage incident
-  severity, assignment, follow-up, escalation, and closure fields.
-- Assigned rangers can read the incidents assigned to them, add immutable
-  response records and response evidence, and move the case to `responseInProgress`
-  or `resolved`.
-- Incident timeline events and response records are append-only.
-- Clients cannot create manager accounts or change roles. Do not publish open
-  rules such as `allow read, write: if true`.

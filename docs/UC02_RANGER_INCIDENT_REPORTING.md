@@ -1,102 +1,130 @@
-# UC02: Ranger wildlife / poaching incident reporting
+# UC02: Report and Manage Wildlife / Poaching Incidents
 
 ## Scope
 
-This feature covers the ranger's UC02 path only: create an incident report,
-preserve it locally when needed, synchronize it to Firestore, and let the
-reporting ranger review their own reports. It does not implement patrol
-controls or manager review, response-team assignment, or incident closure.
+This feature implements the UC02 incident lifecycle for three UC02 actors:
 
-The signed-in app has two destinations for this work:
+- **Reporting ranger:** creates the report, location, description, severity,
+  and initial photo evidence; the draft and pending report are retained locally
+  and can sync later.
+- **Park Manager / Duty Supervisor:** reviews the report, changes severity,
+  assigns one ranger or a response team, reassigns responders, escalates,
+  records monitoring/follow-up, handles duplicate/invalid reports, and confirms
+  closure after a responder submits a resolution.
+- **Assigned responder:** sees assigned UC02 incidents, records response notes
+  and supplementary photos, and submits progress or resolution for manager
+  review.
 
-- **Home**: a simple RangerNet welcome page with a shortcut to incident reports.
-- **Incidents**: create/resume a draft, review pending synchronization, and
-  view submitted reports.
+This does not implement patrol recording, sensor alerts, or conservation
+analytics. They are other use cases. The manager screen here is an incident
+operations inbox, not a shared dashboard for those other features.
 
-Other use cases can add their own destinations when their owners implement
-them. The UC02 feature does not add placeholder implementations for those use
-cases.
+## Role routing
 
-## Ranger flow
+The application reads the trusted role from `users/{uid}` after Firebase Auth:
 
-1. Open **Incidents** and choose **Report incident** (or resume the saved draft).
-2. Select a type and enter a title, description, severity, threat flag, and
-   optional patrol ID.
-3. Capture GPS or enter a valid latitude and longitude manually. The app records
-   which method was used and GPS accuracy when available.
-4. Optionally attach up to three compressed photos. Preview or remove a photo
-   before submission.
-5. Review the information and confirm it is accurate.
-6. The app saves the report to the device first. It attempts Firestore upload;
-   if that fails or the device is offline, the report stays in the local outbox
-   and can be retried.
-7. Open a row in **My submitted reports** to review its details and evidence.
+- `role: ranger` routes to the ranger shell with **Home**, **Incidents**, and
+  **Assigned** tabs. Any ranger can act as a responder when assigned.
+- `role: manager` routes to the UC02 incident-management inbox.
 
-An unfinished draft is saved on the device. From the Incidents screen, the
-ranger can resume it or explicitly discard it after a confirmation prompt.
+New users can only create their own profile as a ranger. A project administrator
+must promote the manager's profile to `manager` in the Firebase Console. The
+client never allows users to grant themselves manager access. See
+[INCIDENT_FIRESTORE_RULES.md](INCIDENT_FIRESTORE_RULES.md) for setup.
+
+## Incident lifecycle
+
+```text
+Reported → Under review → Assigned → Response in progress → Resolved
+                                                          ↓
+                                                    Manager closes
+
+Manager side paths: Critical escalation · Monitoring · Follow-up required
+                    Duplicate · Rejected / invalid
+```
+
+The manager may select one ranger or a response team made of two or more ranger
+accounts. Reassignment replaces the active assignee list and appends a history
+event. Assigned responders see changes in the live **Assigned** list while the
+app is open. The app shows an in-app message for newly reported/assigned
+incidents; it does not send operating-system push notifications.
+
+Responders submit response notes and optional photos as an append-only response
+record. A resolved response does not close the case. The manager reviews it and
+confirms closure. Follow-up/monitoring, critical escalation, duplicate/rejected
+decisions, and closure require a reason and are retained in the incident
+timeline.
 
 ## Firestore structure
 
 ```text
+users/{uid}
+  uid, email, displayName, role, active, createdAt
+
 incidents/{incidentId}
   incidentId, rangerId, rangerEmail
   type, typeLabel, title, description, severity, activeThreat
   latitude, longitude, locationAccuracyMeters, locationSource
   parkOrBlock, patrolId, createdAtClient, evidenceCount
-  status, submittedAt, updatedAt
+  status, workflowStatus, assignmentType, assignedRangerIds
+  assignedRangerNames, assignedBy, assignedAt, managerNote
+  followUpReason, escalationReason, closedAt, closedBy, updatedAt
 
 incidents/{incidentId}/evidence/{evidenceId}
   fileName, contentType, base64Data, createdAt
+
+incidents/{incidentId}/responses/{responseId}
+  actorId, actorName, note, status, evidenceCount, createdAt
+
+incidents/{incidentId}/responses/{responseId}/evidence/{evidenceId}
+  fileName, contentType, base64Data, createdAt
+
+incidents/{incidentId}/timeline/{eventId}
+  actorId, actorName, type, message, createdAt
 ```
 
-The incident ID and evidence IDs remain stable during retry so repeated sync
-attempts update the same documents. The parent is set to `Uploading`, evidence
-documents are written, and the parent becomes `Reported` after all writes
-succeed. Locally queued reports use `Pending Sync`; a failed retry is retained
-with a `Sync needs attention` state.
+`status` records upload state (`Uploading` / `Reported`). `workflowStatus`
+records UC02 management state. Keeping them separate prevents a sync retry from
+rewinding a manager's status. Incident IDs and initial evidence IDs remain
+stable for retry. Timeline entries and responder records are append-only.
 
-Images are JPEG-compressed to a maximum of 100 KiB each and limited to three
-per report. The app stores them in the Firestore evidence subcollection; it
-does not use Firebase Storage.
+Photos are JPEG-compressed to at most 100 KiB each, up to three per report or
+response update. No Firebase Storage bucket is used.
 
-## Access control
+## Code organization
 
-The Firestore rules are in [INCIDENT_FIRESTORE_RULES.md](INCIDENT_FIRESTORE_RULES.md).
-They allow a signed-in ranger to access only incident documents whose
-`rangerId` matches their Firebase Authentication UID. The project owner has
-published those rules for the current Firebase project. Manager access is not
-granted by this rule set; a manager-side feature needs its own verified role
-and assignment rules.
+- `lib/features/incidents/domain/` — incident, role, and timeline value models.
+- `lib/features/incidents/data/` — Firebase repositories, local draft/outbox,
+  location, and evidence adapters.
+- `lib/features/incidents/presentation/` — separate ranger, manager, and
+  responder screens.
+- `lib/features/home/presentation/rangernet_shell.dart` — ranger navigation
+  for UC02 only.
 
-## Local files
+The UI calls repositories rather than writing directly to Firestore. Firestore
+rules remain the authorization boundary; route visibility is not treated as
+security.
 
-- `lib/features/incidents/domain/incident_report.dart` — incident and evidence
-  models.
-- `lib/features/incidents/data/incident_local_store.dart` — local draft and
-  pending outbox.
-- `lib/features/incidents/data/incident_cloud_repository.dart` — Firestore
-  submission and ranger-owned report retrieval.
-- `lib/features/incidents/presentation/incident_report_page.dart` — guided
-  create/review/submit flow.
-- `lib/features/incidents/presentation/incident_home_page.dart` — pending and
-  submitted lists plus retry controls.
-- `lib/features/incidents/presentation/incident_detail_page.dart` — read-only
-  report and evidence review.
-- `lib/features/home/presentation/rangernet_shell.dart` — Home/Incidents
-  navigation for the currently implemented ranger feature.
+## Manual setup and acceptance
 
-## Manual acceptance walkthrough
+1. Publish the complete role-aware rules in
+   [INCIDENT_FIRESTORE_RULES.md](INCIDENT_FIRESTORE_RULES.md).
+2. Create/sign in to the manager's Firebase Auth account once, then use the
+   Firebase Console to set `users/{managerUid}.role` to `manager` and `active`
+   to `true`. Sign out and back in to reload the role.
+3. Each ranger signs in once so RangerNet creates a `role: ranger` profile.
+4. As a ranger, submit an incident and confirm it reaches Firestore and appears
+   in the ranger's submitted list.
+5. As a manager, review it, change severity, and assign one ranger. Repeat with
+   at least two ranger accounts to verify team assignment and reassignment.
+6. Sign in as an assigned ranger and confirm the incident appears in **Assigned**.
+   Add response notes and a supplementary photo, then submit progress.
+7. Submit a resolved response. Confirm the incident stays open until the
+   manager reviews it and selects **Confirm resolution and close**.
+8. Exercise critical escalation, monitoring/follow-up, duplicate, and rejected
+   outcomes; verify each reason appears in incident history.
+9. Confirm a ranger cannot see another ranger's unassigned report and cannot
+   promote their own role.
 
-1. Sign in and confirm Home appears with a shortcut to Incidents.
-2. Use the bottom bar to open Incidents and create a report without photos.
-3. Check the report appears in Firestore and in **My submitted reports**.
-4. Open it and confirm its details and location are shown.
-5. Create a report with one or more photos and verify the photos can be opened
-   from the detail screen.
-6. Start a draft, leave the wizard, return to Incidents, and resume the draft.
-7. Discard a draft and confirm it no longer appears as available to resume.
-8. Submit while offline, reconnect, choose **Sync now**, and confirm the report
-   moves from Pending Sync to the submitted list.
-
-Do not treat the generated debug build or a successful sync as proof that all
-of these manual scenarios have been exercised on every device.
+The analyzer/build passing does not substitute for testing these flows using
+separate ranger and manager Firebase accounts.
