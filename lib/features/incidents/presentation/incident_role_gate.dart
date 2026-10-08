@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../data/user_role_repository.dart';
 import '../domain/ranger_profile.dart';
+import 'incident_manager_inbox_page.dart';
+import '../../home/presentation/rangernet_shell.dart';
 
 /// Resolves the authenticated user's trusted Firestore role before routing.
 class IncidentRoleGate extends StatefulWidget {
@@ -62,18 +64,9 @@ class _IncidentRoleGateState extends State<IncidentRoleGate> {
         );
       }
       final profile = snapshot.data!;
-      // Until the UC02 screens are wired in, manager accounts receive a clear
-      // setup message instead of being shown ranger-only functions.
-      return Scaffold(
-        appBar: AppBar(title: const Text('RangerNet')),
-        body: Center(
-          child: Text(
-            profile.role == RangerRole.manager
-                ? 'Manager incident tools are being prepared.'
-                : 'Ranger account ready: ${profile.displayName}',
-          ),
-        ),
-      );
+      return profile.role == RangerRole.manager
+          ? IncidentManagerInboxPage(manager: profile)
+          : RangerNetShell(ranger: widget.user);
     },
   );
 }
