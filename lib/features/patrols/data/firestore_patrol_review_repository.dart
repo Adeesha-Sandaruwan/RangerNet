@@ -6,16 +6,21 @@ import '../domain/patrol_review.dart';
 import '../domain/patrol_review_repository.dart';
 import 'patrol_codec.dart';
 
+/// Firestore review repository adapter. DIP/LSP: implements PatrolReviewRepository so review workflows depend on the port.
 class FirestorePatrolReviewRepository implements PatrolReviewRepository {
+  /// Creates the repository with injectable Firestore and authentication clients.
   FirestorePatrolReviewRepository({
     FirebaseFirestore? firestore,
     FirebaseAuth? auth,
   }) : _firestore = firestore ?? FirebaseFirestore.instance,
        _auth = auth ?? FirebaseAuth.instance;
 
+  /// Firestore client used to load patrols and save review fields.
   final FirebaseFirestore _firestore;
+  /// Authentication client used to require the reviewing manager.
   final FirebaseAuth _auth;
 
+  /// Loads server-confirmed completed patrols and their associated review records.
   @override
   Future<List<PatrolReviewRecord>> loadCompletedPatrols() async {
     _requireSignedIn();
@@ -34,6 +39,7 @@ class FirestorePatrolReviewRepository implements PatrolReviewRepository {
     return List.unmodifiable(reviews);
   }
 
+  /// Loads the review record from one patrol document and its subcollections.
   Future<PatrolReviewRecord> _loadReviewRecord(
     QueryDocumentSnapshot<Map<String, dynamic>> document,
   ) async {
@@ -44,6 +50,7 @@ class FirestorePatrolReviewRepository implements PatrolReviewRepository {
     );
   }
 
+  /// Reconstructs a patrol and review from the Firestore document and record subcollections.
   Future<PatrolReviewRecord> _decodeReviewRecord({
     required String id,
     required DocumentReference<Map<String, dynamic>> reference,
@@ -162,6 +169,7 @@ class FirestorePatrolReviewRepository implements PatrolReviewRepository {
     'accuracyMeters': data['accuracyMeters'],
   };
 
+  /// Recursively converts Firestore timestamps and map keys into values accepted by PatrolCodec.
   Object? _normalize(Object? value) {
     if (value is Timestamp) return value.toDate().toUtc().toIso8601String();
     if (value is Map) {
@@ -173,8 +181,10 @@ class FirestorePatrolReviewRepository implements PatrolReviewRepository {
     return value;
   }
 
+  /// Normalizes a Firestore value for the patrol JSON codec.
   Object? _isoValue(Object? value) => _normalize(value);
 
+  /// Parses a nullable review timestamp after Firestore value normalization.
   DateTime? _dateOrNull(Object? value) {
     if (value == null) return null;
     final normalized = _isoValue(value);
@@ -185,6 +195,7 @@ class FirestorePatrolReviewRepository implements PatrolReviewRepository {
     throw const FormatException('Patrol review timestamp is invalid.');
   }
 
+  /// Saves a manager review and reloads its canonical server representation.
   @override
   Future<PatrolReviewRecord> saveReview({
     required String patrolId,
@@ -213,6 +224,7 @@ class FirestorePatrolReviewRepository implements PatrolReviewRepository {
     );
   }
 
+  /// Marks a patrol for follow-up and reloads its canonical server representation.
   @override
   Future<PatrolReviewRecord> flagFollowUp({
     required String patrolId,
@@ -238,6 +250,7 @@ class FirestorePatrolReviewRepository implements PatrolReviewRepository {
     );
   }
 
+  /// Requires an authenticated user before loading manager review data.
   User _requireSignedIn() {
     final user = _auth.currentUser;
     if (user == null) {
@@ -246,6 +259,7 @@ class FirestorePatrolReviewRepository implements PatrolReviewRepository {
     return user;
   }
 
+  /// Ensures the supplied reviewer identity matches the signed-in manager.
   void _requireManager(String managerId) {
     final user = _requireSignedIn();
     if (user.uid != managerId) {

@@ -2,9 +2,11 @@ import '../domain/patrol.dart';
 import '../domain/patrol_records.dart';
 import 'patrol_route_plan_codec.dart';
 
+/// SRP: serializes patrol domain records to and from JSON, separate from domain models.
 class PatrolCodec {
   const PatrolCodec._();
 
+  /// Encodes a patrol and its associated records into JSON-compatible values.
   static Map<String, Object?> encode(Patrol patrol) => {
     'patrolId': patrol.patrolId,
     'localId': patrol.localId,
@@ -97,6 +99,7 @@ class PatrolCodec {
           },
   };
 
+  /// Decodes a saved patrol map, rejecting invalid fields and enum values.
   static Patrol decode(Map<String, dynamic> json) {
     final area = _map(json['area'], 'area');
     final syncInfo = _map(json['syncInfo'], 'syncInfo');

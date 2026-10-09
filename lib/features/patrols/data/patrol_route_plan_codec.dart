@@ -1,8 +1,10 @@
 import '../domain/patrol_records.dart';
 
+/// SRP: encodes and decodes planned-route checkpoint maps.
 class PatrolRoutePlanCodec {
   const PatrolRoutePlanCodec._();
 
+  /// Encodes a route plan as a Firestore- and JSON-compatible map.
   static Map<String, Object?> encode(PatrolRoutePlan plan) => {
     'start': _encodePoint(plan.start),
     'stops': plan.stops.map(_encodePoint).toList(),
@@ -10,6 +12,7 @@ class PatrolRoutePlanCodec {
     'coverageSections': plan.coverageSections.map(_encodePoint).toList(),
   };
 
+  /// Decodes and validates the route-plan map.
   static PatrolRoutePlan decode(Object? value) {
     if (value is! Map) {
       throw const FormatException('Patrol route plan must be an object.');

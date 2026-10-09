@@ -7,17 +7,23 @@ import '../domain/patrol_repository.dart';
 import '../application/patrol_metrics_service.dart';
 import 'patrol_route_plan_codec.dart';
 
+/// Firestore patrol-sync repository adapter. DIP/LSP: implements PatrolSyncRepository for cloud persistence.
 class FirestorePatrolSyncRepository implements PatrolSyncRepository {
+  /// Creates the sync adapter with injectable Firestore and authentication clients.
   FirestorePatrolSyncRepository({
     FirebaseFirestore? firestore,
     FirebaseAuth? auth,
   }) : _firestore = firestore ?? FirebaseFirestore.instance,
        _auth = auth ?? FirebaseAuth.instance;
 
+  /// Firestore client used to persist remote patrol documents and records.
   final FirebaseFirestore _firestore;
+  /// Authentication client used to verify ownership before syncing.
   final FirebaseAuth _auth;
+  /// Domain metrics calculator used for the remote patrol summary.
   static const _metrics = PatrolMetricsService();
 
+  /// Uploads a completed patrol and confirms its synced state after writing its records.
   @override
   Future<void> syncCompletedPatrol(Patrol patrol) async {
     final user = _auth.currentUser;
@@ -146,6 +152,7 @@ class FirestorePatrolSyncRepository implements PatrolSyncRepository {
     });
   }
 
+  /// 'Writes a named set of patrol subcollection records in bounded Firestore batches.'
   Future<void> _writeRecords(
     DocumentReference<Map<String, dynamic>> parent,
     String collection,
@@ -174,6 +181,7 @@ class FirestorePatrolSyncRepository implements PatrolSyncRepository {
         SetOptions(merge: true),
       );
       batchSize++;
+      // Flush below Firestore's 500-write batch limit.
       if (batchSize == 450) {
         await batch.commit();
         batch = _firestore.batch();
@@ -183,6 +191,7 @@ class FirestorePatrolSyncRepository implements PatrolSyncRepository {
     if (batchSize > 0) await batch.commit();
   }
 
+  /// Builds the patrol-level Firestore document fields.
   Map<String, Object?> _metadata(Patrol patrol) => {
     'patrolId': patrol.patrolId,
     'localId': patrol.localId,
@@ -223,6 +232,7 @@ class FirestorePatrolSyncRepository implements PatrolSyncRepository {
           },
   };
 
+  /// Encodes one location as Firestore-compatible coordinate and timestamp values.
   Map<String, Object?> _locationData(PatrolLocation location) => {
     'latitude': location.latitude,
     'longitude': location.longitude,

@@ -6,6 +6,8 @@ import '../application/patrol_metrics_service.dart';
 import '../domain/patrol.dart';
 import '../domain/patrol_records.dart';
 
+/// Visualizes a planned route, recorded patrol track, and available locations.
+/// SRP: renders supplied patrol data; route metrics come from a domain service.
 class PatrolRouteMap extends StatelessWidget {
   const PatrolRouteMap({
     this.patrol,
@@ -15,9 +17,16 @@ class PatrolRouteMap extends StatelessWidget {
     super.key,
   });
 
+  /// Recorded patrol data to overlay, when available.
   final Patrol? patrol;
+
+  /// Planned route; takes precedence over the patrol's saved plan.
   final PatrolRoutePlan? plannedRoute;
+
+  /// Latest location marker for an in-progress patrol, if available.
   final PatrolLocation? latestLocation;
+
+  /// Requested map viewport height in logical pixels.
   final double height;
   static const _metrics = PatrolMetricsService();
 
@@ -34,10 +43,7 @@ class PatrolRouteMap extends StatelessWidget {
         const <LatLng>[];
     final actual = currentPatrol == null
         ? const <LatLng>[]
-        : _metrics
-              .actualRouteLocations(currentPatrol)
-              .map(_latLng)
-              .toList();
+        : _metrics.actualRouteLocations(currentPatrol).map(_latLng).toList();
     final manualPoints =
         currentPatrol?.manualWaypoints
             .map((waypoint) => _latLng(waypoint.location))
@@ -50,11 +56,13 @@ class PatrolRouteMap extends StatelessWidget {
       if (latestLocation != null) _latLng(latestLocation!),
     ];
     if (allPoints.isEmpty) return const SizedBox.shrink();
-    final hasDistinctCoordinates = allPoints.skip(1).any(
-      (point) =>
-          point.latitude != allPoints.first.latitude ||
-          point.longitude != allPoints.first.longitude,
-    );
+    final hasDistinctCoordinates = allPoints
+        .skip(1)
+        .any(
+          (point) =>
+              point.latitude != allPoints.first.latitude ||
+              point.longitude != allPoints.first.longitude,
+        );
 
     return SizedBox(
       height: height,
@@ -174,9 +182,11 @@ class PatrolRouteMap extends StatelessWidget {
     );
   }
 
+  /// Converts a domain location into the map library's coordinate type.
   LatLng _latLng(PatrolLocation location) =>
       LatLng(location.latitude, location.longitude);
 
+  /// Creates a numbered marker for a planned-route checkpoint.
   Marker _marker(
     PatrolCoverageCheckpoint checkpoint,
     String label,

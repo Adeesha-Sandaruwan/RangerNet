@@ -5,11 +5,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../domain/patrol.dart';
 import 'patrol_codec.dart';
 
+/// Persists each ranger patrol queue as versioned JSON in SharedPreferences. This is the offline-first local store; serialization is delegated to PatrolCodec.
 class PatrolLocalStore {
+  /// Creates the store; writeValue can replace the platform write for tests.
   PatrolLocalStore({this.writeValue});
 
+  /// Optional injectable writer used to test persistence outcomes.
   final Future<bool> Function(String key, String value)? writeValue;
 
+  /// Loads and decodes the local patrol queue belonging to rangerId.
   Future<List<Patrol>> loadForRanger(String rangerId) async {
     final preferences = await SharedPreferences.getInstance();
     final encoded = preferences.getString(_key(rangerId));
@@ -25,6 +29,7 @@ class PatrolLocalStore {
         .toList(growable: false);
   }
 
+  /// Replaces a ranger queue after validating ownership and unique local IDs.
   Future<void> replaceForRanger(String rangerId, List<Patrol> patrols) async {
     if (patrols.any((patrol) => patrol.rangerId != rangerId)) {
       throw ArgumentError(
@@ -46,5 +51,6 @@ class PatrolLocalStore {
     }
   }
 
+  /// Builds a versioned key so a future storage schema can use a separate key.
   String _key(String rangerId) => 'patrol_records_v1_$rangerId';
 }

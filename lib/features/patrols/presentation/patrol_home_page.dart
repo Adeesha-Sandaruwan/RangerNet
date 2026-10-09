@@ -12,6 +12,9 @@ import '../domain/patrol_records.dart';
 import 'patrol_network_status_card.dart';
 import 'patrol_session_page.dart';
 
+/// Ranger-facing assigned-patrol list and entry point for conducting a patrol.
+/// DIP: receives patrol, tracking, sync, and network service abstractions.
+/// The ranger UI uses a green gradient header and semantic status colours.
 class PatrolHomePage extends StatefulWidget {
   const PatrolHomePage({
     required this.rangerId,
@@ -23,24 +26,35 @@ class PatrolHomePage extends StatefulWidget {
     super.key,
   });
 
+  /// ID used to load this ranger's assigned patrols.
   final String rangerId;
+  /// Name shown to the ranger in the patrol interface.
   final String rangerName;
+  /// Application boundary for patrol assignment and lifecycle operations.
   final PatrolService service;
+  /// Boundary for location acquisition and ongoing patrol tracking.
   final PatrolTrackingService trackingService;
+  /// Boundary for retrying synchronization of locally saved patrols.
   final PatrolSyncService syncService;
+  /// Supplies current connectivity and online/offline change notifications.
   final PatrolNetworkStatusProvider networkStatus;
 
   @override
   State<PatrolHomePage> createState() => _PatrolHomePageState();
 }
 
+/// Coordinates live assignments, local-first patrol status, and sync feedback.
+/// Cancels timers and subscriptions and removes its lifecycle observer on dispose.
 class _PatrolHomePageState extends State<PatrolHomePage>
     with WidgetsBindingObserver {
   static const _metrics = PatrolMetricsService();
 
   List<Patrol> _patrols = const [];
+  /// Connectivity listener, cancelled when this page is disposed.
   StreamSubscription<bool>? _connectivitySubscription;
+  /// Live assignment listener, cancelled when this page is disposed.
   StreamSubscription<PatrolListResult>? _assignmentSubscription;
+  /// Refreshes displayed elapsed time for active patrols; disposed with state.
   Timer? _clock;
   bool _loading = true;
   bool _syncing = false;
@@ -51,6 +65,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
   String? _syncMessage;
   bool _syncFailed = false;
 
+  /// Starts assignment, network, and pending-sync observation for the ranger.
   @override
   void initState() {
     super.initState();
@@ -90,6 +105,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
     unawaited(_synchronizePending());
   }
 
+  /// Cancels timers/subscriptions and removes this page's lifecycle observer.
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -99,6 +115,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
     super.dispose();
   }
 
+  /// Refreshes assignments and sync state when the app returns to foreground.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -143,6 +160,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
     }
   }
 
+  /// Runs an elapsed-time timer only while a patrol needs live duration.
   void _updateClock() {
     final hasActivePatrol = _patrols.any(
       (patrol) =>
@@ -175,6 +193,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
     await _load();
   }
 
+  /// Retries eligible local patrols and reports their pending/synced status.
   Future<void> _synchronizePending({bool manual = false}) async {
     if (_syncing) {
       _syncRequestedAgain = true;
@@ -586,6 +605,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
     );
   }
 
+  /// Maps lifecycle statuses to the page's consistent semantic colours.
   Color _statusColor(PatrolStatus status) => switch (status) {
     PatrolStatus.assigned => const Color(0xFF2F6FDE),
     PatrolStatus.inProgress => const Color(0xFF17613F),
@@ -617,6 +637,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
   };
 }
 
+/// Displays a compact patrol status label and icon. SRP: presentation only.
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.label, required this.icon});
 
@@ -631,6 +652,7 @@ class _StatusChip extends StatelessWidget {
   );
 }
 
+/// Displays one patrol metric in a list card. SRP: presentation only.
 class _PatrolCardMetric extends StatelessWidget {
   const _PatrolCardMetric({required this.label, required this.value});
 

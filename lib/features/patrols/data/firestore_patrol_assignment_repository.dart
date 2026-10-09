@@ -7,8 +7,10 @@ import '../domain/patrol_assignment_repository.dart';
 import '../domain/patrol_records.dart';
 import 'patrol_route_plan_codec.dart';
 
+/// Firestore assignment repository adapter. DIP/LSP: implements PatrolAssignmentRepository for the manager workflow.
 class FirestorePatrolAssignmentRepository
     implements PatrolAssignmentRepository {
+  /// Creates the repository with injectable Firestore, authentication, and ID-generation dependencies.
   FirestorePatrolAssignmentRepository({
     FirebaseFirestore? firestore,
     FirebaseAuth? auth,
@@ -17,10 +19,14 @@ class FirestorePatrolAssignmentRepository
        _auth = auth ?? FirebaseAuth.instance,
        _uuid = uuid ?? const Uuid();
 
+  /// Firestore client used to read and write assignment records.
   final FirebaseFirestore _firestore;
+  /// Authentication client used to require a signed-in manager.
   final FirebaseAuth _auth;
+  /// ID generator used for new assignment document identifiers.
   final Uuid _uuid;
 
+  /// Loads active ranger accounts available for assignment.
   @override
   Future<List<PatrolRanger>> loadActiveRangers() async {
     _requireSignedIn();
@@ -42,6 +48,7 @@ class FirestorePatrolAssignmentRepository
       ..sort((left, right) => left.name.compareTo(right.name));
   }
 
+  /// Loads assignments ordered by their assignment timestamp.
   @override
   Future<List<PatrolAssignment>> loadAssignments() async {
     _requireSignedIn();
@@ -52,6 +59,7 @@ class FirestorePatrolAssignmentRepository
     return snapshot.docs.map(_assignmentFromDocument).toList(growable: false);
   }
 
+  /// Validates and transactionally creates a manager-provided patrol assignment.
   @override
   Future<PatrolAssignment> createAssignment(PatrolAssignmentDraft draft) async {
     final manager = _requireSignedIn();
@@ -100,6 +108,7 @@ class FirestorePatrolAssignmentRepository
     );
   }
 
+  /// Maps one Firestore assignment document into a domain assignment.
   PatrolAssignment _assignmentFromDocument(
     QueryDocumentSnapshot<Map<String, dynamic>> document,
   ) {
@@ -140,6 +149,7 @@ class FirestorePatrolAssignmentRepository
     );
   }
 
+  /// Requires an authenticated user before accessing manager assignment operations.
   User _requireSignedIn() {
     final user = _auth.currentUser;
     if (user == null) {
@@ -148,6 +158,7 @@ class FirestorePatrolAssignmentRepository
     return user;
   }
 
+  /// Adds an optional assignment field only when its trimmed value is non-empty.
   void _putOptional(Map<String, Object?> data, String key, String? value) {
     final normalized = value?.trim();
     if (normalized != null && normalized.isNotEmpty) data[key] = normalized;

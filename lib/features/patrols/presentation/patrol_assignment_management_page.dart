@@ -10,6 +10,9 @@ import 'completed_patrol_reviews_page.dart';
 import 'patrol_route_builder_page.dart';
 import 'patrol_route_map.dart';
 
+/// Manager-facing patrol assignment list and creation entry point.
+/// DIP: assignment and review work is delegated to injected services.
+/// The manager view uses a green gradient header and numbered _StepHeader form sections.
 class PatrolAssignmentManagementPage extends StatefulWidget {
   const PatrolAssignmentManagementPage({
     required this.service,
@@ -18,8 +21,11 @@ class PatrolAssignmentManagementPage extends StatefulWidget {
     super.key,
   });
 
+  /// Application boundary for loading and creating patrol assignments.
   final PatrolAssignmentService service;
+  /// Supplies completed patrols and manager review operations.
   final PatrolReviewService reviewService;
+  /// Manager identity used by review and assignment workflows.
   final RangerProfile manager;
 
   @override
@@ -27,18 +33,21 @@ class PatrolAssignmentManagementPage extends StatefulWidget {
       _PatrolAssignmentManagementPageState();
 }
 
+/// Loads and presents assignments for the manager; refreshes through its service.
 class _PatrolAssignmentManagementPageState
     extends State<PatrolAssignmentManagementPage> {
   List<PatrolAssignment> _assignments = const [];
   bool _loading = true;
   String? _error;
 
+  /// Initializes this manager page and begins its initial data load.
   @override
   void initState() {
     super.initState();
     _load();
   }
 
+  /// Loads assignments through the injected service and updates the view state.
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -54,6 +63,7 @@ class _PatrolAssignmentManagementPageState
     }
   }
 
+  /// Opens the assignment form and adds a successfully created result.
   Future<void> _createAssignment() async {
     final assignment = await Navigator.of(context).push<PatrolAssignment>(
       MaterialPageRoute<PatrolAssignment>(
@@ -65,6 +75,7 @@ class _PatrolAssignmentManagementPageState
     }
   }
 
+  /// Builds the manager assignment view with its assignment workflow styling.
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF5F8F3),
@@ -297,9 +308,12 @@ class _PatrolAssignmentManagementPageState
   );
 }
 
+/// Collects manager-entered ranger, area, and planned-route assignment details.
+/// DIP: submits assignment work through the injected assignment service.
 class _CreatePatrolAssignmentPage extends StatefulWidget {
   const _CreatePatrolAssignmentPage({required this.service});
 
+  /// Application boundary for loading and creating patrol assignments.
   final PatrolAssignmentService service;
 
   @override
@@ -307,6 +321,7 @@ class _CreatePatrolAssignmentPage extends StatefulWidget {
       _CreatePatrolAssignmentPageState();
 }
 
+/// Owns assignment form controllers and validation; disposes its controllers.
 class _CreatePatrolAssignmentPageState
     extends State<_CreatePatrolAssignmentPage> {
   final _formKey = GlobalKey<FormState>();
@@ -323,12 +338,14 @@ class _CreatePatrolAssignmentPageState
   bool _saving = false;
   String? _error;
 
+  /// Initializes this manager page and begins its initial data load.
   @override
   void initState() {
     super.initState();
     _loadRangers();
   }
 
+  /// Disposes form controllers owned by the assignment form.
   @override
   void dispose() {
     _parkName.dispose();
@@ -340,6 +357,7 @@ class _CreatePatrolAssignmentPageState
     super.dispose();
   }
 
+  /// Loads the available active rangers for the assignment form.
   Future<void> _loadRangers() async {
     setState(() {
       _loadingRangers = true;
@@ -360,6 +378,7 @@ class _CreatePatrolAssignmentPageState
     }
   }
 
+  /// Validates the manager's form and persists the assignment via its service.
   Future<void> _save() async {
     if (_saving || !_formKey.currentState!.validate()) return;
     final ranger = _selectedRanger;
@@ -402,6 +421,7 @@ class _CreatePatrolAssignmentPageState
     }
   }
 
+  /// Builds the manager assignment view with its assignment workflow styling.
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF5F8F3),
@@ -574,6 +594,7 @@ class _CreatePatrolAssignmentPageState
     ),
   );
 
+  /// Opens the route builder and adopts its returned planned route.
   Future<void> _buildRoute() async {
     final route = await Navigator.of(context).push<PatrolRoutePlan>(
       MaterialPageRoute<PatrolRoutePlan>(
@@ -584,6 +605,8 @@ class _CreatePatrolAssignmentPageState
   }
 }
 
+/// Renders a numbered section heading using the active Material theme.
+/// SRP: presentation-only step indicator and copy.
 class _StepHeader extends StatelessWidget {
   const _StepHeader({
     required this.step,
@@ -591,8 +614,11 @@ class _StepHeader extends StatelessWidget {
     required this.subtitle,
   });
 
+  /// Sequential number displayed in the section marker.
   final int step;
+  /// Short heading for the assignment-form section.
   final String title;
+  /// Supporting instruction for the assignment-form section.
   final String subtitle;
 
   @override

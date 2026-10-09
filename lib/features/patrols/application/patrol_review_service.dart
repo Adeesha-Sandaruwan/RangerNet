@@ -1,14 +1,17 @@
 import '../domain/patrol_review.dart';
 import '../domain/patrol_review_repository.dart';
 
+/// Validates manager review input and delegates review persistence. SRP: keeps review use-case validation outside the repository. DIP: receives [PatrolReviewRepository] via constructor.
 class PatrolReviewService {
   const PatrolReviewService(this._repository);
 
   final PatrolReviewRepository _repository;
 
+  /// Loads completed patrols available for review.
   Future<List<PatrolReviewRecord>> loadCompletedPatrols() =>
       _repository.loadCompletedPatrols();
 
+  /// Validates IDs, trims notes, and saves a manager review.
   Future<PatrolReviewRecord> saveReview({
     required String patrolId,
     required String managerId,
@@ -26,6 +29,7 @@ class PatrolReviewService {
     );
   }
 
+  /// Requires non-empty notes before saving a follow-up flag.
   Future<PatrolReviewRecord> flagFollowUp({
     required String patrolId,
     required String managerId,

@@ -8,13 +8,20 @@ import '../domain/patrol_repository.dart';
 import '../domain/patrol_workflow_policy.dart';
 import 'patrol_coverage_service.dart';
 
+/// Patrol list plus any error encountered while loading or caching server assignments.
 class PatrolListResult {
   const PatrolListResult({required this.patrols, this.assignmentError});
 
+  /// Local and remote-assigned patrols available to the caller.
   final List<Patrol> patrols;
+
+  /// Assignment loading or caching error; local patrols may still be returned.
   final Object? assignmentError;
 }
 
+/// UC01 application boundary for patrol lifecycle and field-record use cases.
+/// SRP: coordinates operations; DIP: injects [PatrolRepository] and optional
+/// [PatrolAssignmentSource] abstractions.
 class PatrolService {
   PatrolService({
     required this._repository,
@@ -25,13 +32,17 @@ class PatrolService {
 
   final PatrolRepository _repository;
   final PatrolAssignmentSource? _assignmentSource;
+
+  /// Coverage calculator used to persist patrol coverage summaries.
   final PatrolCoverageService coverageService;
   final Uuid _uuid;
   Future<void> _assignmentMergeTail = Future<void>.value();
 
+  /// Returns locally saved patrols for a ranger.
   Future<List<Patrol>> listForRanger(String rangerId) =>
       _repository.listForRanger(rangerId);
 
+  /// Merges server assignments with local patrol state; returns local data and an error if assignment loading fails.
   Future<PatrolListResult> loadAssignedPatrols(String rangerId) async {
     final local = await _repository.listForRanger(rangerId);
     final source = _assignmentSource;
@@ -54,6 +65,7 @@ class PatrolService {
     }
   }
 
+  /// Emits merged assignment snapshots as the assignment source changes.
   Stream<PatrolListResult> watchAssignedPatrols(String rangerId) {
     final source = _assignmentSource;
     if (source == null) {
@@ -61,11 +73,13 @@ class PatrolService {
         StateError('No patrol assignment source is configured.'),
       );
     }
-    return source.watchAssignedTo(
-      rangerId,
-    ).asyncMap((assignments) => _mergeAssignments(rangerId, assignments));
+    return source
+        .watchAssignedTo(rangerId)
+        .asyncMap((assignments) => _mergeAssignments(rangerId, assignments));
   }
 
+  /// Merges server assignments without replacing locally progressed patrols.
+  /// Merges server assignments while preserving locally progressed patrols and reports cache errors.
   Future<PatrolListResult> _mergeAssignments(
     String rangerId,
     List<Patrol> assignments,
@@ -120,6 +134,7 @@ class PatrolService {
     });
   }
 
+  /// Serializes assignment merges so overlapping refreshes do not race local writes.
   Future<T> _serializeAssignmentMerge<T>(Future<T> Function() operation) async {
     final previous = _assignmentMergeTail;
     final completed = Completer<void>();
@@ -132,11 +147,13 @@ class PatrolService {
     }
   }
 
+  /// Validates and saves a new, unstarted assigned patrol.
   Future<void> saveAssignedPatrol(Patrol patrol) async {
     PatrolWorkflowPolicy.validateAssignment(patrol);
     await _repository.save(patrol);
   }
 
+  /// Starts an assigned or resumable patrol at the supplied time and location.
   Future<Patrol> start({
     required String rangerId,
     required String localId,
@@ -165,6 +182,7 @@ class PatrolService {
     );
   }
 
+  /// Pauses a patrol and appends a pause-history event.
   Future<Patrol> pause({
     required String rangerId,
     required String localId,
@@ -187,6 +205,7 @@ class PatrolService {
     );
   }
 
+  /// Resumes a paused or interrupted patrol and appends a resume-history event.
   Future<Patrol> resume({
     required String rangerId,
     required String localId,
@@ -210,6 +229,7 @@ class PatrolService {
     );
   }
 
+  /// Ends a patrol normally and marks it pending synchronization.
   Future<Patrol> complete({
     required String rangerId,
     required String localId,
@@ -235,6 +255,7 @@ class PatrolService {
     );
   }
 
+  /// Ends a patrol as aborted with a required reason.
   Future<Patrol> abort({
     required String rangerId,
     required String localId,
@@ -250,6 +271,7 @@ class PatrolService {
     endLocation: endLocation,
   );
 
+  /// Ends a patrol as incomplete with a required reason.
   Future<Patrol> markIncomplete({
     required String rangerId,
     required String localId,
@@ -265,6 +287,7 @@ class PatrolService {
     endLocation: endLocation,
   );
 
+  /// Marks an active patrol interrupted while retaining it for possible resumption.
   Future<Patrol> interrupt({
     required String rangerId,
     required String localId,
@@ -293,6 +316,7 @@ class PatrolService {
     );
   }
 
+  /// Saves a GPS route point only while tracking an in-progress patrol.
   Future<Patrol> recordRoutePoint({
     required String rangerId,
     required String localId,
@@ -309,6 +333,7 @@ class PatrolService {
     return _save(patrol.copyWith(routePoints: [...patrol.routePoints, point]));
   }
 
+  /// Saves a described manual waypoint while field recording is allowed.
   Future<Patrol> addManualWaypoint({
     required String rangerId,
     required String localId,
@@ -329,6 +354,7 @@ class PatrolService {
     );
   }
 
+  /// Adds a validated observation while field recording is allowed.
   Future<Patrol> addObservation({
     required String rangerId,
     required String localId,
@@ -344,6 +370,7 @@ class PatrolService {
     );
   }
 
+  /// Adds photo evidence and validates any observation link.
   Future<Patrol> addPhotograph({
     required String rangerId,
     required String localId,
@@ -366,6 +393,7 @@ class PatrolService {
     );
   }
 
+  /// Saves a coverage summary after patrol start.
   Future<Patrol> updateCoverage({
     required String rangerId,
     required String localId,
@@ -378,6 +406,7 @@ class PatrolService {
     return _save(patrol.copyWith(coverage: coverage));
   }
 
+  /// Recalculates coverage for an in-progress or paused patrol and saves a non-empty result.
   Future<Patrol> calculateCoverage({
     required String rangerId,
     required String localId,
@@ -398,6 +427,7 @@ class PatrolService {
     return _save(patrol.copyWith(coverage: coverage));
   }
 
+  /// Persists the attempt time and syncing state before remote submission.
   Future<Patrol> markSyncing({
     required String rangerId,
     required String localId,
@@ -415,6 +445,7 @@ class PatrolService {
     );
   }
 
+  /// Persists the failed attempt and its error for later retry.
   Future<Patrol> markSyncFailed({
     required String rangerId,
     required String localId,
@@ -435,6 +466,7 @@ class PatrolService {
     );
   }
 
+  /// Applies the terminal synced lifecycle and metadata after successful remote submission.
   Future<Patrol> markCompletedSynced({
     required String rangerId,
     required String localId,
@@ -458,6 +490,7 @@ class PatrolService {
     );
   }
 
+  /// Applies a reasoned early end and persists the resulting patrol.
   Future<Patrol> _terminate({
     required String rangerId,
     required String localId,
@@ -490,6 +523,7 @@ class PatrolService {
     );
   }
 
+  /// Creates a normalized pause/resume history record with a new ID.
   PatrolPauseResumeEvent _pauseEvent(
     PatrolPauseResumeAction action,
     DateTime at,
@@ -501,6 +535,7 @@ class PatrolService {
     reason: reason?.trim().isEmpty == true ? null : reason?.trim(),
   );
 
+  /// Loads one local patrol or rejects the operation when it is missing.
   Future<Patrol> _load(String rangerId, String localId) async {
     final patrol = await _repository.findByLocalId(rangerId, localId);
     if (patrol == null) {
@@ -509,11 +544,13 @@ class PatrolService {
     return patrol;
   }
 
+  /// Persists and returns the updated patrol.
   Future<Patrol> _save(Patrol patrol) async {
     await _repository.save(patrol);
     return patrol;
   }
 
+  /// Requires a non-empty record ID not already used by this patrol.
   void _ensureUniqueId(Iterable<String> existingIds, String id) {
     _requireText(id, 'Record ID');
     if (existingIds.contains(id)) {
@@ -521,6 +558,7 @@ class PatrolService {
     }
   }
 
+  /// Rejects a blank required text value.
   void _requireText(String value, String label) {
     if (value.trim().isEmpty) throw ArgumentError('$label cannot be empty.');
   }

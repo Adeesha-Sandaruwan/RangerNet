@@ -1,9 +1,11 @@
 import 'patrol.dart';
 import 'patrol_records.dart';
 
+/// SRP: centralizes patrol lifecycle transition, recordability, assignment, and completion-sync rules.
 class PatrolWorkflowPolicy {
   const PatrolWorkflowPolicy._();
 
+  /// Enforces the allowed state graph and requires reasons for incomplete, aborted, or interrupted states.
   static void validateTransition({
     required PatrolStatus current,
     required PatrolStatus next,
@@ -45,6 +47,7 @@ class PatrolWorkflowPolicy {
     }
   }
 
+  /// Allows new field records only while the patrol is in progress or paused.
   static void ensureCanRecord(Patrol patrol, {required String recordType}) {
     if (patrol.status != PatrolStatus.inProgress &&
         patrol.status != PatrolStatus.paused) {
@@ -54,6 +57,7 @@ class PatrolWorkflowPolicy {
     }
   }
 
+  /// Requires an unstarted assigned patrol with complete park, zone, and route names.
   static void validateAssignment(Patrol patrol) {
     if (patrol.status != PatrolStatus.assigned ||
         patrol.startedAt != null ||
@@ -69,6 +73,7 @@ class PatrolWorkflowPolicy {
     }
   }
 
+  /// Allows sync completion only after the patrol is marked completed-pending-sync.
   static void validateCompletionSync(Patrol patrol) {
     if (patrol.status != PatrolStatus.completedPendingSync) {
       throw StateError(
@@ -77,6 +82,7 @@ class PatrolWorkflowPolicy {
     }
   }
 
+  /// Identifies terminal/interruption states that require a non-empty reason.
   static bool _requiresReason(PatrolStatus status) =>
       status == PatrolStatus.incomplete ||
       status == PatrolStatus.aborted ||
