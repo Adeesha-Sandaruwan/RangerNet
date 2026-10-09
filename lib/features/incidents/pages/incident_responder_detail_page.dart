@@ -4,10 +4,10 @@ import 'dart:convert';
 // Lets an assigned ranger record progress, a resolution, notes, and photos.
 import 'package:flutter/material.dart';
 
-import '../data/incident_evidence_picker.dart';
-import '../domain/incident_report.dart';
-import '../domain/incident_timeline_event.dart';
-import '../domain/incident_management_ports.dart';
+import '../services/incident_evidence_picker.dart';
+import '../models/incident_report.dart';
+import '../models/incident_timeline_event.dart';
+import '../repositories/incident_management_ports.dart';
 import 'incident_detail_page.dart';
 
 /// Shows an assigned incident and accepts the ranger's response update.

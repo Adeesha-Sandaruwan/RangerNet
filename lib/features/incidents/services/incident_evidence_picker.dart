@@ -5,7 +5,7 @@ import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
-import '../domain/incident_report.dart';
+import '../models/incident_report.dart';
 
 // Where the ranger wants to choose a photo from.
 enum EvidenceSource { camera, gallery }

@@ -1,8 +1,8 @@
 // Checks offline queue and draft behavior using temporary preference storage.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:rangernet/features/incidents/data/incident_local_store.dart';
-import 'package:rangernet/features/incidents/domain/incident_report.dart';
+import 'package:rangernet/features/incidents/repositories/incident_local_store.dart';
+import 'package:rangernet/features/incidents/models/incident_report.dart';
 
 void main() {
   late IncidentLocalStore store;

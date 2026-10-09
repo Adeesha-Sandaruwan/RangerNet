@@ -1,8 +1,8 @@
 // Checks that incident and user models save and restore their fields correctly.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rangernet/features/incidents/domain/incident_report.dart';
-import 'package:rangernet/features/incidents/domain/incident_timeline_event.dart';
-import 'package:rangernet/features/incidents/domain/ranger_profile.dart';
+import 'package:rangernet/features/incidents/models/incident_report.dart';
+import 'package:rangernet/features/incidents/models/incident_timeline_event.dart';
+import 'package:rangernet/features/incidents/models/ranger_profile.dart';
 
 void main() {
   // These tests protect the JSON format used by saved drafts and offline reports.

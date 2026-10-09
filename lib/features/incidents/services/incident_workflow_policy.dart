@@ -1,5 +1,5 @@
 // Keeps incident validation and status-change rules in one place.
-import 'incident_report.dart';
+import '../models/incident_report.dart';
 
 /// UC02 validation rules only, kept separate from screens and database code.
 class IncidentWorkflowPolicy {

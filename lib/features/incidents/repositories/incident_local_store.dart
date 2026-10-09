@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../domain/incident_report.dart';
+import '../models/incident_report.dart';
 
 /// Small offline outbox for the student MVP. Evidence is resized before it is
 /// queued, and the UI surfaces storage errors instead of claiming a save.

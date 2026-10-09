@@ -6,10 +6,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
-import '../data/incident_evidence_picker.dart';
-import '../data/incident_location_service.dart';
-import '../data/incident_local_store.dart';
-import '../domain/incident_report.dart';
+import '../services/incident_evidence_picker.dart';
+import '../services/incident_location_service.dart';
+import '../repositories/incident_local_store.dart';
+import '../models/incident_report.dart';
 
 /// Collects an incident report and gives the home page save/sync callbacks.
 class IncidentReportPage extends StatefulWidget {

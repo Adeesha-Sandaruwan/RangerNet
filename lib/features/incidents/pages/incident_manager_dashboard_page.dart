@@ -3,13 +3,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 // Manager's landing page and link to incident management.
 import 'package:flutter/material.dart';
 
-import '../domain/incident_management_ports.dart';
+import '../repositories/incident_management_ports.dart';
 import '../../patrols/application/patrol_assignment_service.dart';
 import '../../patrols/application/patrol_review_service.dart';
 import '../../patrols/data/firestore_patrol_assignment_repository.dart';
 import '../../patrols/data/firestore_patrol_review_repository.dart';
 import '../../patrols/presentation/patrol_assignment_management_page.dart';
-import '../domain/ranger_profile.dart';
+import '../models/ranger_profile.dart';
 import '../../conservation_reports/presentation/conservation_report_page.dart';
 import 'incident_manager_inbox_page.dart';
 
@@ -146,8 +146,11 @@ class IncidentManagerDashboardPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(Icons.analytics_outlined, size: 38,
-                        color: Color(0xFF17613F)),
+                    const Icon(
+                      Icons.analytics_outlined,
+                      size: 38,
+                      color: Color(0xFF17613F),
+                    ),
                     const SizedBox(height: 10),
                     Text(
                       'Conservation reports',

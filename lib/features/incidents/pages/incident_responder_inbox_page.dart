@@ -3,10 +3,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../domain/incident_management_ports.dart';
-import '../domain/incident_report.dart';
+import '../repositories/incident_management_ports.dart';
+import '../models/incident_report.dart';
 import 'incident_responder_detail_page.dart';
-import 'widgets/incident_status_badges.dart';
+import '../widgets/incident_status_badges.dart';
 
 /// Assigned UC02 cases for a ranger acting as an incident responder.
 /// Lets a responder find work assigned by the manager.

@@ -4,11 +4,11 @@ import 'dart:convert';
 // Lets a manager inspect an incident, assign responders, and close it later.
 import 'package:flutter/material.dart';
 
-import '../domain/incident_report.dart';
-import '../domain/incident_timeline_event.dart';
-import '../domain/ranger_profile.dart';
-import '../domain/incident_management_ports.dart';
-import 'widgets/incident_status_badges.dart';
+import '../models/incident_report.dart';
+import '../models/incident_timeline_event.dart';
+import '../models/ranger_profile.dart';
+import '../repositories/incident_management_ports.dart';
+import '../widgets/incident_status_badges.dart';
 
 /// Shows an incident's evidence, review actions, assignments, and history.
 class IncidentManagerDetailPage extends StatefulWidget {

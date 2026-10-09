@@ -1,7 +1,7 @@
 // Reusable colored labels for incident severity and workflow status.
 import 'package:flutter/material.dart';
 
-import '../../domain/incident_report.dart';
+import '../models/incident_report.dart';
 
 /// Small, high-contrast labels that make severity and workflow state scannable.
 /// Displays a report's severity and current workflow status.

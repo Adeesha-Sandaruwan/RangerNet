@@ -2,10 +2,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../data/user_role_repository.dart';
-import '../data/incident_management_repository.dart';
-import '../domain/ranger_profile.dart';
-import 'incident_manager_dashboard_page.dart';
+import '../repositories/user_role_repository.dart';
+import '../repositories/incident_management_repository.dart';
+import '../models/ranger_profile.dart';
+import '../pages/incident_manager_dashboard_page.dart';
 import '../../home/presentation/rangernet_shell.dart';
 
 /// Resolves the authenticated user's trusted Firestore role before routing.
