@@ -10,8 +10,10 @@ class PatrolRanger {
 
   /// Stable ranger identifier.
   final String id;
+
   /// Ranger display name.
   final String name;
+
   /// Ranger email address.
   final String email;
 }
@@ -29,16 +31,22 @@ class PatrolAssignment {
 
   /// Stable assignment identifier.
   final String id;
+
   /// ID of the assigned ranger.
   final String rangerId;
+
   /// Display name of the assigned ranger.
   final String rangerName;
+
   /// Park, zone, and route for the assignment.
   final PatrolArea area;
+
   /// Time this assignment was created.
   final DateTime assignedAt;
+
   /// Optional route plan attached to the assignment.
   final PatrolRoutePlan? plannedRoute;
+
   /// Coverage sections from the assignment route, or an empty list when absent.
   List<PatrolCoverageCheckpoint> get plannedCoverageSections =>
       plannedRoute?.coverageSections ?? const [];
@@ -59,18 +67,25 @@ class PatrolAssignmentDraft {
 
   /// Ranger selected for the assignment.
   final PatrolRanger ranger;
+
   /// Required park display name.
   final String parkName;
+
   /// Required zone display name.
   final String zoneName;
+
   /// Required route display name.
   final String routeName;
+
   /// Optional stable park ID.
   final String? parkId;
+
   /// Optional stable zone ID.
   final String? zoneId;
+
   /// Optional stable route ID.
   final String? routeId;
+
   /// Generated route plan, required to include coverage sections.
   final PatrolRoutePlan plannedRoute;
 

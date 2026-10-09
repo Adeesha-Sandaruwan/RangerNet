@@ -40,8 +40,7 @@ class IncidentTrendGenerator extends ReportGenerator {
     // Group by severity
     final bySeverity = <IncidentSeverity, int>{};
     for (final incident in incidents) {
-      bySeverity[incident.severity] =
-          (bySeverity[incident.severity] ?? 0) + 1;
+      bySeverity[incident.severity] = (bySeverity[incident.severity] ?? 0) + 1;
     }
 
     // Calculate averages
@@ -51,7 +50,9 @@ class IncidentTrendGenerator extends ReportGenerator {
     final peakEntry = byMonth.entries.reduce(
       (a, b) => a.value.length >= b.value.length ? a : b,
     );
-    final peakMonth = _displayFormat.format(DateTime.parse('${peakEntry.key}-01'));
+    final peakMonth = _displayFormat.format(
+      DateTime.parse('${peakEntry.key}-01'),
+    );
 
     return ConservationReportResult(
       reportType: ConservationReportType.incidentTrend,
@@ -66,17 +67,20 @@ class IncidentTrendGenerator extends ReportGenerator {
       },
       chartSeries: {
         'Monthly trend': sortedMonths
-            .map((m) => ChartDataPoint(
-                  _displayFormat.format(DateTime.parse('$m-01')),
-                  byMonth[m]!.length.toDouble(),
-                ))
+            .map(
+              (m) => ChartDataPoint(
+                _displayFormat.format(DateTime.parse('$m-01')),
+                byMonth[m]!.length.toDouble(),
+              ),
+            )
             .toList(),
         'By incident type': byType.entries
             .map((e) => ChartDataPoint(e.key.label, e.value.toDouble()))
             .toList(),
         'By severity': IncidentSeverity.values
-            .map((s) =>
-                ChartDataPoint(s.label, (bySeverity[s] ?? 0).toDouble()))
+            .map(
+              (s) => ChartDataPoint(s.label, (bySeverity[s] ?? 0).toDouble()),
+            )
             .toList(),
       },
       tableColumns: const [
@@ -92,22 +96,34 @@ class IncidentTrendGenerator extends ReportGenerator {
         return [
           _displayFormat.format(DateTime.parse('$month-01')),
           monthIncidents.length.toString(),
-          monthIncidents.where((i) => i.severity == IncidentSeverity.critical).length.toString(),
-          monthIncidents.where((i) => i.severity == IncidentSeverity.high).length.toString(),
-          monthIncidents.where((i) => i.severity == IncidentSeverity.medium).length.toString(),
-          monthIncidents.where((i) => i.severity == IncidentSeverity.low).length.toString(),
+          monthIncidents
+              .where((i) => i.severity == IncidentSeverity.critical)
+              .length
+              .toString(),
+          monthIncidents
+              .where((i) => i.severity == IncidentSeverity.high)
+              .length
+              .toString(),
+          monthIncidents
+              .where((i) => i.severity == IncidentSeverity.medium)
+              .length
+              .toString(),
+          monthIncidents
+              .where((i) => i.severity == IncidentSeverity.low)
+              .length
+              .toString(),
         ];
       }).toList(),
     );
   }
 
   ConservationReportResult _emptyResult() => ConservationReportResult(
-        reportType: ConservationReportType.incidentTrend,
-        generatedAt: DateTime.now(),
-        totalIncidents: 0,
-        summaryMetrics: const {'Total incidents': '0'},
-        chartSeries: const {},
-        tableColumns: const ['Month', 'Total', 'Critical', 'High', 'Medium', 'Low'],
-        tableRows: const [],
-      );
+    reportType: ConservationReportType.incidentTrend,
+    generatedAt: DateTime.now(),
+    totalIncidents: 0,
+    summaryMetrics: const {'Total incidents': '0'},
+    chartSeries: const {},
+    tableColumns: const ['Month', 'Total', 'Critical', 'High', 'Medium', 'Low'],
+    tableRows: const [],
+  );
 }

@@ -30,14 +30,19 @@ class PatrolCompletionReviewPage extends StatefulWidget {
 
   /// Current patrol awaiting completion confirmation.
   final Patrol patrol;
+
   /// Best available end location offered for ranger confirmation.
   final PatrolLocation? suggestedEndLocation;
+
   /// GPS state shown to the ranger during completion review.
   final PatrolGpsStatus gpsStatus;
+
   /// Application boundary for coverage calculation and completion.
   final PatrolService service;
+
   /// Boundary for synchronization after local completion.
   final PatrolSyncService syncService;
+
   /// Supplies current and changing connectivity status.
   final PatrolNetworkStatusProvider networkStatus;
 
@@ -58,6 +63,7 @@ class _PatrolCompletionReviewPageState
   String? _coverageError;
   String? _message;
   bool? _online;
+
   /// Connectivity listener, cancelled when the page is disposed.
   StreamSubscription<bool>? _networkSubscription;
 
@@ -236,7 +242,9 @@ class _PatrolCompletionReviewPageState
                         ? Icons.gps_fixed
                         : Icons.gps_not_fixed,
                   ),
-                  title: Text('GPS status: ${_gpsStatusLabel(widget.gpsStatus)}'),
+                  title: Text(
+                    'GPS status: ${_gpsStatusLabel(widget.gpsStatus)}',
+                  ),
                   subtitle: Text(
                     widget.gpsStatus.accuracyMeters == null
                         ? widget.gpsStatus.message ??
@@ -508,7 +516,6 @@ class _PatrolCompletionReviewPageState
       : '${location.latitude.toStringAsFixed(6)}, '
             '${location.longitude.toStringAsFixed(6)} '
             '(${location.source == PatrolLocationSource.gps ? 'GPS' : 'Manual'})';
-
 }
 
 /// Explains why coverage is still being calculated or cannot be shown.

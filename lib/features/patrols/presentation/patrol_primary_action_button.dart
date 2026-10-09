@@ -13,10 +13,13 @@ class PatrolPrimaryActionButton extends StatelessWidget {
 
   /// Text describing the primary action.
   final String label;
+
   /// Icon shown when the button is not busy.
   final IconData icon;
+
   /// Action callback; null disables the button.
   final VoidCallback? onPressed;
+
   /// Whether to replace the action icon with a progress indicator.
   final bool busy;
 

@@ -43,13 +43,16 @@ class PatrolCoverageGenerator extends ReportGenerator {
     // Coverage per park
     final byPark = <String, int>{};
     for (final incident in incidents) {
-      final park = incident.parkOrBlock.isEmpty ? 'Unknown' : incident.parkOrBlock;
+      final park = incident.parkOrBlock.isEmpty
+          ? 'Unknown'
+          : incident.parkOrBlock;
       byPark[park] = (byPark[park] ?? 0) + 1;
     }
 
     // Unassigned incidents (no rangers assigned)
-    final unassigned =
-        incidents.where((i) => i.assignedRangerIds.isEmpty).length;
+    final unassigned = incidents
+        .where((i) => i.assignedRangerIds.isEmpty)
+        .length;
     final assigned = incidents.length - unassigned;
 
     // Sort rangers by incident count descending
@@ -71,19 +74,22 @@ class PatrolCoverageGenerator extends ReportGenerator {
       chartSeries: {
         'Responses per ranger': sortedRangers
             .take(10)
-            .map((e) => ChartDataPoint(
-                  rangerIdToName[e.key] ?? e.key.substring(0, 8),
-                  e.value.toDouble(),
-                ))
+            .map(
+              (e) => ChartDataPoint(
+                rangerIdToName[e.key] ?? e.key.substring(0, 8),
+                e.value.toDouble(),
+              ),
+            )
             .toList(),
         'Incidents per patrol': sortedPatrols
             .take(10)
             .map((e) => ChartDataPoint(e.key, e.value.toDouble()))
             .toList(),
-        'Coverage by area': byPark.entries
-            .map((e) => ChartDataPoint(e.key, e.value.toDouble()))
-            .toList()
-          ..sort((a, b) => b.value.compareTo(a.value)),
+        'Coverage by area':
+            byPark.entries
+                .map((e) => ChartDataPoint(e.key, e.value.toDouble()))
+                .toList()
+              ..sort((a, b) => b.value.compareTo(a.value)),
       },
       tableColumns: const [
         'Ranger',
@@ -115,12 +121,17 @@ class PatrolCoverageGenerator extends ReportGenerator {
   }
 
   ConservationReportResult _emptyResult() => ConservationReportResult(
-        reportType: ConservationReportType.patrolCoverage,
-        generatedAt: DateTime.now(),
-        totalIncidents: 0,
-        summaryMetrics: const {'Total incidents': '0'},
-        chartSeries: const {},
-        tableColumns: const ['Ranger', 'Incidents handled', 'Patrol IDs', 'Areas covered'],
-        tableRows: const [],
-      );
+    reportType: ConservationReportType.patrolCoverage,
+    generatedAt: DateTime.now(),
+    totalIncidents: 0,
+    summaryMetrics: const {'Total incidents': '0'},
+    chartSeries: const {},
+    tableColumns: const [
+      'Ranger',
+      'Incidents handled',
+      'Patrol IDs',
+      'Areas covered',
+    ],
+    tableRows: const [],
+  );
 }

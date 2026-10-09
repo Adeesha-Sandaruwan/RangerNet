@@ -356,7 +356,10 @@ class _WildlifeAlertDashboardPageState
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF17613F),
                   side: const BorderSide(color: Color(0xFF17613F)),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                 ),
                 onPressed: _openLiveMap,
                 icon: const Icon(Icons.map, size: 14),
@@ -367,7 +370,10 @@ class _WildlifeAlertDashboardPageState
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF17613F),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                 ),
                 onPressed: _openSimulatorDialog,
                 child: const Text('Simulator', style: TextStyle(fontSize: 12)),
@@ -400,7 +406,8 @@ class _WildlifeAlertDashboardPageState
             ),
             ChoiceChip(
               label: const Text('All Alerts', style: TextStyle(fontSize: 11)),
-              selected: controller.filterStatus == null &&
+              selected:
+                  controller.filterStatus == null &&
                   controller.filterRisk == null,
               onSelected: (_) {
                 controller.setStatusFilter(null);
@@ -436,7 +443,10 @@ class _WildlifeAlertDashboardPageState
             ),
             const SizedBox(width: 8),
             FilterChip(
-              label: const Text('High Risk Only', style: TextStyle(fontSize: 11)),
+              label: const Text(
+                'High Risk Only',
+                style: TextStyle(fontSize: 11),
+              ),
               selected: controller.filterRisk == AlertRiskLevel.high,
               onSelected: (_) {
                 if (controller.filterRisk != AlertRiskLevel.high) {
@@ -468,7 +478,9 @@ class _WildlifeAlertDashboardPageState
           color: alert.isActive && alert.riskLevel == AlertRiskLevel.high
               ? const Color(0xFFC62828).withValues(alpha: 0.5)
               : Colors.grey.shade300,
-          width: alert.isActive && alert.riskLevel == AlertRiskLevel.high ? 1.5 : 1.0,
+          width: alert.isActive && alert.riskLevel == AlertRiskLevel.high
+              ? 1.5
+              : 1.0,
         ),
       ),
       child: InkWell(
@@ -492,16 +504,16 @@ class _WildlifeAlertDashboardPageState
                     radius: 18,
                     backgroundColor:
                         alert.triggerType == AlertTriggerType.cameraDetection
-                            ? Colors.purple.shade50
-                            : const Color(0xFFE8F5E9),
+                        ? Colors.purple.shade50
+                        : const Color(0xFFE8F5E9),
                     child: Icon(
                       alert.triggerType == AlertTriggerType.cameraDetection
                           ? Icons.camera_alt
                           : Icons.satellite_alt,
                       color:
                           alert.triggerType == AlertTriggerType.cameraDetection
-                              ? Colors.purple.shade800
-                              : const Color(0xFF17613F),
+                          ? Colors.purple.shade800
+                          : const Color(0xFF17613F),
                       size: 18,
                     ),
                   ),
@@ -513,8 +525,7 @@ class _WildlifeAlertDashboardPageState
                         Row(
                           children: [
                             Text(
-                              alert.targetName ??
-                                  'Sensor ${alert.sensorId}',
+                              alert.targetName ?? 'Sensor ${alert.sensorId}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -563,7 +574,9 @@ class _WildlifeAlertDashboardPageState
                   if (alert.zoneName != null) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(6),
@@ -582,7 +595,9 @@ class _WildlifeAlertDashboardPageState
                   if (hasMultiplePings) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFE8F5E9),
                         borderRadius: BorderRadius.circular(6),
@@ -590,8 +605,11 @@ class _WildlifeAlertDashboardPageState
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.route,
-                              size: 11, color: Color(0xFF2E7D32)),
+                          const Icon(
+                            Icons.route,
+                            size: 11,
+                            color: Color(0xFF2E7D32),
+                          ),
                           const SizedBox(width: 3),
                           Text(
                             '${alert.locationHistory.length} pings (throttled)',
@@ -607,15 +625,22 @@ class _WildlifeAlertDashboardPageState
                     const SizedBox(width: 6),
                   ],
                   const Spacer(),
-                  Icon(Icons.access_time, size: 12, color: Colors.grey.shade600),
+                  Icon(
+                    Icons.access_time,
+                    size: 12,
+                    color: Colors.grey.shade600,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     _formatTimeAgo(alert.triggeredAt),
                     style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                   ),
                   const SizedBox(width: 10),
-                  const Icon(Icons.arrow_forward_ios,
-                      size: 12, color: Colors.grey),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 12,
+                    color: Colors.grey,
+                  ),
                 ],
               ),
             ],
@@ -631,8 +656,11 @@ class _WildlifeAlertDashboardPageState
       alignment: Alignment.center,
       child: Column(
         children: [
-          Icon(Icons.check_circle_outline,
-              size: 56, color: Colors.green.shade400),
+          Icon(
+            Icons.check_circle_outline,
+            size: 56,
+            color: Colors.green.shade400,
+          ),
           const SizedBox(height: 16),
           const Text(
             'No matching alerts in queue',

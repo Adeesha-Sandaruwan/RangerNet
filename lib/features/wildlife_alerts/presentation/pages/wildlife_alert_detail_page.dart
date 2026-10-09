@@ -50,16 +50,17 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
     if (alert != null) {
       final animals = widget.controller.animals;
       final animal = animals.cast<Animal?>().firstWhere(
-            (a) => a?.id == alert.targetId,
-            orElse: () => null,
-          );
+        (a) => a?.id == alert.targetId,
+        orElse: () => null,
+      );
       final sensors = widget.controller.sensors;
       final sensor = sensors.cast<Sensor?>().firstWhere(
-            (s) => s?.id == alert.sensorId,
-            orElse: () => null,
-          );
-      final responses =
-          await widget.controller.getResponsesForAlert(alert.alertId);
+        (s) => s?.id == alert.sensorId,
+        orElse: () => null,
+      );
+      final responses = await widget.controller.getResponsesForAlert(
+        alert.alertId,
+      );
 
       if (mounted) {
         setState(() {
@@ -153,9 +154,7 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (_alert == null) {
@@ -237,14 +236,21 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            RiskLevelBadge(riskLevel: alert.riskLevel, isLarge: true),
-                            AlertStatusBadge(status: alert.status, isLarge: true),
+                            RiskLevelBadge(
+                              riskLevel: alert.riskLevel,
+                              isLarge: true,
+                            ),
+                            AlertStatusBadge(
+                              status: alert.status,
+                              isLarge: true,
+                            ),
                           ],
                         ),
                         const SizedBox(height: 12),
                         Text(
                           alert.title,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: const Color(0xFF17613F),
                               ),
@@ -269,7 +275,8 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
                                 'Last Ping: ${_formatDateTime(alert.lastUpdatedAt!)}',
                               ),
                             _buildInfoChip(
-                              alert.triggerType == AlertTriggerType.cameraDetection
+                              alert.triggerType ==
+                                      AlertTriggerType.cameraDetection
                                   ? Icons.camera_alt
                                   : Icons.gps_fixed,
                               alert.triggerType.label,
@@ -301,9 +308,7 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
                             const SizedBox(width: 8),
                             Text(
                               'Target / Monitored Subject',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
+                              style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                           ],
@@ -312,7 +317,10 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
                         if (_animal != null) ...[
                           _buildDetailRow('Animal Name', _animal!.name),
                           _buildDetailRow('Species', _animal!.species),
-                          _buildDetailRow('Collar Sensor ID', _animal!.collarId),
+                          _buildDetailRow(
+                            'Collar Sensor ID',
+                            _animal!.collarId,
+                          ),
                           _buildDetailRow(
                             'Conservation Risk Profile',
                             _animal!.riskProfile.label,
@@ -324,7 +332,10 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
                           if (alert.targetName != null)
                             _buildDetailRow('Target Name', alert.targetName!),
                           if (alert.targetSpecies != null)
-                            _buildDetailRow('Species/Category', alert.targetSpecies!),
+                            _buildDetailRow(
+                              'Species/Category',
+                              alert.targetSpecies!,
+                            ),
                         ],
                         if (alert.zoneName != null) ...[
                           const SizedBox(height: 8),
@@ -352,19 +363,19 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
                         Row(
                           children: [
                             Icon(
-                              alert.triggerType == AlertTriggerType.cameraDetection
+                              alert.triggerType ==
+                                      AlertTriggerType.cameraDetection
                                   ? Icons.camera_enhance
                                   : Icons.satellite_alt,
                               color: const Color(0xFF17613F),
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              alert.triggerType == AlertTriggerType.cameraDetection
+                              alert.triggerType ==
+                                      AlertTriggerType.cameraDetection
                                   ? 'Camera Trap Detection Frame'
                                   : 'GPS Collar Telemetry & Coordinates',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
+                              style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                           ],
@@ -372,7 +383,8 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
                         const Divider(height: 20),
 
                         // If Camera Trap Alert: render Simulated Live Video Stream Feed
-                        if (alert.triggerType == AlertTriggerType.cameraDetection ||
+                        if (alert.triggerType ==
+                                AlertTriggerType.cameraDetection ||
                             alert.capturedImageUrl != null ||
                             alert.simulatedDetectionTag != null) ...[
                           CameraTrapLiveVideoFeedWidget(
@@ -393,16 +405,23 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
                               color: const Color(0xFFF1F8F5),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                  color: const Color(0xFF17613F).withValues(alpha: 0.3)),
+                                color: const Color(
+                                  0xFF17613F,
+                                ).withValues(alpha: 0.3),
+                              ),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.location_on,
-                                    color: Color(0xFF17613F), size: 28),
+                                const Icon(
+                                  Icons.location_on,
+                                  color: Color(0xFF17613F),
+                                  size: 28,
+                                ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Lat: ${alert.currentLocation!.latitude.toStringAsFixed(5)}, Lon: ${alert.currentLocation!.longitude.toStringAsFixed(5)}',
@@ -411,7 +430,8 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
                                           fontSize: 13,
                                         ),
                                       ),
-                                      if (alert.currentLocation!.altitude != null)
+                                      if (alert.currentLocation!.altitude !=
+                                          null)
                                         Text(
                                           'Altitude: ${alert.currentLocation!.altitude!.toStringAsFixed(1)}m | Sensor: ${alert.sensorId}',
                                           style: TextStyle(
@@ -434,8 +454,9 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
                                       Text(
                                         '${_sensor!.batteryLevel.toStringAsFixed(0)}%',
                                         style: const TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -494,70 +515,77 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.assignment_turned_in,
-                                  color: Color(0xFF2E7D32)),
+                              const Icon(
+                                Icons.assignment_turned_in,
+                                color: Color(0xFF2E7D32),
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 'Ranger Response Record',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
+                                style: Theme.of(context).textTheme.titleMedium
                                     ?.copyWith(fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
                           const Divider(height: 20),
-                          ..._responses.map((resp) => Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          resp.rangerName ?? 'Ranger (${resp.rangerId})',
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                        Text(
-                                          _formatDateTime(resp.timestamp),
-                                          style: TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.grey.shade600),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Action: ${resp.actionTaken}',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'Observations: ${resp.observations}',
-                                      style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey.shade800),
-                                    ),
-                                    if (resp.followUpRequired)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 4),
-                                        child: Text(
-                                          '⚠️ Requires Follow-up Field Inspection',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.amber.shade900,
-                                          ),
+                          ..._responses.map(
+                            (resp) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        resp.rangerName ??
+                                            'Ranger (${resp.rangerId})',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                  ],
-                                ),
-                              )),
+                                      Text(
+                                        _formatDateTime(resp.timestamp),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Action: ${resp.actionTaken}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Observations: ${resp.observations}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey.shade800,
+                                    ),
+                                  ),
+                                  if (resp.followUpRequired)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        '⚠️ Requires Follow-up Field Inspection',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.amber.shade900,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -584,7 +612,9 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
                               foregroundColor: const Color(0xFF0277BD),
                               side: const BorderSide(color: Color(0xFF0277BD)),
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
                             ),
                             onPressed: _handleAcknowledge,
                             icon: const Icon(Icons.visibility),
@@ -597,7 +627,9 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
                             style: FilledButton.styleFrom(
                               backgroundColor: const Color(0xFF17613F),
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 20, vertical: 12),
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
                             ),
                             onPressed: _handleResolve,
                             icon: const Icon(Icons.done_all),
@@ -606,15 +638,20 @@ class _WildlifeAlertDetailPageState extends State<WildlifeAlertDetailPage> {
                         ] else ...[
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFE8F5E9),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Row(
                               children: [
-                                Icon(Icons.check_circle,
-                                    color: Color(0xFF2E7D32), size: 18),
+                                Icon(
+                                  Icons.check_circle,
+                                  color: Color(0xFF2E7D32),
+                                  size: 18,
+                                ),
                                 SizedBox(width: 6),
                                 Text(
                                   'Alert Resolved & Archived',

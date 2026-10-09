@@ -16,8 +16,10 @@ class FirestorePatrolAssignmentSource implements PatrolAssignmentSource {
 
   /// Firestore client used to query assigned patrol records.
   final FirebaseFirestore _firestore;
+
   /// Authentication client used to enforce the ranger identity.
   final FirebaseAuth _auth;
+
   /// Loads the ranger assignments from the Firestore server.
   @override
   Future<List<Patrol>> loadAssignedTo(String rangerId) async {

@@ -18,6 +18,7 @@ class ManualWaypointMapPage extends StatefulWidget {
 
   /// Patrol whose current route is shown while selecting a waypoint.
   final Patrol patrol;
+
   /// Optional coordinate to center the map on initially.
   final PatrolLocation? initialLocation;
 
@@ -424,6 +425,7 @@ class _MapLegend extends StatelessWidget {
   const _MapLegend({required this.color, required this.label});
 
   final Color color;
+
   /// Human-readable description of the map marker.
   final String label;
 

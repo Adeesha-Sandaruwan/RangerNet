@@ -52,8 +52,8 @@ class ReportSummaryCards extends StatelessWidget {
                     Text(
                       entry.key,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: const Color(0xFF536459),
-                          ),
+                        color: const Color(0xFF536459),
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),

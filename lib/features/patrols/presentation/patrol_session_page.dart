@@ -28,8 +28,14 @@ class PatrolSessionPage extends StatefulWidget {
     required this.trackingService,
     required this.syncService,
     required this.networkStatus,
+    this.onReportIncident,
     super.key,
   });
+
+  /// Opens the separate formal incident report for this patrol. Injected so the
+  /// patrol feature stays decoupled from the incident feature (DIP); the
+  /// button is hidden when null.
+  final Future<void> Function(Patrol patrol)? onReportIncident;
 
   /// Patrol record to display and conduct.
   final Patrol patrol;
@@ -815,6 +821,38 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
                     subtitle: Text(
                       _patrol.syncInfo.lastError ??
                           'Synchronization will need to be retried.',
+                    ),
+                  ),
+                ),
+              if (widget.onReportIncident != null &&
+                  (_patrol.status == PatrolStatus.inProgress ||
+                      _patrol.status == PatrolStatus.paused ||
+                      _patrol.status == PatrolStatus.interrupted))
+                Card(
+                  color: const Color(0xFFFFF1D6),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Formal incident on this patrol?',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Submit a separate incident report linked to this '
+                          'patrol. The patrol stays active.',
+                        ),
+                        const SizedBox(height: 10),
+                        FilledButton.icon(
+                          onPressed: _busy
+                              ? null
+                              : () => widget.onReportIncident!(_patrol),
+                          icon: const Icon(Icons.crisis_alert),
+                          label: const Text('Report incident'),
+                        ),
+                      ],
                     ),
                   ),
                 ),

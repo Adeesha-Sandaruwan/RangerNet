@@ -12,6 +12,7 @@ class LocalPatrolRepository implements PatrolRepository {
 
   /// Store used to read and replace persisted patrol queues.
   final PatrolLocalStore _store;
+
   /// Tail of the per-instance write queue, preventing overlapping read-modify-writes.
   Future<void> _writeTail = Future<void>.value();
 

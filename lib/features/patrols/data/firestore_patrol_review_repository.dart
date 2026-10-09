@@ -17,6 +17,7 @@ class FirestorePatrolReviewRepository implements PatrolReviewRepository {
 
   /// Firestore client used to load patrols and save review fields.
   final FirebaseFirestore _firestore;
+
   /// Authentication client used to require the reviewing manager.
   final FirebaseAuth _auth;
 
@@ -213,7 +214,9 @@ class FirestorePatrolReviewRepository implements PatrolReviewRepository {
       'managerNotes': notes,
       'followUpRequired': followUpRequired,
     });
-    final snapshot = await reference.get(const GetOptions(source: Source.server));
+    final snapshot = await reference.get(
+      const GetOptions(source: Source.server),
+    );
     if (!snapshot.exists) {
       throw StateError('The patrol disappeared while saving its review.');
     }
@@ -239,7 +242,9 @@ class FirestorePatrolReviewRepository implements PatrolReviewRepository {
       'managerNotes': notes,
       'followUpRequired': true,
     });
-    final snapshot = await reference.get(const GetOptions(source: Source.server));
+    final snapshot = await reference.get(
+      const GetOptions(source: Source.server),
+    );
     if (!snapshot.exists) {
       throw StateError('The patrol disappeared while saving follow-up.');
     }
@@ -263,7 +268,9 @@ class FirestorePatrolReviewRepository implements PatrolReviewRepository {
   void _requireManager(String managerId) {
     final user = _requireSignedIn();
     if (user.uid != managerId) {
-      throw StateError('Only the signed-in manager can save this patrol review.');
+      throw StateError(
+        'Only the signed-in manager can save this patrol review.',
+      );
     }
   }
 }

@@ -53,18 +53,25 @@ class PatrolArea {
 
   /// Optional stable park identifier.
   final String? parkId;
+
   /// Display name of the park.
   final String parkName;
+
   /// Optional stable zone identifier.
   final String? zoneId;
+
   /// Display name of the zone.
   final String zoneName;
+
   /// Optional stable route identifier.
   final String? routeId;
+
   /// Display name of the route.
   final String routeName;
+
   /// Optional area-center latitude in decimal degrees.
   final double? centerLatitude;
+
   /// Optional area-center longitude in decimal degrees.
   final double? centerLongitude;
 }
@@ -79,7 +86,11 @@ class PatrolLocation {
     this.accuracyMeters,
   }) {
     if (!latitude.isFinite || latitude < -90 || latitude > 90) {
-      throw ArgumentError.value(latitude, 'latitude', 'Must be between -90 and 90.');
+      throw ArgumentError.value(
+        latitude,
+        'latitude',
+        'Must be between -90 and 90.',
+      );
     }
     if (!longitude.isFinite || longitude < -180 || longitude > 180) {
       throw ArgumentError.value(
@@ -100,12 +111,16 @@ class PatrolLocation {
 
   /// Latitude in decimal degrees, validated to the range -90 through 90.
   final double latitude;
+
   /// Longitude in decimal degrees, validated to the range -180 through 180.
   final double longitude;
+
   /// Time at which the location was captured or entered.
   final DateTime recordedAt;
+
   /// Whether the coordinate came from GPS or manual entry.
   final PatrolLocationSource source;
+
   /// Optional reported horizontal accuracy; GPS quality checks use this value.
   final double? accuracyMeters;
 }
@@ -116,6 +131,7 @@ class PatrolRoutePoint {
 
   /// Unique ID for this recorded route point.
   final String id;
+
   /// GPS location associated with this point.
   final PatrolLocation location;
 }
@@ -130,8 +146,10 @@ class PatrolWaypoint {
 
   /// Unique ID for this manual waypoint.
   final String id;
+
   /// Ranger-provided description of the waypoint.
   final String description;
+
   /// Manually entered waypoint location.
   final PatrolLocation location;
 }
@@ -165,10 +183,13 @@ class PatrolCoverageCheckpoint {
 
   /// Unique checkpoint or coverage-section ID.
   final String id;
+
   /// Human-readable checkpoint label.
   final String name;
+
   /// Checkpoint latitude in decimal degrees.
   final double latitude;
+
   /// Checkpoint longitude in decimal degrees.
   final double longitude;
 }
@@ -191,25 +212,26 @@ class PatrolRoutePlan {
       throw ArgumentError('Route coverage section IDs must be unique.');
     }
     if (this.coverageSections.length > 2000) {
-      throw ArgumentError('A patrol route cannot exceed 2000 coverage sections.');
+      throw ArgumentError(
+        'A patrol route cannot exceed 2000 coverage sections.',
+      );
     }
   }
 
   /// First checkpoint on the planned route.
   final PatrolCoverageCheckpoint start;
+
   /// Final checkpoint on the planned route.
   final PatrolCoverageCheckpoint end;
+
   /// Ordered intermediate stops between start and end.
   final List<PatrolCoverageCheckpoint> stops;
+
   /// Planned sections used by patrol coverage calculations.
   final List<PatrolCoverageCheckpoint> coverageSections;
 
   /// Ordered start, stop, and end checkpoints for route-distance calculations.
-  List<PatrolCoverageCheckpoint> get routeLocations => [
-    start,
-    ...stops,
-    end,
-  ];
+  List<PatrolCoverageCheckpoint> get routeLocations => [start, ...stops, end];
 }
 
 /// A field observation recorded during an active or paused patrol.
@@ -223,10 +245,13 @@ class PatrolObservation {
 
   /// Unique ID for this observation.
   final String id;
+
   /// Ranger-provided description of the field observation.
   final String description;
+
   /// Location associated with this observation.
   final PatrolLocation location;
+
   /// Optional observation category.
   final String? category;
 }
@@ -244,14 +269,19 @@ class PatrolPhoto {
 
   /// Unique ID for this photo record.
   final String id;
+
   /// Original or display filename for the captured image.
   final String fileName;
+
   /// Media content type for the photo payload.
   final String contentType;
+
   /// Base64-encoded image data stored with the record.
   final String base64Data;
+
   /// Time the photo was captured.
   final DateTime capturedAt;
+
   /// Optional ID of the observation associated with this photo.
   final String? observationId;
 }
@@ -267,10 +297,13 @@ class PatrolPauseResumeEvent {
 
   /// Unique ID for this lifecycle event.
   final String id;
+
   /// Whether this event paused or resumed the patrol.
   final PatrolPauseResumeAction action;
+
   /// Time when the action occurred.
   final DateTime occurredAt;
+
   /// Optional ranger-provided reason for the action.
   final String? reason;
 }
@@ -286,10 +319,13 @@ class PatrolSyncInfo {
 
   /// Current synchronization phase for the patrol record.
   final PatrolSyncStatus status;
+
   /// Time of the most recent sync attempt.
   final DateTime? lastAttemptAt;
+
   /// Time the patrol was last successfully synchronized.
   final DateTime? lastSyncedAt;
+
   /// Most recent sync failure message, if any.
   final String? lastError;
 }
@@ -328,12 +364,16 @@ class PatrolCoverage {
 
   /// Number of planned sections included in this calculation.
   final int totalSections;
+
   /// Number of planned sections considered covered.
   final int coveredSections;
+
   /// IDs of covered sections when supplied by the calculator.
   final List<String> coveredSectionIds;
+
   /// IDs of planned sections not covered by the recorded route.
   final List<String> uncoveredSectionIds;
+
   /// Time this coverage summary was calculated.
   final DateTime calculatedAt;
 

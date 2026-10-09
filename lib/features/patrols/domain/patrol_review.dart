@@ -13,14 +13,19 @@ class PatrolReviewRecord {
 
   /// Completed patrol under manager review.
   final Patrol patrol;
+
   /// Current review or follow-up state.
   final PatrolManagerReviewStatus reviewStatus;
+
   /// Time the manager recorded the review.
   final DateTime? reviewedAt;
+
   /// Manager ID that recorded the review.
   final String? reviewedBy;
+
   /// Notes supplied by the reviewing manager.
   final String? managerNotes;
+
   /// Whether follow-up work is required.
   final bool followUpRequired;
 

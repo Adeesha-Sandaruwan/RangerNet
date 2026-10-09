@@ -134,8 +134,11 @@ class IncidentManagerDashboardPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(Icons.analytics_outlined, size: 38,
-                        color: Color(0xFF17613F)),
+                    const Icon(
+                      Icons.analytics_outlined,
+                      size: 38,
+                      color: Color(0xFF17613F),
+                    ),
                     const SizedBox(height: 10),
                     Text(
                       'Conservation reports',
@@ -173,4 +176,3 @@ class IncidentManagerDashboardPage extends StatelessWidget {
     ),
   );
 }
-

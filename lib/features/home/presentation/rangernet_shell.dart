@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../incidents/data/incident_submission_service.dart';
 import '../../incidents/presentation/incident_home_page.dart';
+import '../../incidents/presentation/incident_report_page.dart';
+import '../../patrols/domain/patrol.dart';
 import '../../incidents/presentation/incident_responder_inbox_page.dart';
 import '../../patrols/application/patrol_service.dart';
 import '../../patrols/application/patrol_sync_service.dart';
@@ -64,6 +67,26 @@ class _RangerNetShellState extends State<RangerNetShell> {
     networkStatus: _patrolNetworkStatus,
   );
   late final _patrolNetworkStatus = ConnectivityPatrolNetworkStatusProvider();
+  final _incidentSubmission = IncidentSubmissionService();
+
+  /// Opens the standard incident report flow from an active patrol, linked to
+  /// that patrol. Reuses the Incidents feature so the report is a separate
+  /// record with its own workflow, and is saved offline-first.
+  Future<void> _reportIncidentFromPatrol(Patrol patrol) =>
+      Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => IncidentReportPage(
+            ranger: widget.ranger,
+            saveLocally: _incidentSubmission.saveLocally,
+            syncNow: _incidentSubmission.syncNow,
+            linkedPatrolId: patrol.patrolId,
+            linkedParkOrBlock: [
+              patrol.area.parkName,
+              patrol.area.zoneName,
+            ].where((part) => part.isNotEmpty).join(' · '),
+          ),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -99,6 +122,7 @@ class _RangerNetShellState extends State<RangerNetShell> {
             trackingService: _patrolTrackingService,
             syncService: _patrolSyncService,
             networkStatus: _patrolNetworkStatus,
+            onReportIncident: _reportIncidentFromPatrol,
           ),
           IncidentHomePage(ranger: widget.ranger),
           IncidentResponderInboxPage(

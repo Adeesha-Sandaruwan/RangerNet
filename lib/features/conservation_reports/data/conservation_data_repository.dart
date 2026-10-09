@@ -9,11 +9,9 @@ import '../../incidents/domain/ranger_profile.dart';
 /// Provides read-only queries that load all incidents (regardless of
 /// workflow status) and active ranger profiles for filter options.
 class ConservationDataRepository {
-  ConservationDataRepository({
-    FirebaseFirestore? firestore,
-    FirebaseAuth? auth,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance;
+  ConservationDataRepository({FirebaseFirestore? firestore, FirebaseAuth? auth})
+    : _firestore = firestore ?? FirebaseFirestore.instance,
+      _auth = auth ?? FirebaseAuth.instance;
 
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
@@ -33,12 +31,13 @@ class ConservationDataRepository {
   /// sorted alphabetically, for the park filter dropdown.
   Future<List<String>> loadDistinctParks() async {
     final incidents = await loadAllIncidents();
-    final parks = incidents
-        .map((i) => i.parkOrBlock.trim())
-        .where((p) => p.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final parks =
+        incidents
+            .map((i) => i.parkOrBlock.trim())
+            .where((p) => p.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     return parks;
   }
 
@@ -83,8 +82,8 @@ class ConservationDataRepository {
       activeThreat: data['activeThreat'] == true,
       latitude: (data['latitude'] as num?)?.toDouble(),
       longitude: (data['longitude'] as num?)?.toDouble(),
-      locationAccuracyMeters:
-          (data['locationAccuracyMeters'] as num?)?.toDouble(),
+      locationAccuracyMeters: (data['locationAccuracyMeters'] as num?)
+          ?.toDouble(),
       parkOrBlock: data['parkOrBlock']?.toString() ?? '',
       createdAt: createdAt,
       status: data['status']?.toString().toLowerCase() == 'reported'

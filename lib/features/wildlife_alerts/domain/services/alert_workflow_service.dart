@@ -13,10 +13,8 @@ class InvalidAlertTransitionException implements Exception {
 
 /// Service governing ranger workflows and alert lifecycle transitions.
 class AlertWorkflowService {
-  AlertWorkflowService({
-    required this.repository,
-    Uuid? uuid,
-  }) : _uuid = uuid ?? const Uuid();
+  AlertWorkflowService({required this.repository, Uuid? uuid})
+    : _uuid = uuid ?? const Uuid();
 
   final WildlifeAlertRepository repository;
   final Uuid _uuid;
@@ -33,8 +31,9 @@ class AlertWorkflowService {
   List<WildlifeAlert> sortAlertsByPriority(List<WildlifeAlert> alerts) {
     final sorted = List<WildlifeAlert>.from(alerts);
     sorted.sort((a, b) {
-      final riskComparison =
-          b.riskLevel.priorityOrder.compareTo(a.riskLevel.priorityOrder);
+      final riskComparison = b.riskLevel.priorityOrder.compareTo(
+        a.riskLevel.priorityOrder,
+      );
       if (riskComparison != 0) {
         return riskComparison;
       }
@@ -100,9 +99,7 @@ class AlertWorkflowService {
     }
 
     if (alert.status == AlertStatus.resolved) {
-      throw InvalidAlertTransitionException(
-        'Alert has already been resolved.',
-      );
+      throw InvalidAlertTransitionException('Alert has already been resolved.');
     }
 
     final now = DateTime.now();

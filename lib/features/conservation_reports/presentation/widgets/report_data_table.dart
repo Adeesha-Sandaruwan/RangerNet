@@ -44,31 +44,31 @@ class ReportDataTable extends StatelessWidget {
                 columnSpacing: 20,
                 horizontalMargin: 12,
                 columns: result.tableColumns
-                    .map((col) => DataColumn(
-                          label: Text(
-                            col,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
+                    .map(
+                      (col) => DataColumn(
+                        label: Text(
+                          col,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
                           ),
-                        ))
+                        ),
+                      ),
+                    )
                     .toList(),
                 rows: result.tableRows.asMap().entries.map((entry) {
                   final row = entry.value;
                   return DataRow(
                     color: WidgetStateProperty.resolveWith<Color?>(
-                      (states) => entry.key.isEven
-                          ? null
-                          : const Color(0xFFF5F8F3),
+                      (states) =>
+                          entry.key.isEven ? null : const Color(0xFFF5F8F3),
                     ),
                     cells: row
-                        .map((cell) => DataCell(
-                              Text(
-                                cell,
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            ))
+                        .map(
+                          (cell) => DataCell(
+                            Text(cell, style: const TextStyle(fontSize: 12)),
+                          ),
+                        )
                         .toList(),
                   );
                 }).toList(),

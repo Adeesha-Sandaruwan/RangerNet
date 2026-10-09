@@ -24,7 +24,8 @@ class ConservationOutcomeGenerator extends ReportGenerator {
     }
 
     // Resolved + closed = successful outcomes
-    final resolved = (byStatus[IncidentWorkflowStatus.resolved] ?? 0) +
+    final resolved =
+        (byStatus[IncidentWorkflowStatus.resolved] ?? 0) +
         (byStatus[IncidentWorkflowStatus.closed] ?? 0);
     final resolutionRate = incidents.isEmpty
         ? 0.0
@@ -36,11 +37,14 @@ class ConservationOutcomeGenerator extends ReportGenerator {
       IncidentWorkflowStatus.rejected,
       IncidentWorkflowStatus.duplicate,
     };
-    final openCases =
-        incidents.where((i) => !terminalStatuses.contains(i.workflowStatus)).length;
+    final openCases = incidents
+        .where((i) => !terminalStatuses.contains(i.workflowStatus))
+        .length;
 
     // Assignment rate
-    final assigned = incidents.where((i) => i.assignedRangerIds.isNotEmpty).length;
+    final assigned = incidents
+        .where((i) => i.assignedRangerIds.isNotEmpty)
+        .length;
     final assignmentRate = incidents.isEmpty
         ? 0.0
         : (assigned / incidents.length) * 100;
@@ -62,7 +66,9 @@ class ConservationOutcomeGenerator extends ReportGenerator {
     // By park outcome
     final byPark = <String, List<IncidentReport>>{};
     for (final incident in incidents) {
-      final park = incident.parkOrBlock.isEmpty ? 'Unknown' : incident.parkOrBlock;
+      final park = incident.parkOrBlock.isEmpty
+          ? 'Unknown'
+          : incident.parkOrBlock;
       byPark.putIfAbsent(park, () => []).add(incident);
     }
     final sortedParks = byPark.entries.toList()
@@ -85,12 +91,20 @@ class ConservationOutcomeGenerator extends ReportGenerator {
             .map((s) => ChartDataPoint(s.label, (byStatus[s] ?? 0).toDouble()))
             .toList(),
         'Resolved by severity': IncidentSeverity.values
-            .map((s) => ChartDataPoint(
-                s.label, (resolvedBySeverity[s] ?? 0).toDouble()))
+            .map(
+              (s) => ChartDataPoint(
+                s.label,
+                (resolvedBySeverity[s] ?? 0).toDouble(),
+              ),
+            )
             .toList(),
         'Unresolved by severity': IncidentSeverity.values
-            .map((s) => ChartDataPoint(
-                s.label, (unresolvedBySeverity[s] ?? 0).toDouble()))
+            .map(
+              (s) => ChartDataPoint(
+                s.label,
+                (unresolvedBySeverity[s] ?? 0).toDouble(),
+              ),
+            )
             .toList(),
       },
       tableColumns: const [
@@ -104,9 +118,11 @@ class ConservationOutcomeGenerator extends ReportGenerator {
       tableRows: sortedParks.map((entry) {
         final parkIncidents = entry.value;
         final parkResolved = parkIncidents
-            .where((i) =>
-                i.workflowStatus == IncidentWorkflowStatus.closed ||
-                i.workflowStatus == IncidentWorkflowStatus.resolved)
+            .where(
+              (i) =>
+                  i.workflowStatus == IncidentWorkflowStatus.closed ||
+                  i.workflowStatus == IncidentWorkflowStatus.resolved,
+            )
             .length;
         final parkOpen = parkIncidents
             .where((i) => !terminalStatuses.contains(i.workflowStatus))
@@ -114,8 +130,9 @@ class ConservationOutcomeGenerator extends ReportGenerator {
         final parkRate = parkIncidents.isEmpty
             ? '0.0'
             : ((parkResolved / parkIncidents.length) * 100).toStringAsFixed(1);
-        final parkAssigned =
-            parkIncidents.where((i) => i.assignedRangerIds.isNotEmpty).length;
+        final parkAssigned = parkIncidents
+            .where((i) => i.assignedRangerIds.isNotEmpty)
+            .length;
         return [
           entry.key,
           parkIncidents.length.toString(),
@@ -129,15 +146,19 @@ class ConservationOutcomeGenerator extends ReportGenerator {
   }
 
   ConservationReportResult _emptyResult() => ConservationReportResult(
-        reportType: ConservationReportType.conservationOutcome,
-        generatedAt: DateTime.now(),
-        totalIncidents: 0,
-        summaryMetrics: const {
-          'Total incidents': '0',
-          'Resolution rate': '0.0%',
-        },
-        chartSeries: const {},
-        tableColumns: const ['Area', 'Total', 'Resolved', 'Open', 'Resolution %', 'Assigned'],
-        tableRows: const [],
-      );
+    reportType: ConservationReportType.conservationOutcome,
+    generatedAt: DateTime.now(),
+    totalIncidents: 0,
+    summaryMetrics: const {'Total incidents': '0', 'Resolution rate': '0.0%'},
+    chartSeries: const {},
+    tableColumns: const [
+      'Area',
+      'Total',
+      'Resolved',
+      'Open',
+      'Resolution %',
+      'Assigned',
+    ],
+    tableRows: const [],
+  );
 }

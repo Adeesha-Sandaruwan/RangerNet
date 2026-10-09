@@ -32,9 +32,9 @@ class SensorTelemetryService {
     SensorProcessorFactory? processorFactory,
     AlertThrottlingService? throttlingService,
     Uuid? uuid,
-  })  : _processorFactory = processorFactory ?? SensorProcessorFactory(),
-        _throttlingService = throttlingService ?? const AlertThrottlingService(),
-        _uuid = uuid ?? const Uuid();
+  }) : _processorFactory = processorFactory ?? SensorProcessorFactory(),
+       _throttlingService = throttlingService ?? const AlertThrottlingService(),
+       _uuid = uuid ?? const Uuid();
 
   final WildlifeAlertRepository repository;
   final SensorProcessorFactory _processorFactory;

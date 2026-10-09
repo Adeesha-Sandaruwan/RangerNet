@@ -88,8 +88,9 @@ class ConservationReportFilter {
       return false;
     }
     if (patrolTeamRangerIds != null &&
-        !report.assignedRangerIds
-            .any((id) => patrolTeamRangerIds!.contains(id))) {
+        !report.assignedRangerIds.any(
+          (id) => patrolTeamRangerIds!.contains(id),
+        )) {
       return false;
     }
     if (species != null &&
@@ -110,18 +111,16 @@ class ConservationReportFilter {
     List<IncidentSeverity>? Function()? severities,
     List<String>? Function()? patrolTeamRangerIds,
     String? Function()? species,
-  }) =>
-      ConservationReportFilter(
-        parkOrBlock: parkOrBlock != null ? parkOrBlock() : this.parkOrBlock,
-        zone: zone != null ? zone() : this.zone,
-        startDate: startDate != null ? startDate() : this.startDate,
-        endDate: endDate != null ? endDate() : this.endDate,
-        incidentTypes:
-            incidentTypes != null ? incidentTypes() : this.incidentTypes,
-        severities: severities != null ? severities() : this.severities,
-        patrolTeamRangerIds: patrolTeamRangerIds != null
-            ? patrolTeamRangerIds()
-            : this.patrolTeamRangerIds,
-        species: species != null ? species() : this.species,
-      );
+  }) => ConservationReportFilter(
+    parkOrBlock: parkOrBlock != null ? parkOrBlock() : this.parkOrBlock,
+    zone: zone != null ? zone() : this.zone,
+    startDate: startDate != null ? startDate() : this.startDate,
+    endDate: endDate != null ? endDate() : this.endDate,
+    incidentTypes: incidentTypes != null ? incidentTypes() : this.incidentTypes,
+    severities: severities != null ? severities() : this.severities,
+    patrolTeamRangerIds: patrolTeamRangerIds != null
+        ? patrolTeamRangerIds()
+        : this.patrolTeamRangerIds,
+    species: species != null ? species() : this.species,
+  );
 }

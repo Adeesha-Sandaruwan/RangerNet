@@ -21,8 +21,10 @@ class FirestorePatrolAssignmentRepository
 
   /// Firestore client used to read and write assignment records.
   final FirebaseFirestore _firestore;
+
   /// Authentication client used to require a signed-in manager.
   final FirebaseAuth _auth;
+
   /// ID generator used for new assignment document identifiers.
   final Uuid _uuid;
 

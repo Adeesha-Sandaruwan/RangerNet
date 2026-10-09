@@ -20,12 +20,16 @@ class PatrolTrackingState {
 
   /// Current GPS availability and fix quality.
   final PatrolGpsStatus gpsStatus;
+
   /// Patrol currently being tracked, if any.
   final Patrol? patrol;
+
   /// Most recently received GPS location.
   final PatrolLocation? latestFix;
+
   /// Number of route points successfully stored on the patrol.
   final int recordedPointCount;
+
   /// Most recent tracking or persistence error, if any.
   final String? error;
 }
@@ -48,10 +52,13 @@ class PatrolTrackingService {
   final PatrolLocationProvider _locationProvider;
   final PatrolMetricsService _metrics;
   final Uuid _uuid;
+
   /// Highest GPS accuracy error, in meters, accepted for route recording.
   final double maximumAccuracyMeters;
+
   /// Minimum travel distance before another fix is stored.
   final double minimumPointDistanceMeters;
+
   /// Minimum elapsed time before another fix is stored.
   final Duration minimumPointInterval;
   final _states = StreamController<PatrolTrackingState>.broadcast();

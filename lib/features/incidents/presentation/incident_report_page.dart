@@ -15,12 +15,21 @@ class IncidentReportPage extends StatefulWidget {
     required this.ranger,
     required this.saveLocally,
     required this.syncNow,
+    this.linkedPatrolId,
+    this.linkedParkOrBlock,
     super.key,
   });
 
   final User ranger;
   final Future<void> Function(IncidentReport report) saveLocally;
   final Future<void> Function(IncidentReport report) syncNow;
+
+  /// Set when the report is started from an active patrol; links the separate
+  /// formal report to that patrol and overrides any older draft value.
+  final String? linkedPatrolId;
+
+  /// Park / zone context prefilled from the patrol's area.
+  final String? linkedParkOrBlock;
 
   @override
   State<IncidentReportPage> createState() => _IncidentReportPageState();
@@ -65,7 +74,17 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
   @override
   void initState() {
     super.initState();
+    _applyPatrolContext();
     unawaited(_restoreDraft());
+  }
+
+  void _applyPatrolContext() {
+    final patrolId = widget.linkedPatrolId;
+    if (patrolId != null) _patrolId.text = patrolId;
+    final park = widget.linkedParkOrBlock;
+    if (park != null && _parkOrBlock.text.trim().isEmpty) {
+      _parkOrBlock.text = park;
+    }
   }
 
   @override
@@ -90,6 +109,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
       _patrolId.text = draft['patrolId'] as String? ?? '';
       _latitude.text = draft['latitude'] as String? ?? '';
       _longitude.text = draft['longitude'] as String? ?? '';
+      _applyPatrolContext();
       final savedType = draft['type'] as String?;
       final savedSeverity = draft['severity'] as String?;
       setState(() {

@@ -11,10 +11,13 @@ class PatrolGpsStatus {
 
   /// Current GPS availability or quality state.
   final PatrolGpsState state;
+
   /// Accuracy of the most recent location fix, when known.
   final double? accuracyMeters;
+
   /// Timestamp of the most recent GPS fix, when known.
   final DateTime? lastFixAt;
+
   /// Optional user-facing explanation of the current GPS state.
   final String? message;
 }

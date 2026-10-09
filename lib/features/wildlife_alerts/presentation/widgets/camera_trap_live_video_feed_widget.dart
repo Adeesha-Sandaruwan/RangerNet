@@ -115,10 +115,17 @@ class _CameraTrapLiveVideoFeedWidgetState
             children: [
               Container(
                 color: const Color(0xFF14241C),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
-                    const Icon(Icons.videocam, color: Colors.greenAccent, size: 20),
+                    const Icon(
+                      Icons.videocam,
+                      color: Colors.greenAccent,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Live Video Feed — ${widget.cameraName ?? widget.cameraTrapId}',
@@ -178,7 +185,8 @@ class _CameraTrapLiveVideoFeedWidgetState
                     animation: _streamAnimController,
                     builder: (context, child) {
                       final sway = _isPlaying
-                          ? (mathSine(_streamAnimController.value * 3.14159) * 0.02)
+                          ? (mathSine(_streamAnimController.value * 3.14159) *
+                                0.02)
                           : 0.0;
                       return Transform.scale(
                         scale: 1.05 + sway,
@@ -263,12 +271,17 @@ class _CameraTrapLiveVideoFeedWidgetState
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFF17613F),
                     foregroundColor: Colors.white,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
                   onPressed: _triggerSnapshotCapture,
                   icon: const Icon(Icons.camera, size: 14),
-                  label: const Text('Capture Frame', style: TextStyle(fontSize: 11)),
+                  label: const Text(
+                    'Capture Frame',
+                    style: TextStyle(fontSize: 11),
+                  ),
                 ),
 
                 // Expand Fullscreen
@@ -342,7 +355,11 @@ class _CameraTrapLiveVideoFeedWidgetState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.videocam_outlined, size: 48, color: Colors.green.shade400),
+            Icon(
+              Icons.videocam_outlined,
+              size: 48,
+              color: Colors.green.shade400,
+            ),
             const SizedBox(height: 8),
             Text(
               'LIVE RTSP FEED: ${widget.cameraTrapId}',
@@ -394,7 +411,9 @@ class _CameraTrapLiveVideoFeedWidgetState
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5)),
+              border: Border.all(
+                color: Colors.redAccent.withValues(alpha: 0.5),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -483,13 +502,22 @@ class _CameraTrapLiveVideoFeedWidgetState
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.solar_power, size: 12, color: Colors.amberAccent),
+                const Icon(
+                  Icons.solar_power,
+                  size: 12,
+                  color: Colors.amberAccent,
+                ),
                 const SizedBox(width: 4),
-                const Text('SOLAR OK',
-                    style: TextStyle(color: Colors.amberAccent, fontSize: 9)),
+                const Text(
+                  'SOLAR OK',
+                  style: TextStyle(color: Colors.amberAccent, fontSize: 9),
+                ),
                 const SizedBox(width: 8),
-                const Icon(Icons.battery_charging_full,
-                    size: 12, color: Colors.greenAccent),
+                const Icon(
+                  Icons.battery_charging_full,
+                  size: 12,
+                  color: Colors.greenAccent,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   '${widget.batteryLevel.toStringAsFixed(0)}%',
@@ -534,9 +562,13 @@ class _CameraTrapLiveVideoFeedWidgetState
                 decoration: BoxDecoration(
                   border: Border(
                     top: BorderSide(
-                        color: isPoacher ? Colors.red : Colors.amber, width: 3),
+                      color: isPoacher ? Colors.red : Colors.amber,
+                      width: 3,
+                    ),
                     left: BorderSide(
-                        color: isPoacher ? Colors.red : Colors.amber, width: 3),
+                      color: isPoacher ? Colors.red : Colors.amber,
+                      width: 3,
+                    ),
                   ),
                 ),
               ),
@@ -550,9 +582,13 @@ class _CameraTrapLiveVideoFeedWidgetState
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                        color: isPoacher ? Colors.red : Colors.amber, width: 3),
+                      color: isPoacher ? Colors.red : Colors.amber,
+                      width: 3,
+                    ),
                     right: BorderSide(
-                        color: isPoacher ? Colors.red : Colors.amber, width: 3),
+                      color: isPoacher ? Colors.red : Colors.amber,
+                      width: 3,
+                    ),
                   ),
                 ),
               ),

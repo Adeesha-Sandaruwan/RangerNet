@@ -26,6 +26,7 @@ class CompletedPatrolReviewsPage extends StatefulWidget {
 
   /// Application boundary for loading and saving patrol reviews.
   final PatrolReviewService service;
+
   /// Manager performing the review.
   final RangerProfile manager;
 
@@ -205,6 +206,7 @@ class _CompletedPatrolReviewCard extends StatelessWidget {
 
   /// Review data represented by this card or detail page.
   final PatrolReviewRecord record;
+
   /// Opens the detail view when this summary is selected.
   final VoidCallback onTap;
 
@@ -312,8 +314,10 @@ class _CompletedPatrolReviewDetailPage extends StatefulWidget {
 
   /// Review data represented by this card or detail page.
   final PatrolReviewRecord record;
+
   /// Application boundary for loading and saving patrol reviews.
   final PatrolReviewService service;
+
   /// Manager performing the review.
   final RangerProfile manager;
 

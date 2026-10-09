@@ -12,8 +12,10 @@ class PatrolCoverageService {
 
   /// Maximum distance from a planned section for a recorded route to count as coverage.
   final double coverageRadiusMeters;
+
   /// Maximum GPS accuracy error accepted as reliable coverage evidence.
   final double maximumGpsAccuracyMeters;
+
   /// Distance calculations used to evaluate fixes and route segments.
   final PatrolMetricsService metrics;
 

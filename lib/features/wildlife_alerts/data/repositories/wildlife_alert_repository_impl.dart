@@ -61,8 +61,9 @@ class WildlifeAlertRepositoryImpl implements WildlifeAlertRepository {
         .where((a) => a.status != AlertStatus.resolved)
         .toList();
     active.sort((a, b) {
-      final riskComp =
-          b.riskLevel.priorityOrder.compareTo(a.riskLevel.priorityOrder);
+      final riskComp = b.riskLevel.priorityOrder.compareTo(
+        a.riskLevel.priorityOrder,
+      );
       if (riskComp != 0) return riskComp;
       return b.triggeredAt.compareTo(a.triggeredAt);
     });
@@ -106,15 +107,16 @@ class WildlifeAlertRepositoryImpl implements WildlifeAlertRepository {
     final updated = existing.copyWith(
       status: newStatus,
       lastUpdatedAt: now,
-      acknowledgedAt:
-          newStatus == AlertStatus.acknowledged ? now : existing.acknowledgedAt,
+      acknowledgedAt: newStatus == AlertStatus.acknowledged
+          ? now
+          : existing.acknowledgedAt,
       acknowledgedByRangerId: newStatus == AlertStatus.acknowledged
           ? rangerId
           : existing.acknowledgedByRangerId,
-      resolvedAt:
-          newStatus == AlertStatus.resolved ? now : existing.resolvedAt,
-      resolvedByRangerId:
-          newStatus == AlertStatus.resolved ? rangerId : existing.resolvedByRangerId,
+      resolvedAt: newStatus == AlertStatus.resolved ? now : existing.resolvedAt,
+      resolvedByRangerId: newStatus == AlertStatus.resolved
+          ? rangerId
+          : existing.resolvedByRangerId,
       responseNotes: notes ?? existing.responseNotes,
     );
 
@@ -155,9 +157,9 @@ class WildlifeAlertRepositoryImpl implements WildlifeAlertRepository {
   @override
   Future<Animal?> getAnimalByCollarId(String collarId) async {
     return _animals.values.cast<Animal?>().firstWhere(
-          (a) => a?.collarId == collarId,
-          orElse: () => null,
-        );
+      (a) => a?.collarId == collarId,
+      orElse: () => null,
+    );
   }
 
   @override

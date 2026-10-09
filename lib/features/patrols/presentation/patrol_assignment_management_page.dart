@@ -23,8 +23,10 @@ class PatrolAssignmentManagementPage extends StatefulWidget {
 
   /// Application boundary for loading and creating patrol assignments.
   final PatrolAssignmentService service;
+
   /// Supplies completed patrols and manager review operations.
   final PatrolReviewService reviewService;
+
   /// Manager identity used by review and assignment workflows.
   final RangerProfile manager;
 
@@ -616,8 +618,10 @@ class _StepHeader extends StatelessWidget {
 
   /// Sequential number displayed in the section marker.
   final int step;
+
   /// Short heading for the assignment-form section.
   final String title;
+
   /// Supporting instruction for the assignment-form section.
   final String subtitle;
 

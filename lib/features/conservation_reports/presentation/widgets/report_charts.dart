@@ -37,10 +37,7 @@ class ReportCharts extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  entry.key,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                Text(entry.key, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 16),
                 SizedBox(
                   height: 220,
@@ -57,8 +54,10 @@ class ReportCharts extends StatelessWidget {
   }
 
   Widget _buildBarChart(List<ChartDataPoint> series) {
-    final maxValue =
-        series.fold<double>(0, (max, p) => p.value > max ? p.value : max);
+    final maxValue = series.fold<double>(
+      0,
+      (max, p) => p.value > max ? p.value : max,
+    );
 
     return BarChart(
       BarChartData(
@@ -112,9 +111,11 @@ class ReportCharts extends StatelessWidget {
             ),
           ),
           topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false)),
+            sideTitles: SideTitles(showTitles: false),
+          ),
           rightTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false)),
+            sideTitles: SideTitles(showTitles: false),
+          ),
         ),
         gridData: FlGridData(
           show: true,

@@ -6,10 +6,7 @@ import '../services/alert_sound_service.dart';
 import '../widgets/camera_trap_live_video_feed_widget.dart';
 
 class SensorSimulatorDialog extends StatefulWidget {
-  const SensorSimulatorDialog({
-    required this.controller,
-    super.key,
-  });
+  const SensorSimulatorDialog({required this.controller, super.key});
 
   final WildlifeAlertController controller;
 
@@ -37,9 +34,9 @@ class _SensorSimulatorDialogState extends State<SensorSimulatorDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Simulation error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Simulation error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isRunning = false);
@@ -59,12 +56,17 @@ class _SensorSimulatorDialogState extends State<SensorSimulatorDialog> {
             children: [
               Container(
                 color: const Color(0xFF14241C),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 child: Row(
                   children: [
-                    const Icon(Icons.videocam,
-                        color: Colors.greenAccent, size: 20),
+                    const Icon(
+                      Icons.videocam,
+                      color: Colors.greenAccent,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Live Video Stream — $cameraTrapId',
@@ -147,8 +149,11 @@ class _SensorSimulatorDialogState extends State<SensorSimulatorDialog> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.check_circle,
-                              color: Color(0xFF2E7D32), size: 18),
+                          const Icon(
+                            Icons.check_circle,
+                            color: Color(0xFF2E7D32),
+                            size: 18,
+                          ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
@@ -174,29 +179,39 @@ class _SensorSimulatorDialogState extends State<SensorSimulatorDialog> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      ..._lastResult!.telemetryResults.map((tr) => Padding(
-                            padding: const EdgeInsets.only(top: 3),
-                            child: Text(
-                              '• ${tr.message} ${tr.wasThrottled ? "⚡ [THROTTLED/APPENDED]" : tr.alert != null ? "🚨 [NEW ALERT: ${tr.alert!.alertId}]" : "✓ [SAFE]" }',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: tr.wasThrottled
-                                    ? Colors.orange.shade900
-                                    : tr.alert != null
-                                        ? Colors.red.shade900
-                                        : Colors.green.shade900,
-                                fontWeight: FontWeight.w600,
-                              ),
+                      ..._lastResult!.telemetryResults.map(
+                        (tr) => Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Text(
+                            '• ${tr.message} ${tr.wasThrottled
+                                ? "⚡ [THROTTLED/APPENDED]"
+                                : tr.alert != null
+                                ? "🚨 [NEW ALERT: ${tr.alert!.alertId}]"
+                                : "✓ [SAFE]"}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: tr.wasThrottled
+                                  ? Colors.orange.shade900
+                                  : tr.alert != null
+                                  ? Colors.red.shade900
+                                  : Colors.green.shade900,
+                              fontWeight: FontWeight.w600,
                             ),
-                          )),
-                      if (_lastResult!.scenarioName.contains('Camera Trap')) ...[
+                          ),
+                        ),
+                      ),
+                      if (_lastResult!.scenarioName.contains(
+                        'Camera Trap',
+                      )) ...[
                         const SizedBox(height: 10),
                         FilledButton.icon(
                           style: FilledButton.styleFrom(
                             backgroundColor: const Color(0xFF17613F),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                           ),
                           onPressed: () {
                             final alert = _lastResult!.telemetryResults
@@ -205,13 +220,16 @@ class _SensorSimulatorDialogState extends State<SensorSimulatorDialog> {
                                 .firstOrNull;
                             _openCameraLiveFeed(
                               alert?.sensorId ?? 'CAM-TRAP-101',
-                              alert?.simulatedDetectionTag ?? 'POACHER_DETECTED',
+                              alert?.simulatedDetectionTag ??
+                                  'POACHER_DETECTED',
                               alert?.capturedImageUrl,
                             );
                           },
                           icon: const Icon(Icons.videocam, size: 16),
-                          label: const Text('📹 Open Live Camera Video Feed',
-                              style: TextStyle(fontSize: 12)),
+                          label: const Text(
+                            '📹 Open Live Camera Video Feed',
+                            style: TextStyle(fontSize: 12),
+                          ),
                         ),
                       ],
                     ],
@@ -339,10 +357,7 @@ class _SensorSimulatorDialogState extends State<SensorSimulatorDialog> {
           title,
           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
         ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(fontSize: 11),
-        ),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 11)),
         trailing: FilledButton.tonal(
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

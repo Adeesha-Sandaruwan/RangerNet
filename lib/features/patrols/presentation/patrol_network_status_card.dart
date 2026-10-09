@@ -11,6 +11,7 @@ class PatrolNetworkStatusCard extends StatelessWidget {
 
   /// Connectivity state; null means that the initial check is unresolved.
   final bool? online;
+
   /// Optional callback that asks the owner to refresh connectivity.
   final VoidCallback? onRefresh;
 

@@ -21,7 +21,9 @@ class PoachingHotspotGenerator extends ReportGenerator {
     // Group by park/block
     final byPark = <String, List<IncidentReport>>{};
     for (final incident in incidents) {
-      final key = incident.parkOrBlock.isEmpty ? 'Unknown' : incident.parkOrBlock;
+      final key = incident.parkOrBlock.isEmpty
+          ? 'Unknown'
+          : incident.parkOrBlock;
       byPark.putIfAbsent(key, () => []).add(incident);
     }
 
@@ -46,9 +48,11 @@ class PoachingHotspotGenerator extends ReportGenerator {
 
     // Critical/high severity count
     final highRisk = incidents
-        .where((i) =>
-            i.severity == IncidentSeverity.critical ||
-            i.severity == IncidentSeverity.high)
+        .where(
+          (i) =>
+              i.severity == IncidentSeverity.critical ||
+              i.severity == IncidentSeverity.high,
+        )
         .length;
 
     final topHotspot = sortedParks.isNotEmpty ? sortedParks.first.key : 'N/A';
@@ -70,7 +74,9 @@ class PoachingHotspotGenerator extends ReportGenerator {
             .map((e) => ChartDataPoint(e.key, e.value.length.toDouble()))
             .toList(),
         'Severity distribution': IncidentSeverity.values
-            .map((s) => ChartDataPoint(s.label, (bySeverity[s] ?? 0).toDouble()))
+            .map(
+              (s) => ChartDataPoint(s.label, (bySeverity[s] ?? 0).toDouble()),
+            )
             .toList(),
         'By incident type': byType.entries
             .map((e) => ChartDataPoint(e.key.label, e.value.toDouble()))
@@ -90,10 +96,22 @@ class PoachingHotspotGenerator extends ReportGenerator {
         return [
           entry.key,
           parkIncidents.length.toString(),
-          parkIncidents.where((i) => i.severity == IncidentSeverity.critical).length.toString(),
-          parkIncidents.where((i) => i.severity == IncidentSeverity.high).length.toString(),
-          parkIncidents.where((i) => i.severity == IncidentSeverity.medium).length.toString(),
-          parkIncidents.where((i) => i.severity == IncidentSeverity.low).length.toString(),
+          parkIncidents
+              .where((i) => i.severity == IncidentSeverity.critical)
+              .length
+              .toString(),
+          parkIncidents
+              .where((i) => i.severity == IncidentSeverity.high)
+              .length
+              .toString(),
+          parkIncidents
+              .where((i) => i.severity == IncidentSeverity.medium)
+              .length
+              .toString(),
+          parkIncidents
+              .where((i) => i.severity == IncidentSeverity.low)
+              .length
+              .toString(),
           parkIncidents.where((i) => i.activeThreat).length.toString(),
         ];
       }).toList(),
@@ -101,12 +119,20 @@ class PoachingHotspotGenerator extends ReportGenerator {
   }
 
   ConservationReportResult _emptyResult() => ConservationReportResult(
-        reportType: ConservationReportType.poachingHotspot,
-        generatedAt: DateTime.now(),
-        totalIncidents: 0,
-        summaryMetrics: const {'Total incidents': '0'},
-        chartSeries: const {},
-        tableColumns: const ['Area', 'Total', 'Critical', 'High', 'Medium', 'Low', 'Active threats'],
-        tableRows: const [],
-      );
+    reportType: ConservationReportType.poachingHotspot,
+    generatedAt: DateTime.now(),
+    totalIncidents: 0,
+    summaryMetrics: const {'Total incidents': '0'},
+    chartSeries: const {},
+    tableColumns: const [
+      'Area',
+      'Total',
+      'Critical',
+      'High',
+      'Medium',
+      'Low',
+      'Active threats',
+    ],
+    tableRows: const [],
+  );
 }

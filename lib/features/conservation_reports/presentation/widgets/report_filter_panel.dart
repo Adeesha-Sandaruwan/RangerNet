@@ -66,9 +66,7 @@ class _ReportFilterPanelState extends State<ReportFilterPanel> {
                 isDense: true,
               ),
               items: [
-                const DropdownMenuItem<String?>(
-                  child: Text('All parks'),
-                ),
+                const DropdownMenuItem<String?>(child: Text('All parks')),
                 ...widget.parks.map(
                   (park) => DropdownMenuItem(value: park, child: Text(park)),
                 ),
@@ -176,22 +174,21 @@ class _ReportFilterPanelState extends State<ReportFilterPanel> {
                   isDense: true,
                 ),
                 items: [
-                  const DropdownMenuItem<String?>(
-                    child: Text('All rangers'),
-                  ),
+                  const DropdownMenuItem<String?>(child: Text('All rangers')),
                   ...widget.rangers.map(
                     (ranger) => DropdownMenuItem(
                       value: ranger.uid,
-                      child: Text(ranger.displayName.isNotEmpty
-                          ? ranger.displayName
-                          : ranger.email),
+                      child: Text(
+                        ranger.displayName.isNotEmpty
+                            ? ranger.displayName
+                            : ranger.email,
+                      ),
                     ),
                   ),
                 ],
                 onChanged: (value) => widget.onFilterChanged(
                   widget.filter.copyWith(
-                    patrolTeamRangerIds: () =>
-                        value == null ? null : [value],
+                    patrolTeamRangerIds: () => value == null ? null : [value],
                   ),
                 ),
               ),

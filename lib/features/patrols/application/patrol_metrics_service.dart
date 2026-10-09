@@ -87,8 +87,7 @@ class PatrolMetricsService {
       return math.sqrt(start.$1 * start.$1 + start.$2 * start.$2);
     }
 
-    final fraction = (-(start.$1 * deltaX + start.$2 * deltaY) /
-            lengthSquared)
+    final fraction = (-(start.$1 * deltaX + start.$2 * deltaY) / lengthSquared)
         .clamp(0.0, 1.0);
     final nearestX = start.$1 + fraction * deltaX;
     final nearestY = start.$2 + fraction * deltaY;

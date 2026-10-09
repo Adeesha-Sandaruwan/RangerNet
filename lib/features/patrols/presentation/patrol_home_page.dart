@@ -23,19 +23,28 @@ class PatrolHomePage extends StatefulWidget {
     required this.trackingService,
     required this.syncService,
     required this.networkStatus,
+    this.onReportIncident,
     super.key,
   });
 
+  /// Forwarded to the session page to start a linked incident report.
+  final Future<void> Function(Patrol patrol)? onReportIncident;
+
   /// ID used to load this ranger's assigned patrols.
   final String rangerId;
+
   /// Name shown to the ranger in the patrol interface.
   final String rangerName;
+
   /// Application boundary for patrol assignment and lifecycle operations.
   final PatrolService service;
+
   /// Boundary for location acquisition and ongoing patrol tracking.
   final PatrolTrackingService trackingService;
+
   /// Boundary for retrying synchronization of locally saved patrols.
   final PatrolSyncService syncService;
+
   /// Supplies current connectivity and online/offline change notifications.
   final PatrolNetworkStatusProvider networkStatus;
 
@@ -50,10 +59,13 @@ class _PatrolHomePageState extends State<PatrolHomePage>
   static const _metrics = PatrolMetricsService();
 
   List<Patrol> _patrols = const [];
+
   /// Connectivity listener, cancelled when this page is disposed.
   StreamSubscription<bool>? _connectivitySubscription;
+
   /// Live assignment listener, cancelled when this page is disposed.
   StreamSubscription<PatrolListResult>? _assignmentSubscription;
+
   /// Refreshes displayed elapsed time for active patrols; disposed with state.
   Timer? _clock;
   bool _loading = true;
@@ -187,6 +199,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
           trackingService: widget.trackingService,
           syncService: widget.syncService,
           networkStatus: widget.networkStatus,
+          onReportIncident: widget.onReportIncident,
         ),
       ),
     );

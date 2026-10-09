@@ -18,8 +18,10 @@ class FirestorePatrolSyncRepository implements PatrolSyncRepository {
 
   /// Firestore client used to persist remote patrol documents and records.
   final FirebaseFirestore _firestore;
+
   /// Authentication client used to verify ownership before syncing.
   final FirebaseAuth _auth;
+
   /// Domain metrics calculator used for the remote patrol summary.
   static const _metrics = PatrolMetricsService();
 

@@ -15,6 +15,7 @@ class PatrolRouteCoverageGenerator {
 
   /// Target upper spacing between generated coverage checkpoints.
   final double maximumSpacingMeters;
+
   /// Hard limit that prevents generating an excessively large route.
   final int maximumSections;
   final PatrolMetricsService _metrics;
@@ -42,7 +43,11 @@ class PatrolRouteCoverageGenerator {
     }
 
     final sections = <PatrolCoverageCheckpoint>[];
-    for (var segmentIndex = 0; segmentIndex < route.length - 1; segmentIndex++) {
+    for (
+      var segmentIndex = 0;
+      segmentIndex < route.length - 1;
+      segmentIndex++
+    ) {
       final segmentStart = route[segmentIndex];
       final segmentEnd = route[segmentIndex + 1];
       final distance = _distance(segmentStart, segmentEnd);
