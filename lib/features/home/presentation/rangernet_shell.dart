@@ -375,7 +375,7 @@ class _RangerHomePage extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           const Text(
-                            'USE CASE 03 • TELEMETRY ENGINE',
+                            'TELEMETRY ENGINE',
                             style: TextStyle(
                               color: Color(0xFF34D399),
                               fontSize: 10,
