@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../../incidents/domain/incident_report.dart';
-import '../../incidents/domain/ranger_profile.dart';
+import '../../incidents/models/incident_report.dart';
+import '../../incidents/models/ranger_profile.dart';
 
 /// Firestore data access for UC04 conservation report generation.
 ///

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../incidents/domain/incident_report.dart';
-import '../../incidents/domain/ranger_profile.dart';
+import '../../incidents/models/incident_report.dart';
+import '../../incidents/models/ranger_profile.dart';
 import '../data/conservation_analysis_service.dart';
 import '../data/conservation_data_repository.dart';
 import '../domain/conservation_report_filter.dart';

@@ -1,16 +1,19 @@
+// Loads account roles from Firestore and creates new ranger profiles.
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../domain/ranger_profile.dart';
+import '../models/ranger_profile.dart';
 
 /// Loads a trusted role profile. New accounts are always created as rangers;
 /// manager roles must be provisioned by a project administrator.
+/// Keeps user role data access out of the role-routing screen.
 class UserRoleRepository {
   UserRoleRepository({FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
 
+  // Load the saved profile, or create a safe default ranger profile.
   Future<RangerProfile> loadOrCreateRangerProfile(User user) async {
     final reference = _firestore.collection('users').doc(user.uid);
     final existing = await reference.get();

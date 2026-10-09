@@ -1,3 +1,4 @@
+// Multi-step ranger form for writing, saving, and submitting an incident.
 import 'dart:async';
 import 'dart:convert';
 
@@ -5,11 +6,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
-import '../data/incident_evidence_picker.dart';
-import '../data/incident_location_service.dart';
-import '../data/incident_local_store.dart';
-import '../domain/incident_report.dart';
+import '../services/incident_evidence_picker.dart';
+import '../services/incident_location_service.dart';
+import '../repositories/incident_local_store.dart';
+import '../models/incident_report.dart';
 
+/// Collects an incident report and gives the home page save/sync callbacks.
 class IncidentReportPage extends StatefulWidget {
   const IncidentReportPage({
     required this.ranger,
@@ -72,6 +74,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
   bool _draftSaved = false;
 
   @override
+  // Restore a draft when the ranger returns to an unfinished report.
   void initState() {
     super.initState();
     _applyPatrolContext();
@@ -88,6 +91,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
   }
 
   @override
+  // Stop the draft timer and release every text field controller.
   void dispose() {
     _draftSaveTimer?.cancel();
     _title.dispose();
@@ -99,6 +103,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     super.dispose();
   }
 
+  // Fill the form with the last version saved on this phone.
   Future<void> _restoreDraft() async {
     try {
       final draft = await _localStore.loadDraft(widget.ranger.uid);
@@ -140,6 +145,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     }
   }
 
+  // Wait briefly after typing, then save the draft to avoid saving every key.
   void _scheduleDraftSave() {
     _draftSaveTimer?.cancel();
     _draftSaveTimer = Timer(const Duration(milliseconds: 350), () {
@@ -147,6 +153,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     });
   }
 
+  // Save all current form values so they survive closing the form.
   Future<void> _saveDraftNow() async {
     if (_submittedReport != null) return;
     final hasContent =
@@ -185,6 +192,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
   double? get _parsedLatitude => double.tryParse(_latitude.text.trim());
   double? get _parsedLongitude => double.tryParse(_longitude.text.trim());
 
+  // A location is valid only when both coordinates can be read.
   bool get _hasValidLocation {
     final latitude = _parsedLatitude;
     final longitude = _parsedLongitude;
@@ -196,6 +204,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
         longitude <= 180;
   }
 
+  // Explain the location detail that the ranger still needs to provide.
   String get _locationValidationMessage {
     final latitudeText = _latitude.text.trim();
     final longitudeText = _longitude.text.trim();
@@ -214,6 +223,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     return 'Capture GPS or enter valid coordinates.';
   }
 
+  // Ask the location service for GPS and put the result into the form.
   Future<void> _captureGps() async {
     setState(() {
       _busy = true;
@@ -237,6 +247,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     }
   }
 
+  // Pick and compress a photo, then add it to the report.
   Future<void> _addEvidence(EvidenceSource source) async {
     if (_evidence.length >= IncidentEvidencePicker.maxEvidenceCount) {
       setState(() => _error = 'You can attach up to 3 photos to this report.');
@@ -261,6 +272,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     }
   }
 
+  // Remove one selected photo and save the updated draft.
   Future<void> _removeEvidence(IncidentEvidence photo) async {
     final remove = await showDialog<bool>(
       context: context,
@@ -285,6 +297,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     }
   }
 
+  // Open a larger preview so the ranger can check a selected photo.
   Future<void> _previewEvidence(IncidentEvidence photo) => showDialog<void>(
     context: context,
     builder: (context) => Dialog(
@@ -304,6 +317,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     ),
   );
 
+  // Validate the current step before moving forward or submitting.
   Future<void> _next() async {
     setState(() => _error = null);
     if (_step == 0 && _type == null) {
@@ -340,6 +354,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     }
   }
 
+  // Build one report, save it locally first, then try sending it to Firestore.
   Future<void> _submit() async {
     final report = IncidentReport(
       id: _uuid.v4(),
@@ -367,7 +382,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
       _syncMessage = null;
     });
     try {
-      // Save to device before attempting any network request.
+      // Save to device first so a network failure cannot lose the report.
       await widget.saveLocally(report);
       await _localStore.clearDraft(widget.ranger.uid);
       if (!mounted) return;
@@ -402,6 +417,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     }
   }
 
+  // Try sending the saved report again without asking the ranger to re-enter it.
   Future<void> _retrySync() async {
     final report = _submittedReport;
     if (report == null) return;
@@ -432,6 +448,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
   }
 
   @override
+  // Choose between the form steps and the saved/sync result screen.
   Widget build(BuildContext context) {
     final complete = _submittedReport != null;
     return Scaffold(
@@ -461,6 +478,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     );
   }
 
+  // Show the current step, progress indicator, and navigation buttons.
   Widget _buildWizard(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -544,6 +562,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     );
   }
 
+  // Step 1: choose what kind of incident was found.
   Widget _buildTypeStep() => RadioGroup<IncidentType>(
     groupValue: _type,
     onChanged: (value) {
@@ -577,6 +596,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     ),
   );
 
+  // Step 2: enter the title, description, severity, and threat information.
   Widget _buildDetailsStep() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -623,6 +643,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     ],
   );
 
+  // Step 3: capture GPS or enter the location manually.
   Widget _buildLocationStep() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
@@ -705,6 +726,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     ],
   );
 
+  // Step 4: take or choose photos, then review the attached evidence.
   Widget _buildEvidenceStep() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
@@ -788,6 +810,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     ],
   );
 
+  // Step 5: check all report details and confirm before submitting.
   Widget _buildReviewStep() {
     final type = _type;
     return Column(
@@ -843,6 +866,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     );
   }
 
+  // Explain whether the report synced or is waiting for another try.
   Widget _buildSavedState(BuildContext context) {
     final report = _submittedReport!;
     return Column(
@@ -895,6 +919,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     );
   }
 
+  // Build a labelled text field with the same style throughout the form.
   Widget _field(
     TextEditingController controller,
     String label, {
@@ -922,6 +947,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     ),
   );
 
+  // Show one label/value pair in the final review summary.
   Widget _summary(String label, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(
@@ -941,6 +967,7 @@ class _IncidentReportPageState extends State<IncidentReportPage> {
     ),
   );
 
+  // Show a helpful message, using error colors only when needed.
   Widget _message(String message, {bool isError = false}) => Container(
     width: double.infinity,
     margin: const EdgeInsets.only(bottom: 10),

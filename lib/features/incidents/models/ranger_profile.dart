@@ -1,5 +1,7 @@
+// The two account roles used to choose the app's screens.
 enum RangerRole { ranger, manager }
 
+/// Holds the account details needed by manager and ranger screens.
 class RangerProfile {
   const RangerProfile({
     required this.uid,
@@ -15,6 +17,7 @@ class RangerProfile {
   final RangerRole role;
   final bool active;
 
+  // Convert a Firestore user document into a simple app model.
   factory RangerProfile.fromMap(String uid, Map<String, dynamic> data) {
     final roleName = data['role']?.toString();
     final role = RangerRole.values.firstWhere(

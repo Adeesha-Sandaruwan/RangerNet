@@ -1,3 +1,4 @@
+// Incident choices shown on the report form.
 enum IncidentType {
   illegalSnare(
     'Illegal snare / poaching',
@@ -16,6 +17,7 @@ enum IncidentType {
   final String hint;
 }
 
+// How urgent the incident is, from low to critical.
 enum IncidentSeverity {
   low('Low'),
   medium('Medium'),
@@ -26,8 +28,10 @@ enum IncidentSeverity {
   final String label;
 }
 
+// Local upload state: draft, waiting, uploaded, or needing another sync attempt.
 enum IncidentStatus { draft, pendingSync, reported, syncFailed }
 
+// Manager/responder progress after the report reaches Firestore.
 enum IncidentWorkflowStatus {
   reported('Reported'),
   underReview('Under review'),
@@ -44,8 +48,10 @@ enum IncidentWorkflowStatus {
   final String label;
 }
 
+// Whether a manager assigns one ranger or a group.
 enum IncidentAssignmentKind { ranger, responseTeam }
 
+/// One photo attached to an incident or a response update.
 class IncidentEvidence {
   const IncidentEvidence({
     required this.id,
@@ -59,6 +65,7 @@ class IncidentEvidence {
   final String base64Data;
   final String contentType;
 
+  // Turn photo details into JSON so the phone can save them.
   Map<String, Object?> toJson() => {
     'id': id,
     'fileName': fileName,
@@ -66,6 +73,7 @@ class IncidentEvidence {
     'contentType': contentType,
   };
 
+  // Rebuild photo details from saved JSON.
   factory IncidentEvidence.fromJson(Map<String, dynamic> json) =>
       IncidentEvidence(
         id: json['id'] as String,
@@ -75,6 +83,7 @@ class IncidentEvidence {
       );
 }
 
+/// All saved details about one reported incident.
 class IncidentReport {
   const IncidentReport({
     required this.id,
@@ -122,6 +131,7 @@ class IncidentReport {
   final List<String> assignedRangerIds;
   final List<String> assignedRangerNames;
 
+  // Make a copy while changing only the fields passed in.
   IncidentReport copyWith({
     IncidentStatus? status,
     IncidentSeverity? severity,
@@ -153,6 +163,7 @@ class IncidentReport {
     assignedRangerNames: assignedRangerNames ?? this.assignedRangerNames,
   );
 
+  // Turn this report into JSON for the offline queue or draft storage.
   Map<String, Object?> toJson() => {
     'id': id,
     'rangerId': rangerId,
@@ -177,6 +188,7 @@ class IncidentReport {
     'assignedRangerNames': assignedRangerNames,
   };
 
+  // Restore a report saved as JSON on the device.
   factory IncidentReport.fromJson(Map<String, dynamic> json) => IncidentReport(
     id: json['id'] as String,
     rangerId: json['rangerId'] as String,

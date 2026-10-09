@@ -5,7 +5,7 @@ import '../application/patrol_metrics_service.dart';
 import '../application/patrol_review_service.dart';
 import '../domain/patrol_assignment.dart';
 import '../domain/patrol_records.dart';
-import '../../incidents/domain/ranger_profile.dart';
+import '../../incidents/models/ranger_profile.dart';
 import 'completed_patrol_reviews_page.dart';
 import 'patrol_route_builder_page.dart';
 import 'patrol_route_map.dart';

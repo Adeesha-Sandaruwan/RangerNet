@@ -1,20 +1,27 @@
+// Shows the manager's live incident list and separates open from closed items.
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../data/incident_management_repository.dart';
-import '../domain/incident_report.dart';
-import '../domain/ranger_profile.dart';
-import 'auth_navigation.dart';
+import '../repositories/incident_management_ports.dart';
+import '../models/incident_report.dart';
+import '../models/ranger_profile.dart';
+import '../navigation/auth_navigation.dart';
 import 'incident_manager_detail_page.dart';
-import 'widgets/incident_status_badges.dart';
+import '../widgets/incident_status_badges.dart';
 
 /// UC02-only operations inbox for the Park Manager / Duty Supervisor.
+/// Lets a manager review and filter reported incidents.
 class IncidentManagerInboxPage extends StatefulWidget {
-  const IncidentManagerInboxPage({required this.manager, super.key});
+  const IncidentManagerInboxPage({
+    required this.manager,
+    required this.repository,
+    super.key,
+  });
 
   final RangerProfile manager;
+  final IncidentManagerGateway repository;
 
   @override
   State<IncidentManagerInboxPage> createState() =>
@@ -22,7 +29,6 @@ class IncidentManagerInboxPage extends StatefulWidget {
 }
 
 class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
-  final _repository = IncidentManagementRepository();
   StreamSubscription<List<IncidentReport>>? _subscription;
   List<IncidentReport> _reports = const [];
   final Set<String> _knownIncidentIds = {};
@@ -33,9 +39,10 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
   String? _error;
 
   @override
+  // Subscribe to Firestore updates when the inbox opens.
   void initState() {
     super.initState();
-    _subscription = _repository.watchAllIncidents().listen(
+    _subscription = widget.repository.watchAllIncidents().listen(
       (reports) {
         if (mounted) {
           if (_receivedInitialSnapshot) {
@@ -75,18 +82,20 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
   }
 
   @override
+  // Stop listening when the manager leaves this screen.
   void dispose() {
     _subscription?.cancel();
     super.dispose();
   }
 
+  // Load the list once when a stream cannot provide its first result.
   Future<void> _load() async {
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final reports = await _repository.loadAllIncidents();
+      final reports = await widget.repository.loadAllIncidents();
       if (mounted) setState(() => _reports = reports);
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
@@ -96,6 +105,7 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
   }
 
   @override
+  // Show loading, error, filters, and the matching incident cards.
   Widget build(BuildContext context) {
     final sectionReports = _reports.where(
       (report) => _showClosed
@@ -232,6 +242,7 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
     );
   }
 
+  // Build one incident row that opens its manager detail screen.
   Widget _incidentCard(IncidentReport report) => Card(
     child: ListTile(
       onTap: () => Navigator.of(context)
@@ -240,6 +251,7 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
               builder: (_) => IncidentManagerDetailPage(
                 report: report,
                 manager: widget.manager,
+                repository: widget.repository,
               ),
             ),
           )
@@ -272,8 +284,10 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
     ),
   );
 
+  // Format a timestamp in the phone's local time zone.
   String _date(DateTime date) => date.toLocal().toString().substring(0, 16);
 
+  // Sign out and return through the app's authentication gate.
   Future<void> _signOut() =>
       signOutAndReturnToLogin(context, signOut: FirebaseAuth.instance.signOut);
 }

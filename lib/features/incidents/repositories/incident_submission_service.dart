@@ -1,6 +1,6 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 
-import '../domain/incident_report.dart';
+import '../models/incident_report.dart';
 import 'incident_cloud_repository.dart';
 import 'incident_local_store.dart';
 

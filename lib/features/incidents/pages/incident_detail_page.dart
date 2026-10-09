@@ -1,11 +1,14 @@
+// Shows a ranger's submitted incident and its attached photos.
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+// Shows a ranger's submitted incident and its attached photos.
 import 'package:flutter/material.dart';
 
-import '../domain/incident_report.dart';
+import '../models/incident_report.dart';
 
 /// Read-only detail view for a ranger's own locally saved or submitted report.
+/// Displays the saved details for one incident report.
 class IncidentDetailPage extends StatefulWidget {
   const IncidentDetailPage({required this.report, super.key});
 
@@ -19,11 +22,13 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
   late Future<List<IncidentEvidence>> _evidenceFuture;
 
   @override
+  // Start loading evidence when the detail screen opens.
   void initState() {
     super.initState();
     _evidenceFuture = _loadEvidence();
   }
 
+  // Fetch evidence from Firestore, or use photos already on the report model.
   Future<List<IncidentEvidence>> _loadEvidence() async {
     if (widget.report.evidence.isNotEmpty ||
         widget.report.status != IncidentStatus.reported) {
@@ -50,6 +55,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
   }
 
   @override
+  // Draw the incident facts and photo section.
   Widget build(BuildContext context) {
     final report = widget.report;
     final hasLocation = report.latitude != null && report.longitude != null;
@@ -180,6 +186,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     );
   }
 
+  // Show a photo thumbnail that the user can open larger.
   Widget _evidenceTile(IncidentEvidence photo) {
     final bytes = base64Decode(photo.base64Data);
     return InkWell(
@@ -206,6 +213,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     );
   }
 
+  // Show one named incident value, such as severity or location.
   Widget _detail(String label, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 3),
     child: Row(
@@ -220,6 +228,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     ),
   );
 
+  // Turn the saved date into a readable local time.
   String _formatDate(DateTime date) =>
       date.toLocal().toString().substring(0, 16);
 }

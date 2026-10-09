@@ -1,22 +1,32 @@
+// Gives managers a simple starting page for opening incident management.
 import 'package:firebase_auth/firebase_auth.dart';
+// Manager's landing page and link to incident management.
 import 'package:flutter/material.dart';
 
+import '../repositories/incident_management_ports.dart';
 import '../../patrols/application/patrol_assignment_service.dart';
 import '../../patrols/application/patrol_review_service.dart';
 import '../../patrols/data/firestore_patrol_assignment_repository.dart';
 import '../../patrols/data/firestore_patrol_review_repository.dart';
 import '../../patrols/presentation/patrol_assignment_management_page.dart';
-import '../domain/ranger_profile.dart';
+import '../models/ranger_profile.dart';
 import '../../conservation_reports/presentation/conservation_report_page.dart';
 import 'incident_manager_inbox_page.dart';
 
 /// Landing page shown only to authenticated Park Manager accounts.
+/// Shows the manager's welcome screen before opening the incident inbox.
 class IncidentManagerDashboardPage extends StatelessWidget {
-  const IncidentManagerDashboardPage({required this.manager, super.key});
+  const IncidentManagerDashboardPage({
+    required this.manager,
+    required this.repository,
+    super.key,
+  });
 
   final RangerProfile manager;
+  final IncidentManagerGateway repository;
 
   @override
+  // Build the landing screen and its incident-management button.
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF5F8F3),
     appBar: AppBar(
@@ -116,8 +126,10 @@ class IncidentManagerDashboardPage extends StatelessWidget {
                     FilledButton.icon(
                       onPressed: () => Navigator.of(context).push<void>(
                         MaterialPageRoute<void>(
-                          builder: (_) =>
-                              IncidentManagerInboxPage(manager: manager),
+                          builder: (_) => IncidentManagerInboxPage(
+                            manager: manager,
+                            repository: repository,
+                          ),
                         ),
                       ),
                       icon: const Icon(Icons.folder_open_outlined),

@@ -1,8 +1,10 @@
+// Checks that signing out clears manager pages and returns to the login screen.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rangernet/features/incidents/presentation/auth_navigation.dart';
+import 'package:rangernet/features/incidents/navigation/auth_navigation.dart';
 
 void main() {
+  // A successful sign-out should remove any page opened above the login gate.
   testWidgets('sign out clears pushed pages and returns to login', (
     tester,
   ) async {
@@ -18,6 +20,7 @@ void main() {
     expect(find.text('Incident management page'), findsNothing);
   });
 
+  // If Firebase sign-out fails, keep the user on the page and show the error.
   testWidgets('failed sign out leaves the manager page open', (tester) async {
     await tester.pumpWidget(const _TestGate(failSignOut: true));
     await tester.tap(find.text('Open incident management'));
@@ -30,6 +33,7 @@ void main() {
   });
 }
 
+// A small test-only sign-in gate that does not need Firebase.
 class _TestGate extends StatefulWidget {
   const _TestGate({this.failSignOut = false});
 
@@ -42,6 +46,7 @@ class _TestGate extends StatefulWidget {
 class _TestGateState extends State<_TestGate> {
   bool _signedIn = true;
 
+  // Pretend to sign out, or throw when testing the error case.
   Future<void> _signOut() async {
     if (widget.failSignOut) throw StateError('Simulated sign-out failure');
     setState(() => _signedIn = false);
@@ -74,6 +79,7 @@ class _TestGateState extends State<_TestGate> {
   );
 }
 
+// Fake manager page used to trigger the shared sign-out helper in tests.
 class _ManagerPage extends StatelessWidget {
   const _ManagerPage({required this.onSignOut});
 

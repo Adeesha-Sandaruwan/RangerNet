@@ -1,8 +1,10 @@
+// Reads and writes ranger incident reports in Cloud Firestore.
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../domain/incident_report.dart';
+import '../models/incident_report.dart';
 
+/// Handles the reporting ranger's Firestore reads and upload process.
 class IncidentCloudRepository {
   IncidentCloudRepository({FirebaseFirestore? firestore, FirebaseAuth? auth})
     : _firestore = firestore ?? FirebaseFirestore.instance,
@@ -13,6 +15,7 @@ class IncidentCloudRepository {
 
   /// Loads only the signed-in ranger's reports. The Firestore rules enforce
   /// the same ownership check on the server.
+  // Load only reports created by the signed-in ranger.
   Future<List<IncidentReport>> loadReportsForRanger(String rangerId) async {
     final user = _auth.currentUser;
     if (user == null || user.uid != rangerId) {
@@ -32,6 +35,7 @@ class IncidentCloudRepository {
     return reports;
   }
 
+  // Convert a Firestore document into the app's incident model.
   IncidentReport _reportFromDocument(Map<String, dynamic> data) {
     final created = data['createdAtClient'];
     final createdAt = created is Timestamp
@@ -82,6 +86,7 @@ class IncidentCloudRepository {
     );
   }
 
+  // Upload the report and photos, mark it reported, then write its history event.
   Future<void> publish(IncidentReport report) async {
     final user = _auth.currentUser;
     if (user == null || user.uid != report.rangerId) {
@@ -122,6 +127,7 @@ class IncidentCloudRepository {
     // ranger's get() when that document does not exist. This owner-filtered
     // query is authorized by the same rangerId rule as the submitted reports
     // list and safely returns no documents for a new incident.
+    // This owner-filtered query can safely return no result for a new report.
     final existingSnapshot = await _firestore
         .collection('incidents')
         .where('incidentId', isEqualTo: report.id)
@@ -152,6 +158,7 @@ class IncidentCloudRepository {
       await incident.set({...metadata, 'status': 'Uploading'});
     }
 
+    // Upload every photo before marking the whole report as complete.
     for (final evidence in report.evidence) {
       await incident.collection('evidence').doc(evidence.id).set({
         'fileName': evidence.fileName,
@@ -168,6 +175,7 @@ class IncidentCloudRepository {
     await _ensureSubmittedTimelineEvent(incident, report);
   }
 
+  // Create the first history entry once; safely skip it on a retry.
   Future<void> _ensureSubmittedTimelineEvent(
     DocumentReference<Map<String, dynamic>> incident,
     IncidentReport report,

@@ -8,7 +8,7 @@ import '../application/patrol_review_service.dart';
 import '../domain/patrol.dart';
 import '../domain/patrol_records.dart';
 import '../domain/patrol_review.dart';
-import '../../incidents/domain/ranger_profile.dart';
+import '../../incidents/models/ranger_profile.dart';
 import 'patrol_coverage_summary.dart';
 import 'patrol_route_map.dart';
 

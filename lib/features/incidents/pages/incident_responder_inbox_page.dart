@@ -1,22 +1,26 @@
+// Shows incidents assigned to this ranger and listens for live updates.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../data/incident_management_repository.dart';
-import '../domain/incident_report.dart';
+import '../repositories/incident_management_ports.dart';
+import '../models/incident_report.dart';
 import 'incident_responder_detail_page.dart';
-import 'widgets/incident_status_badges.dart';
+import '../widgets/incident_status_badges.dart';
 
 /// Assigned UC02 cases for a ranger acting as an incident responder.
+/// Lets a responder find work assigned by the manager.
 class IncidentResponderInboxPage extends StatefulWidget {
   const IncidentResponderInboxPage({
     required this.rangerId,
     required this.responderName,
+    required this.repository,
     super.key,
   });
 
   final String rangerId;
   final String responderName;
+  final IncidentResponderGateway repository;
 
   @override
   State<IncidentResponderInboxPage> createState() =>
@@ -25,7 +29,6 @@ class IncidentResponderInboxPage extends StatefulWidget {
 
 class _IncidentResponderInboxPageState
     extends State<IncidentResponderInboxPage> {
-  final _repository = IncidentManagementRepository();
   StreamSubscription<List<IncidentReport>>? _subscription;
   List<IncidentReport> _reports = const [];
   final Set<String> _knownIncidentIds = {};
@@ -34,13 +37,15 @@ class _IncidentResponderInboxPageState
   String? _error;
 
   @override
+  // Begin listening as soon as the assigned-work tab opens.
   void initState() {
     super.initState();
     _watchAssignments();
   }
 
+  // Keep the assigned incident list updated from Firestore snapshots.
   void _watchAssignments() {
-    _subscription = _repository
+    _subscription = widget.repository
         .watchAssignedIncidents(widget.rangerId)
         .listen(
           (reports) {
@@ -80,11 +85,13 @@ class _IncidentResponderInboxPageState
   }
 
   @override
+  // Cancel the live listener when this screen is removed.
   void dispose() {
     _subscription?.cancel();
     super.dispose();
   }
 
+  // Load assigned incidents once if needed or when the user refreshes.
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -92,7 +99,9 @@ class _IncidentResponderInboxPageState
     });
     await _subscription?.cancel();
     try {
-      final reports = await _repository.loadAssignedIncidents(widget.rangerId);
+      final reports = await widget.repository.loadAssignedIncidents(
+        widget.rangerId,
+      );
       if (mounted) {
         setState(() {
           _reports = reports;
@@ -112,6 +121,7 @@ class _IncidentResponderInboxPageState
   }
 
   @override
+  // Draw loading/error feedback and the list of assigned incidents.
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF5F8F3),
     appBar: AppBar(
@@ -173,6 +183,7 @@ class _IncidentResponderInboxPageState
     ),
   );
 
+  // Show a short summary that opens the responder's detail screen.
   Widget _incidentCard(IncidentReport report) => Card(
     child: ListTile(
       onTap: () => Navigator.of(context)
@@ -181,6 +192,7 @@ class _IncidentResponderInboxPageState
               builder: (_) => IncidentResponderDetailPage(
                 report: report,
                 responderName: widget.responderName,
+                repository: widget.repository,
               ),
             ),
           )

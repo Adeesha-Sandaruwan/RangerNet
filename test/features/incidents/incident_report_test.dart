@@ -1,9 +1,11 @@
+// Checks that incident and user models save and restore their fields correctly.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rangernet/features/incidents/domain/incident_report.dart';
-import 'package:rangernet/features/incidents/domain/incident_timeline_event.dart';
-import 'package:rangernet/features/incidents/domain/ranger_profile.dart';
+import 'package:rangernet/features/incidents/models/incident_report.dart';
+import 'package:rangernet/features/incidents/models/incident_timeline_event.dart';
+import 'package:rangernet/features/incidents/models/ranger_profile.dart';
 
 void main() {
+  // These tests protect the JSON format used by saved drafts and offline reports.
   group('IncidentReport', () {
     test('round-trips every report field and its evidence', () {
       final restored = IncidentReport.fromJson(_report().toJson());
@@ -102,6 +104,7 @@ void main() {
     });
   });
 
+  // Check profile parsing, including manager and older account data.
   group('RangerProfile', () {
     test('reads an active manager profile', () {
       final profile = RangerProfile.fromMap('manager-uid', {
@@ -128,6 +131,7 @@ void main() {
     });
   });
 
+  // Check that incident history rows can be read from saved data.
   group('IncidentTimelineEvent', () {
     test('parses an event with all values', () {
       final time = DateTime.utc(2026, 2, 3);
@@ -159,6 +163,7 @@ void main() {
   });
 }
 
+// Make a reusable sample report so each test focuses on what it changes.
 IncidentReport _report() => IncidentReport(
   id: 'INC-1',
   rangerId: 'ranger-uid',

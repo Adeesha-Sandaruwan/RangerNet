@@ -1,7 +1,9 @@
+// Gets the phone's current GPS coordinates and explains location failures.
 import 'dart:async';
 
 import 'package:geolocator/geolocator.dart';
 
+/// Holds the latitude, longitude, and accuracy returned by GPS.
 class IncidentCoordinates {
   const IncidentCoordinates({
     required this.latitude,
@@ -14,7 +16,9 @@ class IncidentCoordinates {
   final double accuracyMeters;
 }
 
+/// Checks location settings and asks the phone for its current position.
 class IncidentLocationService {
+  // Stop with a clear message if GPS or location permission is unavailable.
   Future<IncidentCoordinates> captureCurrentLocation() async {
     if (!await Geolocator.isLocationServiceEnabled()) {
       throw const IncidentLocationException(
@@ -57,6 +61,7 @@ class IncidentLocationService {
   }
 }
 
+/// A location problem with a message that can be shown to the ranger.
 class IncidentLocationException implements Exception {
   const IncidentLocationException(this.message);
   final String message;
