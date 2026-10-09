@@ -1,3 +1,5 @@
+// Coverage: manager patrol-review service; checks note trimming, required
+// patrol/manager identity, and follow-up note validation before repository calls.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rangernet/features/patrols/application/patrol_review_service.dart';
 import 'package:rangernet/features/patrols/domain/patrol.dart';

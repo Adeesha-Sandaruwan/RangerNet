@@ -1,3 +1,5 @@
+// Coverage: planned-section coverage calculations from GPS fixes, reliable
+// track segments, and manual waypoints, including unconfigured sections.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rangernet/features/patrols/application/patrol_coverage_service.dart';
 import 'package:rangernet/features/patrols/domain/patrol.dart';

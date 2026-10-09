@@ -1,3 +1,5 @@
+// Coverage: patrol coverage and map presentation; checks displayed counts,
+// zero-data and single-point edges, location markers, and invalid map centers.
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -62,6 +64,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: PatrolRouteMap(
+            showTileLayer: false,
             patrol: _patrol(
               routePoints: [
                 PatrolRoutePoint(
@@ -77,6 +80,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(FlutterMap), findsOneWidget);
+    expect(find.byType(TileLayer), findsNothing);
   });
 
   testWidgets(
@@ -109,6 +113,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: PatrolRouteMap(
+              showTileLayer: false,
               patrol: patrol,
               latestLocation: _location(6.14, 81.24),
             ),
@@ -118,6 +123,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(FlutterMap), findsOneWidget);
+      expect(find.byType(TileLayer), findsNothing);
       expect(find.text('S'), findsOneWidget);
       expect(find.text('1'), findsOneWidget);
       expect(find.text('E'), findsOneWidget);
@@ -165,6 +171,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: ManualWaypointMapPage(
+          showTileLayer: false,
           patrol: _patrol(
             area: const PatrolArea(
               parkName: 'Park',
@@ -180,6 +187,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(FlutterMap), findsOneWidget);
+    expect(find.byType(TileLayer), findsNothing);
     expect(
       find.textContaining('Tap the map to mark the exact location.'),
       findsOneWidget,

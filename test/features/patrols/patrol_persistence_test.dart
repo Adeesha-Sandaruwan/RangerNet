@@ -14,6 +14,8 @@ void main() {
     repository = LocalPatrolRepository();
   });
 
+  // Positive persistence and update case: saving the same ranger/local ID
+  // twice replaces the record instead of creating a duplicate.
   test(
     'persists patrol records and replaces by local ID without duplicates',
     () async {
@@ -28,6 +30,8 @@ void main() {
     },
   );
 
+  // Restart/restore case: a fresh repository reloads an in-progress patrol
+  // and preserves each kind of recorded field data.
   test(
     'restores an active patrol and all field records after repository restart',
     () async {
@@ -50,6 +54,8 @@ void main() {
     },
   );
 
+  // Storage error case: a failed write surfaces an error and leaves the
+  // previously saved patrol unchanged.
   test(
     'storage-full failure is reported and does not replace prior local data',
     () async {
@@ -69,6 +75,8 @@ void main() {
     },
   );
 
+  // Identity-validation error cases: neither a local record ID nor an
+  // assigned remote patrol ID may be reused for a different patrol.
   test(
     'prevents a local ID or remote patrol ID from being reassigned',
     () async {
@@ -101,6 +109,8 @@ void main() {
     },
   );
 
+  // Codec round-trip case: encoding and decoding preserves patrol identity,
+  // route/location data, field records, coverage, and synchronization state.
   test(
     'round-trips route, observations, photos, events, and sync metadata',
     () {
@@ -133,6 +143,8 @@ void main() {
     },
   );
 
+  // Corrupt-input error case: malformed persisted JSON is reported instead
+  // of being silently discarded or treated as an empty patrol list.
   test(
     'rejects corrupted saved patrol data rather than silently dropping it',
     () async {

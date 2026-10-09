@@ -14,6 +14,7 @@ class PatrolRouteMap extends StatelessWidget {
     this.plannedRoute,
     this.latestLocation,
     this.height = 260,
+    this.showTileLayer = true,
     super.key,
   });
 
@@ -28,6 +29,10 @@ class PatrolRouteMap extends StatelessWidget {
 
   /// Requested map viewport height in logical pixels.
   final double height;
+
+  /// Whether to display map tiles beneath the patrol overlays.
+  final bool showTileLayer;
+
   static const _metrics = PatrolMetricsService();
 
   @override
@@ -81,10 +86,11 @@ class PatrolRouteMap extends StatelessWidget {
                   ),
           ),
           children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'lk.rangernet.rangernet',
-            ),
+            if (showTileLayer)
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'lk.rangernet.rangernet',
+              ),
             if (planned.length > 1)
               PolylineLayer(
                 polylines: [

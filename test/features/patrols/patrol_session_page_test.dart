@@ -1,3 +1,5 @@
+// Coverage: ranger patrol-session UI and lifecycle; checks recording,
+// validation, GPS failure/retry, resume, completion, and unsaved field changes.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -393,6 +395,7 @@ Future<void> _showSession(
         trackingService: context.tracking,
         syncService: context.sync,
         networkStatus: context.network,
+        showTileLayer: false,
       ),
     ),
   );

@@ -1,3 +1,5 @@
+// Coverage: GPS patrol tracking; checks accuracy filtering, duplicate and
+// near-duplicate fixes, GPS loss/recovery, and preservation of saved route data.
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';

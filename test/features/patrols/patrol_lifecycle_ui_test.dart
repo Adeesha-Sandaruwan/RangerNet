@@ -1,5 +1,7 @@
 import 'dart:async';
 
+// Coverage: patrol completion-review UI; checks confirmation, cancellation,
+// offline pending-sync behavior, and successful online completion.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rangernet/features/patrols/application/patrol_service.dart';

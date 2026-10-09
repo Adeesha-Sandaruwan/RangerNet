@@ -13,6 +13,7 @@ class ManualWaypointMapPage extends StatefulWidget {
   const ManualWaypointMapPage({
     required this.patrol,
     this.initialLocation,
+    this.showTileLayer = true,
     super.key,
   });
 
@@ -21,6 +22,9 @@ class ManualWaypointMapPage extends StatefulWidget {
 
   /// Optional coordinate to center the map on initially.
   final PatrolLocation? initialLocation;
+
+  /// Whether to display map tiles beneath the patrol overlays.
+  final bool showTileLayer;
 
   @override
   State<ManualWaypointMapPage> createState() => _ManualWaypointMapPageState();
@@ -222,16 +226,17 @@ class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
               onTap: (_, point) => setState(() => _selected = point),
             ),
             children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'lk.rangernet.rangernet',
-                errorTileCallback: (_, _, _) {
-                  if (_tilesUnavailable || !mounted) return;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) setState(() => _tilesUnavailable = true);
-                  });
-                },
-              ),
+              if (widget.showTileLayer)
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'lk.rangernet.rangernet',
+                  errorTileCallback: (_, _, _) {
+                    if (_tilesUnavailable || !mounted) return;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) setState(() => _tilesUnavailable = true);
+                    });
+                  },
+                ),
               if (actualRoute.length > 1)
                 PolylineLayer(
                   polylines: [

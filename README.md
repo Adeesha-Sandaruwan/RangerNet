@@ -195,13 +195,16 @@ Check code style and common errors:
 flutter analyze
 ```
 
-Create a coverage report:
+Run the full test suite and print line coverage in the terminal:
 
 ```powershell
-flutter test --coverage
+.\tool\test-coverage.ps1
 ```
 
-The report is written to `coverage/lcov.info`.
+The command writes the detailed report to `coverage/lcov.info` and prints the
+covered executable lines as a percentage.
+See the [unit and widget testing report](docs/UNIT_TESTING_REPORT.md) for the
+test suite breakdown, rubric evidence, and recorded run results.
 
 Build a debug Android APK:
 

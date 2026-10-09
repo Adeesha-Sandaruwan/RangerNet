@@ -1,3 +1,5 @@
+// Coverage: ranger patrol-home synchronization UI; checks offline manual
+// retry and automatic sync when network connectivity returns.
 import 'dart:async';
 
 import 'package:flutter/material.dart';

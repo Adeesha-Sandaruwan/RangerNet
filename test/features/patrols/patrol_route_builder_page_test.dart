@@ -1,3 +1,5 @@
+// Coverage: patrol route-builder UI; checks required endpoints, stop editing,
+// generated coverage output, and invalid duplicate start/destination handling.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rangernet/features/patrols/domain/patrol_records.dart';
@@ -77,7 +79,10 @@ Future<void> _showRouteBuilder(
               final route = await Navigator.of(context).push<PatrolRoutePlan>(
                 MaterialPageRoute(
                   builder: (_) =>
-                      PatrolRouteBuilderPage(initialRoute: initialRoute),
+                      PatrolRouteBuilderPage(
+                        initialRoute: initialRoute,
+                        showTileLayer: false,
+                      ),
                 ),
               );
               if (route != null) onRoute?.call(route);

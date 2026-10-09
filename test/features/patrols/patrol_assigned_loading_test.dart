@@ -1,3 +1,5 @@
+// Coverage: assigned-patrol loading, caching, live updates, and concurrent
+// refreshes; checks server/cache failures and stable local record identity.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rangernet/features/patrols/application/patrol_service.dart';
 import 'package:rangernet/features/patrols/domain/patrol.dart';
