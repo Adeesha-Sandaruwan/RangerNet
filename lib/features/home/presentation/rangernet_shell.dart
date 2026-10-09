@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../../incidents/domain/incident_management_ports.dart';
-import '../../incidents/presentation/incident_home_page.dart';
-import '../../incidents/presentation/incident_responder_inbox_page.dart';
+import '../../incidents/repositories/incident_management_ports.dart';
+import '../../incidents/pages/incident_home_page.dart';
+import '../../incidents/pages/incident_responder_inbox_page.dart';
 import '../../patrols/application/patrol_service.dart';
 import '../../patrols/application/patrol_sync_service.dart';
 import '../../patrols/application/patrol_tracking_service.dart';

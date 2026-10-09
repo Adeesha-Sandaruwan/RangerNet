@@ -4,12 +4,12 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../domain/incident_management_ports.dart';
-import '../domain/incident_report.dart';
-import '../domain/ranger_profile.dart';
-import 'auth_navigation.dart';
+import '../repositories/incident_management_ports.dart';
+import '../models/incident_report.dart';
+import '../models/ranger_profile.dart';
+import '../navigation/auth_navigation.dart';
 import 'incident_manager_detail_page.dart';
-import 'widgets/incident_status_badges.dart';
+import '../widgets/incident_status_badges.dart';
 
 /// UC02-only operations inbox for the Park Manager / Duty Supervisor.
 /// Lets a manager review and filter reported incidents.

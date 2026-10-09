@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rangernet/features/incidents/domain/incident_report.dart';
+import 'package:rangernet/features/incidents/models/incident_report.dart';
 import 'package:rangernet/features/conservation_reports/domain/conservation_report_filter.dart';
 import 'package:rangernet/features/conservation_reports/domain/conservation_report_type.dart';
 import 'package:rangernet/features/conservation_reports/data/conservation_analysis_service.dart';

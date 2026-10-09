@@ -5,11 +5,11 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../data/incident_cloud_repository.dart';
-import '../data/incident_local_store.dart';
-import '../domain/incident_report.dart';
+import '../repositories/incident_cloud_repository.dart';
+import '../repositories/incident_local_store.dart';
+import '../models/incident_report.dart';
 import 'incident_detail_page.dart';
-import 'widgets/incident_status_badges.dart';
+import '../widgets/incident_status_badges.dart';
 import 'incident_report_page.dart';
 
 /// Shows a ranger's incident reports and retries pending uploads.

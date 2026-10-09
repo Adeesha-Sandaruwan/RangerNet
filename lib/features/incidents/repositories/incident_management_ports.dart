@@ -1,7 +1,7 @@
 // Small contracts that screens use instead of depending on Firebase directly.
-import 'incident_report.dart';
-import 'incident_timeline_event.dart';
-import 'ranger_profile.dart';
+import '../models/incident_report.dart';
+import '../models/incident_timeline_event.dart';
+import '../models/ranger_profile.dart';
 
 /// Operations needed by manager screens only (Interface Segregation).
 ///

@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 // Shows a ranger's submitted incident and its attached photos.
 import 'package:flutter/material.dart';
 
-import '../domain/incident_report.dart';
+import '../models/incident_report.dart';
 
 /// Read-only detail view for a ranger's own locally saved or submitted report.
 /// Displays the saved details for one incident report.

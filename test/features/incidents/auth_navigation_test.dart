@@ -1,7 +1,7 @@
 // Checks that signing out clears manager pages and returns to the login screen.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rangernet/features/incidents/presentation/auth_navigation.dart';
+import 'package:rangernet/features/incidents/navigation/auth_navigation.dart';
 
 void main() {
   // A successful sign-out should remove any page opened above the login gate.

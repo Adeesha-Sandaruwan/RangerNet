@@ -3,11 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:uuid/uuid.dart';
 
-import '../domain/incident_report.dart';
-import '../domain/incident_timeline_event.dart';
-import '../domain/ranger_profile.dart';
-import '../domain/incident_workflow_policy.dart';
-import '../domain/incident_management_ports.dart';
+import '../models/incident_report.dart';
+import '../models/incident_timeline_event.dart';
+import '../models/ranger_profile.dart';
+import '../services/incident_workflow_policy.dart';
+import 'incident_management_ports.dart';
 
 /// Firestore implementation of the manager and responder gateway contracts.
 /// It can replace another implementation while keeping the same operations.

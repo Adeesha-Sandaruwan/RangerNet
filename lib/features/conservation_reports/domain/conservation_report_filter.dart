@@ -1,4 +1,4 @@
-import '../../incidents/domain/incident_report.dart';
+import '../../incidents/models/incident_report.dart';
 
 /// Immutable filter criteria for UC04 conservation report generation.
 ///

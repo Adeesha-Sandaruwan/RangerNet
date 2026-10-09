@@ -1,4 +1,4 @@
-import '../../../incidents/domain/incident_report.dart';
+import '../../../incidents/models/incident_report.dart';
 import '../../domain/conservation_report_filter.dart';
 import '../../domain/conservation_report_result.dart';
 

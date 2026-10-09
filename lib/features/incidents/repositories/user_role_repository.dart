@@ -2,7 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../domain/ranger_profile.dart';
+import '../models/ranger_profile.dart';
 
 /// Loads a trusted role profile. New accounts are always created as rangers;
 /// manager roles must be provisioned by a project administrator.

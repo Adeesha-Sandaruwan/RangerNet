@@ -1,7 +1,7 @@
 // Checks valid and invalid actions before managers or responders save them.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rangernet/features/incidents/domain/incident_report.dart';
-import 'package:rangernet/features/incidents/domain/incident_workflow_policy.dart';
+import 'package:rangernet/features/incidents/models/incident_report.dart';
+import 'package:rangernet/features/incidents/services/incident_workflow_policy.dart';
 
 void main() {
   // One ranger means exactly one selection; a response team needs at least two.

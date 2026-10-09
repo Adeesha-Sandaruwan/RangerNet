@@ -2,7 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../domain/incident_report.dart';
+import '../models/incident_report.dart';
 
 /// Handles the reporting ranger's Firestore reads and upload process.
 class IncidentCloudRepository {
