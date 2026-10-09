@@ -50,6 +50,11 @@ class PatrolRouteMap extends StatelessWidget {
       if (latestLocation != null) _latLng(latestLocation!),
     ];
     if (allPoints.isEmpty) return const SizedBox.shrink();
+    final hasDistinctCoordinates = allPoints.skip(1).any(
+      (point) =>
+          point.latitude != allPoints.first.latitude ||
+          point.longitude != allPoints.first.longitude,
+    );
 
     return SizedBox(
       height: height,
@@ -57,12 +62,15 @@ class PatrolRouteMap extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: FlutterMap(
           options: MapOptions(
-            initialCameraFit: allPoints.length > 1
+            initialCameraFit: hasDistinctCoordinates
                 ? CameraFit.bounds(
                     bounds: LatLngBounds.fromPoints(allPoints),
                     padding: const EdgeInsets.all(36),
                   )
-                : CameraFit.coordinates(coordinates: allPoints, maxZoom: 14),
+                : CameraFit.coordinates(
+                    coordinates: [allPoints.first],
+                    maxZoom: 14,
+                  ),
           ),
           children: [
             TileLayer(

@@ -514,8 +514,8 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     String? initialCategory,
     List<String> categories = const [],
   }) async {
-    final controller = TextEditingController(text: initialValue);
     final formKey = GlobalKey<FormState>();
+    var description = initialValue ?? '';
     final value = await showDialog<_PatrolRecordInput>(
       context: context,
       barrierDismissible: false,
@@ -525,7 +525,8 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
         StateSetter? updateDialog;
 
         Future<void> cancel() async {
-          if (controller.text.trim().isNotEmpty ||
+          if (description.trim().isNotEmpty ||
+              description != (initialValue ?? '') ||
               category != initialCategory) {
             final discard = await _confirmAction(
               title: 'Discard unsaved changes?',
@@ -549,80 +550,78 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
                 if (!didPop) unawaited(cancel());
               },
               child: AlertDialog(
-              title: Text(title),
-              content: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (categories.isNotEmpty) ...[
-                      DropdownButtonFormField<String>(
-                        initialValue: category,
-                        decoration: const InputDecoration(
-                          labelText: 'Observation category',
-                          border: OutlineInputBorder(),
+                title: Text(title),
+                content: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (categories.isNotEmpty) ...[
+                        DropdownButtonFormField<String>(
+                          initialValue: category,
+                          decoration: const InputDecoration(
+                            labelText: 'Observation category',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: categories
+                              .map(
+                                (option) => DropdownMenuItem(
+                                  value: option,
+                                  child: Text(option),
+                                ),
+                              )
+                              .toList(),
+                          validator: (selected) => selected == null
+                              ? 'Choose an observation category.'
+                              : null,
+                          onChanged: (selected) =>
+                              setDialogState(() => category = selected),
                         ),
-                        items: categories
-                            .map(
-                              (option) => DropdownMenuItem(
-                                value: option,
-                                child: Text(option),
-                              ),
-                            )
-                            .toList(),
-                        validator: (selected) => selected == null
-                            ? 'Choose an observation category.'
+                        const SizedBox(height: 12),
+                      ],
+                      TextFormField(
+                        initialValue: initialValue,
+                        autofocus: true,
+                        maxLines: maxLines,
+                        maxLength: 500,
+                        decoration: InputDecoration(
+                          labelText: label,
+                          border: const OutlineInputBorder(),
+                        ),
+                        validator: (text) => text == null || text.trim().isEmpty
+                            ? 'This field is required.'
                             : null,
-                        onChanged: (selected) =>
-                            setDialogState(() => category = selected),
+                        onChanged: (text) => description = text,
                       ),
-                      const SizedBox(height: 12),
                     ],
-                    TextFormField(
-                      controller: controller,
-                      autofocus: true,
-                      maxLines: maxLines,
-                      maxLength: 500,
-                      decoration: InputDecoration(
-                        labelText: label,
-                        border: const OutlineInputBorder(),
-                      ),
-                      validator: (text) => text == null || text.trim().isEmpty
-                          ? 'This field is required.'
-                          : null,
-                    ),
-                  ],
+                  ),
                 ),
+                actions: [
+                  TextButton(onPressed: cancel, child: const Text('Cancel')),
+                  FilledButton(
+                    onPressed: () {
+                      if (!formKey.currentState!.validate()) return;
+                      formKey.currentState!.save();
+                      setDialogState(() => allowPop = true);
+                      final result = _PatrolRecordInput(
+                        description.trim(),
+                        category: category,
+                      );
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext, result);
+                        }
+                      });
+                    },
+                    child: const Text('Save'),
+                  ),
+                ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: cancel,
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    if (!formKey.currentState!.validate()) return;
-                    setDialogState(() => allowPop = true);
-                    final result = _PatrolRecordInput(
-                      controller.text.trim(),
-                      category: category,
-                    );
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (dialogContext.mounted) {
-                        Navigator.pop(dialogContext, result);
-                      }
-                    });
-                  },
-                  child: const Text('Save'),
-                ),
-              ],
-            ),
             );
           },
         );
       },
     );
-    controller.dispose();
     return value;
   }
 

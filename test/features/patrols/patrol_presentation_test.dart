@@ -55,6 +55,30 @@ void main() {
     expect(find.byType(SizedBox), findsWidgets);
   });
 
+  testWidgets('a single recorded coordinate renders a finite map camera', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PatrolRouteMap(
+            patrol: _patrol(
+              routePoints: [
+                PatrolRoutePoint(
+                  id: 'single-fix',
+                  location: _location(6.1, 81.2),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FlutterMap), findsOneWidget);
+  });
+
   testWidgets(
     'route map marks assigned, recorded, manual, and live locations',
     (tester) async {
