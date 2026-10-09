@@ -1,3 +1,4 @@
+// Ranger incident home: drafts, pending uploads, submitted reports, and login.
 import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -11,6 +12,7 @@ import 'incident_detail_page.dart';
 import 'widgets/incident_status_badges.dart';
 import 'incident_report_page.dart';
 
+/// Shows a ranger's incident reports and retries pending uploads.
 class IncidentHomePage extends StatefulWidget {
   const IncidentHomePage({required this.ranger, super.key});
   final User ranger;
@@ -31,6 +33,7 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
   String? _message;
 
   @override
+  // Load saved reports and retry the queue when the phone gets a connection.
   void initState() {
     super.initState();
     _refreshQueue();
@@ -45,11 +48,13 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
   }
 
   @override
+  // Stop listening for network changes when leaving the page.
   void dispose() {
     _connectivitySubscription?.cancel();
     super.dispose();
   }
 
+  // Reload the local queue, saved draft, and reports already in Firestore.
   Future<void> _refreshQueue() async {
     try {
       final queue = await _store.loadQueue(widget.ranger.uid);
@@ -79,11 +84,13 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
     }
   }
 
+  // Put the report on the phone before any network upload is attempted.
   Future<void> _saveLocally(IncidentReport report) async {
     await _store.enqueue(report);
     await _refreshQueue();
   }
 
+  // Ask first, then remove only the unfinished form draft.
   Future<void> _discardDraft() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -117,6 +124,7 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
     }
   }
 
+  // Give a clear offline error before trying to contact Firestore.
   Future<void> _ensureNetworkAvailable() async {
     final results = await Connectivity().checkConnectivity();
     if (results.isEmpty ||
@@ -127,6 +135,7 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
     }
   }
 
+  // Upload one report and remove it from the queue only after success.
   Future<void> _syncOne(IncidentReport report) async {
     try {
       await _ensureNetworkAvailable();
@@ -141,6 +150,7 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
     }
   }
 
+  // Try each queued report and keep failures saved for another attempt.
   Future<void> _syncPending() async {
     if (_syncing || !mounted) return;
     setState(() {
@@ -182,6 +192,7 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
     }
   }
 
+  // Open the multi-step form and refresh the home screen when it closes.
   Future<void> _openReport() async {
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(
@@ -195,9 +206,11 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
     await _refreshQueue();
   }
 
+  // Ask Firebase to end this ranger's session.
   Future<void> _signOut() => FirebaseAuth.instance.signOut();
 
   @override
+  // Show the report shortcut, pending queue, and submitted report list.
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F8F3),
@@ -353,6 +366,7 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
     );
   }
 
+  // Show one queued report with a button to retry its upload.
   Widget _pendingCard(IncidentReport report) => Card(
     child: ListTile(
       onTap: () => _openDetails(report),
@@ -382,6 +396,7 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
     ),
   );
 
+  // Show a report that Firestore has accepted.
   Widget _reportedCard(IncidentReport report) => Card(
     child: ListTile(
       onTap: () => _openDetails(report),
@@ -404,6 +419,7 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
     ),
   );
 
+  // Open the full details of a submitted report.
   void _openDetails(IncidentReport report) {
     Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
@@ -413,6 +429,7 @@ class _IncidentHomePageState extends State<IncidentHomePage> {
   }
 }
 
+/// Lets a ranger create an account or sign in with email and password.
 class RangerNetLoginPage extends StatefulWidget {
   const RangerNetLoginPage({super.key});
 
@@ -428,12 +445,14 @@ class _RangerNetLoginPageState extends State<RangerNetLoginPage> {
   String? _error;
 
   @override
+  // Release the email and password text controllers.
   void dispose() {
     _email.dispose();
     _password.dispose();
     super.dispose();
   }
 
+  // Create a ranger account or sign in, depending on the selected mode.
   Future<void> _submit() async {
     if (_email.text.trim().isEmpty || _password.text.length < 6) {
       setState(
@@ -469,6 +488,7 @@ class _RangerNetLoginPageState extends State<RangerNetLoginPage> {
   }
 
   @override
+  // Draw the login form and show any authentication errors.
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF5F8F3),
     body: Center(

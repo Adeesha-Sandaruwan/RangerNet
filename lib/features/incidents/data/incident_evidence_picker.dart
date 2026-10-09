@@ -1,3 +1,4 @@
+// Takes a photo from the camera/gallery and shrinks it for offline upload.
 import 'dart:convert';
 
 import 'package:image/image.dart' as img;
@@ -6,8 +7,10 @@ import 'package:uuid/uuid.dart';
 
 import '../domain/incident_report.dart';
 
+// Where the ranger wants to choose a photo from.
 enum EvidenceSource { camera, gallery }
 
+/// Picks, compresses, and encodes one incident photo.
 class IncidentEvidencePicker {
   IncidentEvidencePicker({ImagePicker? picker})
     : _picker = picker ?? ImagePicker();
@@ -17,6 +20,7 @@ class IncidentEvidencePicker {
   static const _uuid = Uuid();
   final ImagePicker _picker;
 
+  // Return null if the user cancels; otherwise return a small JPEG photo.
   Future<IncidentEvidence?> pick(EvidenceSource source) async {
     final file = await _picker.pickImage(
       source: source == EvidenceSource.camera
@@ -34,6 +38,7 @@ class IncidentEvidencePicker {
       );
     }
 
+    // Try smaller sizes and lower quality until the photo fits the size limit.
     for (final width in [1280, 1024, 800, 640, 480, 360]) {
       final resized = decoded.width > width
           ? img.copyResize(decoded, width: width)
@@ -61,6 +66,7 @@ class IncidentEvidencePicker {
   }
 }
 
+/// A photo problem that the screen can explain to the ranger.
 class IncidentEvidenceException implements Exception {
   const IncidentEvidenceException(this.message);
   final String message;

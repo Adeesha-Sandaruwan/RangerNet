@@ -1,16 +1,20 @@
+// Gives managers a simple starting page for opening incident management.
 import 'package:firebase_auth/firebase_auth.dart';
+// Manager's landing page and link to incident management.
 import 'package:flutter/material.dart';
 
 import '../domain/ranger_profile.dart';
 import 'incident_manager_inbox_page.dart';
 
 /// Landing page shown only to authenticated Park Manager accounts.
+/// Shows the manager's welcome screen before opening the incident inbox.
 class IncidentManagerDashboardPage extends StatelessWidget {
   const IncidentManagerDashboardPage({required this.manager, super.key});
 
   final RangerProfile manager;
 
   @override
+  // Build the landing screen and its incident-management button.
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF5F8F3),
     appBar: AppBar(

@@ -1,3 +1,4 @@
+// Checks offline queue and draft behavior using temporary preference storage.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:rangernet/features/incidents/data/incident_local_store.dart';
@@ -11,6 +12,7 @@ void main() {
     store = IncidentLocalStore();
   });
 
+  // Reports should stay on the device until the app removes them after sync.
   group('offline incident queue', () {
     test('starts empty when no reports were saved', () async {
       expect(await store.loadQueue('ranger-uid'), isEmpty);
@@ -79,6 +81,7 @@ void main() {
     });
   });
 
+  // Unfinished form entries should also survive closing and reopening the form.
   group('incident draft', () {
     test('loads null when there is no saved draft', () async {
       expect(await store.loadDraft('ranger-uid'), isNull);
@@ -99,6 +102,7 @@ void main() {
   });
 }
 
+// Create a small report that can be saved in the local queue tests.
 IncidentReport _report(String id, {String title = 'Wildlife incident'}) =>
     IncidentReport(
       id: id,

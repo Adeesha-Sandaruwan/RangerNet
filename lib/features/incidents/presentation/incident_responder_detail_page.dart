@@ -1,5 +1,7 @@
+// Shows an assigned incident and lets the ranger record response updates.
 import 'dart:convert';
 
+// Lets an assigned ranger record progress, a resolution, notes, and photos.
 import 'package:flutter/material.dart';
 
 import '../data/incident_evidence_picker.dart';
@@ -8,6 +10,7 @@ import '../domain/incident_report.dart';
 import '../domain/incident_timeline_event.dart';
 import 'incident_detail_page.dart';
 
+/// Shows an assigned incident and accepts the ranger's response update.
 class IncidentResponderDetailPage extends StatefulWidget {
   const IncidentResponderDetailPage({
     required this.report,
@@ -34,11 +37,13 @@ class _IncidentResponderDetailPageState
   String? _error;
   late IncidentWorkflowStatus _workflowStatus;
 
+  // Closed or rejected incidents cannot receive responder updates.
   bool get _readOnly =>
       _workflowStatus == IncidentWorkflowStatus.closed ||
       _workflowStatus == IncidentWorkflowStatus.resolved;
 
   @override
+  // Load the incident history when the responder opens the details.
   void initState() {
     super.initState();
     _workflowStatus = widget.report.workflowStatus;
@@ -46,11 +51,13 @@ class _IncidentResponderDetailPageState
   }
 
   @override
+  // Release the response note controller when leaving this screen.
   void dispose() {
     _notes.dispose();
     super.dispose();
   }
 
+  // Read the saved manager and responder actions for this incident.
   Future<void> _loadHistory() async {
     try {
       final history = await _repository.loadTimeline(widget.report.id);
@@ -62,6 +69,7 @@ class _IncidentResponderDetailPageState
     }
   }
 
+  // Validate and save the responder's note, status, and any attached photos.
   Future<void> _saveUpdate(IncidentWorkflowStatus status) async {
     if (_notes.text.trim().length < 5) {
       setState(
@@ -99,6 +107,7 @@ class _IncidentResponderDetailPageState
     }
   }
 
+  // Pick and compress an extra photo for this response.
   Future<void> _addEvidence(EvidenceSource source) async {
     if (_evidence.length >= IncidentEvidencePicker.maxEvidenceCount) {
       setState(() => _error = 'You can attach up to three response photos.');
@@ -121,6 +130,7 @@ class _IncidentResponderDetailPageState
   }
 
   @override
+  // Draw the report, response form, photos, and action history.
   Widget build(BuildContext context) {
     final report = widget.report;
     return Scaffold(

@@ -1,3 +1,4 @@
+// Keeps incident validation and status-change rules in one place.
 import 'incident_report.dart';
 
 /// UC02 rules that can be checked without Firebase or a device.

@@ -1,3 +1,4 @@
+// Shows the manager's live incident list and separates open from closed items.
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -11,6 +12,7 @@ import 'incident_manager_detail_page.dart';
 import 'widgets/incident_status_badges.dart';
 
 /// UC02-only operations inbox for the Park Manager / Duty Supervisor.
+/// Lets a manager review and filter reported incidents.
 class IncidentManagerInboxPage extends StatefulWidget {
   const IncidentManagerInboxPage({required this.manager, super.key});
 
@@ -33,6 +35,7 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
   String? _error;
 
   @override
+  // Subscribe to Firestore updates when the inbox opens.
   void initState() {
     super.initState();
     _subscription = _repository.watchAllIncidents().listen(
@@ -75,11 +78,13 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
   }
 
   @override
+  // Stop listening when the manager leaves this screen.
   void dispose() {
     _subscription?.cancel();
     super.dispose();
   }
 
+  // Load the list once when a stream cannot provide its first result.
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -96,6 +101,7 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
   }
 
   @override
+  // Show loading, error, filters, and the matching incident cards.
   Widget build(BuildContext context) {
     final sectionReports = _reports.where(
       (report) => _showClosed
@@ -232,6 +238,7 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
     );
   }
 
+  // Build one incident row that opens its manager detail screen.
   Widget _incidentCard(IncidentReport report) => Card(
     child: ListTile(
       onTap: () => Navigator.of(context)
@@ -272,8 +279,10 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
     ),
   );
 
+  // Format a timestamp in the phone's local time zone.
   String _date(DateTime date) => date.toLocal().toString().substring(0, 16);
 
+  // Sign out and return through the app's authentication gate.
   Future<void> _signOut() =>
       signOutAndReturnToLogin(context, signOut: FirebaseAuth.instance.signOut);
 }

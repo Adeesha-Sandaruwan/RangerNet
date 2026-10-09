@@ -1,3 +1,4 @@
+// Holds the ranger's bottom navigation and its three app sections.
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -6,6 +7,7 @@ import '../../incidents/presentation/incident_responder_inbox_page.dart';
 
 /// Navigation container for the ranger's currently implemented UC02 feature.
 /// Other use cases can add their own destinations when those features are ready.
+/// Shows the ranger home, incident list, and assigned-response inbox.
 class RangerNetShell extends StatefulWidget {
   const RangerNetShell({required this.ranger, super.key});
 
@@ -19,6 +21,7 @@ class _RangerNetShellState extends State<RangerNetShell> {
   int _selectedIndex = 0;
 
   @override
+  // IndexedStack keeps each tab's current screen state while changing tabs.
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
@@ -62,6 +65,7 @@ class _RangerNetShellState extends State<RangerNetShell> {
   }
 }
 
+/// Simple landing page with a shortcut to incident reporting.
 class _RangerHomePage extends StatelessWidget {
   const _RangerHomePage({required this.ranger, required this.openIncidents});
 
@@ -69,6 +73,7 @@ class _RangerHomePage extends StatelessWidget {
   final VoidCallback openIncidents;
 
   @override
+  // Show the signed-in ranger and the button that opens Incidents.
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF5F8F3),
     appBar: AppBar(

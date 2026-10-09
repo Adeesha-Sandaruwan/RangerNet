@@ -1,20 +1,25 @@
+// Firestore checks these rules on the server for every database request.
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Only signed-in accounts can use the app's protected data.
     function signedIn() {
       return request.auth != null;
     }
 
+    // Build the path to a user's role document.
     function userPath(uid) {
       return /databases/$(database)/documents/users/$(uid);
     }
 
+    // Check the saved role and make sure the account is still active.
     function hasRole(uid, expectedRole) {
       return exists(userPath(uid))
         && get(userPath(uid)).data.role == expectedRole
         && get(userPath(uid)).data.active != false;
     }
 
+    // These helpers keep role checks short and reusable below.
     function isManager() {
       return signedIn() && hasRole(request.auth.uid, 'manager');
     }
@@ -23,22 +28,26 @@ service cloud.firestore {
       return signedIn() && hasRole(request.auth.uid, 'ranger');
     }
 
+    // Build the path to one incident document.
     function incidentPath(incidentId) {
       return /databases/$(database)/documents/incidents/$(incidentId);
     }
 
+    // The ranger who submitted a report may access their own incident.
     function isReporter(incidentId) {
       return isRanger()
         && exists(incidentPath(incidentId))
         && get(incidentPath(incidentId)).data.rangerId == request.auth.uid;
     }
 
+    // A ranger assigned by a manager may access that incident.
     function isAssignedResponder(incidentId) {
       return isRanger()
         && exists(incidentPath(incidentId))
         && request.auth.uid in get(incidentPath(incidentId)).data.assignedRangerIds;
     }
 
+    // Managers, the reporter, and assigned responders can read an incident.
     function canReadIncident(incidentId) {
       return isManager() || isReporter(incidentId) || isAssignedResponder(incidentId);
     }
@@ -53,6 +62,7 @@ service cloud.firestore {
         || (isRanger() && request.auth.uid in data.assignedRangerIds);
     }
 
+    // User profiles hold roles; ordinary users cannot make themselves managers.
     match /users/{userId} {
       // A user may read their own role; managers can list ranger profiles to assign.
       allow get: if signedIn() && (request.auth.uid == userId || isManager());
@@ -76,6 +86,7 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Incident access is limited to its reporter, assigned responders, or managers.
     match /incidents/{incidentId} {
       allow create: if isRanger()
         && request.resource.data.rangerId == request.auth.uid
@@ -116,6 +127,7 @@ service cloud.firestore {
         );
       allow delete: if false;
 
+      // Original report photos are added by the reporter during upload.
       match /evidence/{evidenceId} {
         allow get, list: if canReadIncident(incidentId);
         allow create, update: if isReporter(incidentId)
@@ -123,6 +135,7 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // Each response belongs to an assigned ranger and cannot be edited later.
       match /responses/{responseId} {
         allow get, list: if canReadIncident(incidentId);
         allow create: if isAssignedResponder(incidentId)
@@ -131,6 +144,7 @@ service cloud.firestore {
                in ['responseInProgress', 'resolved'];
         allow update, delete: if false;
 
+        // Extra response photos must be saved with their response record.
         match /evidence/{evidenceId} {
           allow get, list: if canReadIncident(incidentId);
           allow create: if isAssignedResponder(incidentId)
@@ -140,6 +154,7 @@ service cloud.firestore {
         }
       }
 
+      // Keep a readable audit trail of manager, ranger, and responder actions.
       match /timeline/{eventId} {
         allow get, list: if canReadIncident(incidentId);
         allow create: if (

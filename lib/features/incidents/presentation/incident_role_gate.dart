@@ -1,3 +1,4 @@
+// Loads the signed-in user's role before opening ranger or manager screens.
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -7,6 +8,7 @@ import 'incident_manager_dashboard_page.dart';
 import '../../home/presentation/rangernet_shell.dart';
 
 /// Resolves the authenticated user's trusted Firestore role before routing.
+/// Waits for a trusted Firestore role and routes the user to their home screen.
 class IncidentRoleGate extends StatefulWidget {
   const IncidentRoleGate({required this.user, super.key});
 
@@ -20,12 +22,14 @@ class _IncidentRoleGateState extends State<IncidentRoleGate> {
   late Future<RangerProfile> _profile;
 
   @override
+  // Load the role once when this screen is first created.
   void initState() {
     super.initState();
     _profile = UserRoleRepository().loadOrCreateRangerProfile(widget.user);
   }
 
   @override
+  // Load a new role if a different account signs in while this widget remains.
   void didUpdateWidget(covariant IncidentRoleGate oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.user.uid != widget.user.uid) {
@@ -34,6 +38,7 @@ class _IncidentRoleGateState extends State<IncidentRoleGate> {
   }
 
   @override
+  // Show loading/error feedback, or open the correct role's home screen.
   Widget build(BuildContext context) => FutureBuilder<RangerProfile>(
     future: _profile,
     builder: (context, snapshot) {
