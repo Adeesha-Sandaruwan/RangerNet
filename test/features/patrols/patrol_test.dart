@@ -1,3 +1,5 @@
+// Coverage: Patrol model-derived values and route metrics; checks completion,
+// distance, duration, pauses, and manual/GPS route endpoints.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rangernet/features/patrols/domain/patrol.dart';
 import 'package:rangernet/features/patrols/domain/patrol_records.dart';

@@ -1,3 +1,5 @@
+// Coverage: patrol record constructors and workflow invariants; checks
+// invalid coordinates, duplicate IDs, inconsistent counts, and size limits.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rangernet/features/patrols/domain/patrol_records.dart';
 

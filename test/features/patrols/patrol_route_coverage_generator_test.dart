@@ -1,3 +1,5 @@
+// Coverage: route coverage-section generation; checks ordered endpoints,
+// unique sections, maximum spacing, duplicate locations, and section limits.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rangernet/features/patrols/application/patrol_metrics_service.dart';
 import 'package:rangernet/features/patrols/application/patrol_route_coverage_generator.dart';

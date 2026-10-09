@@ -1,3 +1,5 @@
+// Coverage: patrol lifecycle service rules; checks start/pause/resume/complete
+// and sync transitions, plus rejected actions and interruption recovery.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rangernet/features/patrols/application/patrol_service.dart';
 import 'package:rangernet/features/patrols/domain/patrol.dart';

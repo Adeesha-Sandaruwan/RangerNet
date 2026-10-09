@@ -1,3 +1,5 @@
+// Coverage: manager patrol-assignment creation; checks valid route details
+// succeed and incomplete area or route data is rejected before persistence.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rangernet/features/patrols/application/patrol_assignment_service.dart';
 import 'package:rangernet/features/patrols/domain/patrol_assignment.dart';

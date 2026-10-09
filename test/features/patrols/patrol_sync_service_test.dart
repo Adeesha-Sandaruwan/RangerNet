@@ -1,3 +1,5 @@
+// Coverage: completed-patrol synchronization; checks offline and remote
+// failures, retries, persisted syncing state, and duplicate concurrent requests.
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';

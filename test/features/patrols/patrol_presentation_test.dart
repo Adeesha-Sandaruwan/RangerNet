@@ -1,3 +1,5 @@
+// Coverage: patrol coverage and map presentation; checks displayed counts,
+// zero-data and single-point edges, location markers, and invalid map centers.
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';

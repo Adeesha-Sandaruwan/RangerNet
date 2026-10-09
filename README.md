@@ -203,6 +203,8 @@ Run the full test suite and print line coverage in the terminal:
 
 The command writes the detailed report to `coverage/lcov.info` and prints the
 covered executable lines as a percentage.
+See the [unit and widget testing report](docs/UNIT_TESTING_REPORT.md) for the
+test suite breakdown, rubric evidence, and recorded run results.
 
 Build a debug Android APK:
 
