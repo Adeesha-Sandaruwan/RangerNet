@@ -1,3 +1,4 @@
+// Represents one dated action in an incident's history.
 class IncidentTimelineEvent {
   const IncidentTimelineEvent({
     required this.id,
@@ -15,6 +16,7 @@ class IncidentTimelineEvent {
   final String message;
   final DateTime createdAt;
 
+  // Read the saved action fields and fill defaults for older history records.
   factory IncidentTimelineEvent.fromDocument(
     String id,
     Map<String, dynamic> data,

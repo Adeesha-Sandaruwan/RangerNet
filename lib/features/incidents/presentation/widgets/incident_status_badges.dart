@@ -1,8 +1,10 @@
+// Reusable colored labels for incident severity and workflow status.
 import 'package:flutter/material.dart';
 
 import '../../domain/incident_report.dart';
 
 /// Small, high-contrast labels that make severity and workflow state scannable.
+/// Displays a report's severity and current workflow status.
 class IncidentStatusBadges extends StatelessWidget {
   const IncidentStatusBadges({
     required this.severity,
@@ -14,6 +16,7 @@ class IncidentStatusBadges extends StatelessWidget {
   final IncidentWorkflowStatus status;
 
   @override
+  // Put both labels beside each other, wrapping on narrow screens.
   Widget build(BuildContext context) => Wrap(
     spacing: 6,
     runSpacing: 4,
@@ -36,6 +39,7 @@ class IncidentStatusBadges extends StatelessWidget {
     ],
   );
 
+  // Choose a readable color that matches the meaning of the status.
   static Color _statusColor(IncidentWorkflowStatus status) => switch (status) {
     IncidentWorkflowStatus.reported => const Color(0xFF1769AA),
     IncidentWorkflowStatus.underReview => const Color(0xFF6254A5),
@@ -49,6 +53,7 @@ class IncidentStatusBadges extends StatelessWidget {
     IncidentWorkflowStatus.rejected => const Color(0xFFB42318),
   };
 
+  // Pair the status color with an icon so color is not the only clue.
   static IconData _statusIcon(IncidentWorkflowStatus status) =>
       switch (status) {
         IncidentWorkflowStatus.reported => Icons.fiber_new_rounded,
@@ -65,6 +70,7 @@ class IncidentStatusBadges extends StatelessWidget {
       };
 }
 
+/// Draws one small label with a color, icon, and text.
 class _Badge extends StatelessWidget {
   const _Badge({required this.label, required this.icon, required this.color});
 
@@ -73,6 +79,7 @@ class _Badge extends StatelessWidget {
   final Color color;
 
   @override
+  // Build the rounded label used by the severity and status badges.
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
     decoration: BoxDecoration(

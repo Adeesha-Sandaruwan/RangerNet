@@ -1,8 +1,8 @@
 import 'dart:async';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../incidents/domain/incident_management_ports.dart';
 import '../../incidents/presentation/incident_home_page.dart';
 import '../../incidents/presentation/incident_responder_inbox_page.dart';
 import '../../patrols/application/patrol_service.dart';
@@ -23,9 +23,14 @@ import '../../wildlife_alerts/presentation/pages/wildlife_live_tracking_map_page
 /// Navigation container for RangerNet.
 /// Hosts UC02 Incident Reporting and UC03 Wildlife Sensor Alerts.
 class RangerNetShell extends StatefulWidget {
-  const RangerNetShell({required this.ranger, super.key});
+  const RangerNetShell({
+    required this.ranger,
+    required this.responderRepository,
+    super.key,
+  });
 
   final User ranger;
+  final IncidentResponderGateway responderRepository;
 
   @override
   State<RangerNetShell> createState() => _RangerNetShellState();
@@ -66,6 +71,7 @@ class _RangerNetShellState extends State<RangerNetShell> {
   late final _patrolNetworkStatus = ConnectivityPatrolNetworkStatusProvider();
 
   @override
+  // IndexedStack keeps each tab's current screen state while changing tabs.
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
@@ -103,6 +109,7 @@ class _RangerNetShellState extends State<RangerNetShell> {
           IncidentHomePage(ranger: widget.ranger),
           IncidentResponderInboxPage(
             rangerId: widget.ranger.uid,
+            repository: widget.responderRepository,
             responderName:
                 widget.ranger.displayName ?? widget.ranger.email ?? 'Ranger',
           ),
@@ -144,6 +151,7 @@ class _RangerNetShellState extends State<RangerNetShell> {
   }
 }
 
+/// Simple landing page with a shortcut to incident reporting.
 class _RangerHomePage extends StatelessWidget {
   const _RangerHomePage({
     required this.ranger,

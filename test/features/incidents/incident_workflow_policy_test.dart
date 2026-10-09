@@ -1,8 +1,10 @@
+// Checks valid and invalid actions before managers or responders save them.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rangernet/features/incidents/domain/incident_report.dart';
 import 'package:rangernet/features/incidents/domain/incident_workflow_policy.dart';
 
 void main() {
+  // One ranger means exactly one selection; a response team needs at least two.
   group('ranger assignment rules', () {
     test('one-ranger assignment accepts exactly one person', () {
       expect(
@@ -49,6 +51,7 @@ void main() {
     });
   });
 
+  // Managers can review open reports; critical severity needs a reason.
   group('manager review rules', () {
     test('allows normal review without a note', () {
       expect(
@@ -92,6 +95,7 @@ void main() {
     });
   });
 
+  // Check which status changes managers may make and which need a note.
   group('manager status changes', () {
     test('allows a reasoned follow-up action', () {
       expect(
@@ -183,6 +187,7 @@ void main() {
     });
   });
 
+  // Responders need a useful note and may only set response statuses.
   group('responder update rules', () {
     test('accepts the shortest valid trimmed note for both valid statuses', () {
       for (final status in [

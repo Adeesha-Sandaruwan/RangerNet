@@ -1,12 +1,15 @@
+// Loads the signed-in user's role before opening ranger or manager screens.
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../data/user_role_repository.dart';
+import '../data/incident_management_repository.dart';
 import '../domain/ranger_profile.dart';
 import 'incident_manager_dashboard_page.dart';
 import '../../home/presentation/rangernet_shell.dart';
 
 /// Resolves the authenticated user's trusted Firestore role before routing.
+/// Waits for a trusted Firestore role and routes the user to their home screen.
 class IncidentRoleGate extends StatefulWidget {
   const IncidentRoleGate({required this.user, super.key});
 
@@ -17,15 +20,20 @@ class IncidentRoleGate extends StatefulWidget {
 }
 
 class _IncidentRoleGateState extends State<IncidentRoleGate> {
+  // Dependency Inversion: choose the Firebase implementation here, then give
+  // screens the smaller interfaces instead of making screens create it.
+  final _incidentRepository = IncidentManagementRepository();
   late Future<RangerProfile> _profile;
 
   @override
+  // Load the role once when this screen is first created.
   void initState() {
     super.initState();
     _profile = UserRoleRepository().loadOrCreateRangerProfile(widget.user);
   }
 
   @override
+  // Load a new role if a different account signs in while this widget remains.
   void didUpdateWidget(covariant IncidentRoleGate oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.user.uid != widget.user.uid) {
@@ -34,6 +42,7 @@ class _IncidentRoleGateState extends State<IncidentRoleGate> {
   }
 
   @override
+  // Show loading/error feedback, or open the correct role's home screen.
   Widget build(BuildContext context) => FutureBuilder<RangerProfile>(
     future: _profile,
     builder: (context, snapshot) {
@@ -73,8 +82,14 @@ class _IncidentRoleGateState extends State<IncidentRoleGate> {
       }
       final profile = snapshot.data!;
       return profile.role == RangerRole.manager
-          ? IncidentManagerDashboardPage(manager: profile)
-          : RangerNetShell(ranger: widget.user);
+          ? IncidentManagerDashboardPage(
+              manager: profile,
+              repository: _incidentRepository,
+            )
+          : RangerNetShell(
+              ranger: widget.user,
+              responderRepository: _incidentRepository,
+            );
     },
   );
 }

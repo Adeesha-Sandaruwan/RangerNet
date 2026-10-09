@@ -1,22 +1,27 @@
+// Shows incident details and lets a manager review, assign, and close it.
 import 'dart:convert';
 
+// Lets a manager inspect an incident, assign responders, and close it later.
 import 'package:flutter/material.dart';
 
-import '../data/incident_management_repository.dart';
 import '../domain/incident_report.dart';
 import '../domain/incident_timeline_event.dart';
 import '../domain/ranger_profile.dart';
+import '../domain/incident_management_ports.dart';
 import 'widgets/incident_status_badges.dart';
 
+/// Shows an incident's evidence, review actions, assignments, and history.
 class IncidentManagerDetailPage extends StatefulWidget {
   const IncidentManagerDetailPage({
     required this.report,
     required this.manager,
+    required this.repository,
     super.key,
   });
 
   final IncidentReport report;
   final RangerProfile manager;
+  final IncidentManagerGateway repository;
 
   @override
   State<IncidentManagerDetailPage> createState() =>
@@ -24,7 +29,6 @@ class IncidentManagerDetailPage extends StatefulWidget {
 }
 
 class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
-  final _repository = IncidentManagementRepository();
   final _note = TextEditingController();
   late IncidentReport _report;
   late Future<List<IncidentEvidence>> _evidenceFuture;
@@ -33,35 +37,39 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
   String? _error;
 
   @override
+  // Start loading the incident's photos and action history.
   void initState() {
     super.initState();
     _report = widget.report;
-    _evidenceFuture = _repository.loadIncidentEvidence(_report.id);
+    _evidenceFuture = widget.repository.loadIncidentEvidence(_report.id);
     _loadTimeline();
   }
 
   @override
+  // Release the manager note field when leaving the screen.
   void dispose() {
     _note.dispose();
     super.dispose();
   }
 
+  // Refresh the ordered list of actions recorded for this incident.
   Future<void> _loadTimeline() async {
     try {
-      final events = await _repository.loadTimeline(_report.id);
+      final events = await widget.repository.loadTimeline(_report.id);
       if (mounted) setState(() => _events = events);
     } catch (error) {
       if (mounted) setState(() => _error = 'Could not load history: $error');
     }
   }
 
+  // Reload current incident data, photos, and history from Firestore.
   Future<void> _refreshIncident() async {
     try {
-      final report = await _repository.loadIncident(_report.id);
+      final report = await widget.repository.loadIncident(_report.id);
       if (mounted) {
         setState(() {
           _report = report;
-          _evidenceFuture = _repository.loadIncidentEvidence(_report.id);
+          _evidenceFuture = widget.repository.loadIncidentEvidence(_report.id);
         });
       }
       await _loadTimeline();
@@ -72,6 +80,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
     }
   }
 
+  // Ask for a reason, then save a status change or urgent escalation.
   Future<void> _managerAction(
     IncidentWorkflowStatus status, {
     IncidentSeverity? severity,
@@ -122,7 +131,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
       _error = null;
     });
     try {
-      await _repository.managerTransition(
+      await widget.repository.managerTransition(
         incidentId: _report.id,
         status: status,
         managerName: widget.manager.displayName,
@@ -144,13 +153,14 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
     }
   }
 
+  // Save the manager's review note and severity.
   Future<void> _saveReview() async {
     setState(() {
       _saving = true;
       _error = null;
     });
     try {
-      await _repository.reviewIncident(
+      await widget.repository.reviewIncident(
         incidentId: _report.id,
         severity: _report.severity,
         managerName: widget.manager.displayName,
@@ -172,10 +182,11 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
     }
   }
 
+  // Let the manager choose one ranger or a response team for the incident.
   Future<void> _assignResponders() async {
     List<RangerProfile> candidates;
     try {
-      candidates = await _repository.loadActiveRangers();
+      candidates = await widget.repository.loadActiveRangers();
     } catch (error) {
       if (mounted) {
         setState(() => _error = 'Could not load ranger list: $error');
@@ -300,7 +311,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
       _error = null;
     });
     try {
-      await _repository.assignResponders(
+      await widget.repository.assignResponders(
         incidentId: _report.id,
         kind: result.kind,
         responders: result.responders,
@@ -330,6 +341,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
   }
 
   @override
+  // Build the incident review screen and show actions allowed for its status.
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF5F8F3),
     appBar: AppBar(
@@ -588,6 +600,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
     ),
   );
 
+  // Show the submitted description, reporter, place, and other report details.
   Widget _reportCard() => Card(
     child: Padding(
       padding: const EdgeInsets.all(16),
@@ -647,6 +660,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
     ),
   );
 
+  // Display one labelled field in the manager's incident summary.
   Widget _reportField(String label, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 3),
     child: Row(
@@ -661,6 +675,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
     ),
   );
 
+  // Load and display the photos attached to the report.
   Widget _evidenceCard() => Card(
     child: Padding(
       padding: const EdgeInsets.all(16),
@@ -684,7 +699,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
                   trailing: IconButton(
                     tooltip: 'Retry loading photos',
                     onPressed: () => setState(() {
-                      _evidenceFuture = _repository.loadIncidentEvidence(
+                      _evidenceFuture = widget.repository.loadIncidentEvidence(
                         _report.id,
                       );
                     }),
@@ -716,6 +731,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
     ),
   );
 
+  // Show a photo thumbnail and open it for a larger view.
   Widget _evidenceTile(IncidentEvidence photo) {
     final bytes = base64Decode(photo.base64Data);
     return InkWell(
@@ -760,8 +776,10 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
     );
   }
 
+  // Format the saved time using the device's local time zone.
   String _date(DateTime value) => value.toLocal().toString().substring(0, 16);
 
+  // Show one dated manager or responder action from the history.
   Widget _eventCard(IncidentTimelineEvent event) => Card(
     child: ListTile(
       leading: const Icon(Icons.history),
@@ -770,6 +788,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
     ),
   );
 
+  // Show a short confirmation after an action succeeds.
   void _showMessage(String message) {
     ScaffoldMessenger.of(
       context,
