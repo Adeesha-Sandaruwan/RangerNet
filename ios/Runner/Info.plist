@@ -26,6 +26,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>RangerNet uses the camera to record patrol evidence photographs.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>RangerNet uses selected photographs as patrol evidence.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>RangerNet records your patrol start location and GPS route while you are using the app.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

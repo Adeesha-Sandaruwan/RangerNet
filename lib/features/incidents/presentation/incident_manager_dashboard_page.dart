@@ -1,6 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../patrols/application/patrol_assignment_service.dart';
+import '../../patrols/application/patrol_review_service.dart';
+import '../../patrols/data/firestore_patrol_assignment_repository.dart';
+import '../../patrols/data/firestore_patrol_review_repository.dart';
+import '../../patrols/presentation/patrol_assignment_management_page.dart';
 import '../domain/ranger_profile.dart';
 import '../../conservation_reports/presentation/conservation_report_page.dart';
 import 'incident_manager_inbox_page.dart';
@@ -41,12 +46,54 @@ class IncidentManagerDashboardPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Open incident management to review ranger reports, view their '
-              'evidence, assign responders, and manage incident outcomes.',
+              'Assign patrol routes to active rangers, then review incident '
+              'reports and coordinate responses.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: 28),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Icon(Icons.route_outlined, size: 38),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Ranger patrols',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Create assignments for active rangers and review the '
+                      'completed patrols and their recorded routes.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: () => Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          builder: (_) => PatrolAssignmentManagementPage(
+                            service: PatrolAssignmentService(
+                              FirestorePatrolAssignmentRepository(),
+                            ),
+                            reviewService: PatrolReviewService(
+                              FirestorePatrolReviewRepository(),
+                            ),
+                            manager: manager,
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.assignment_add),
+                      label: const Text('Manage patrols & reviews'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),

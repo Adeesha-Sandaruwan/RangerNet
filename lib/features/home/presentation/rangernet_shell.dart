@@ -1,8 +1,19 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../incidents/presentation/incident_home_page.dart';
 import '../../incidents/presentation/incident_responder_inbox_page.dart';
+import '../../patrols/application/patrol_service.dart';
+import '../../patrols/application/patrol_sync_service.dart';
+import '../../patrols/application/patrol_tracking_service.dart';
+import '../../patrols/data/firestore_patrol_assignment_source.dart';
+import '../../patrols/data/firestore_patrol_sync_repository.dart';
+import '../../patrols/data/geolocator_patrol_location_provider.dart';
+import '../../patrols/data/connectivity_patrol_network_status_provider.dart';
+import '../../patrols/data/local_patrol_repository.dart';
+import '../../patrols/presentation/patrol_home_page.dart';
 
 import '../../wildlife_alerts/data/repositories/wildlife_alert_repository_impl.dart';
 import '../../wildlife_alerts/presentation/controllers/wildlife_alert_controller.dart';
@@ -35,8 +46,24 @@ class _RangerNetShellState extends State<RangerNetShell> {
   @override
   void dispose() {
     _wildlifeAlertController.dispose();
+    unawaited(_patrolTrackingService.dispose());
     super.dispose();
   }
+
+  late final _patrolService = PatrolService(
+    repository: LocalPatrolRepository(),
+    assignmentSource: FirestorePatrolAssignmentSource(),
+  );
+  late final _patrolTrackingService = PatrolTrackingService(
+    patrolService: _patrolService,
+    locationProvider: const GeolocatorPatrolLocationProvider(),
+  );
+  late final _patrolSyncService = PatrolSyncService(
+    patrolService: _patrolService,
+    syncRepository: FirestorePatrolSyncRepository(),
+    networkStatus: _patrolNetworkStatus,
+  );
+  late final _patrolNetworkStatus = ConnectivityPatrolNetworkStatusProvider();
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +75,7 @@ class _RangerNetShellState extends State<RangerNetShell> {
             ranger: widget.ranger,
             controller: _wildlifeAlertController,
             openAlerts: () => setState(() => _selectedIndex = 1),
-            openIncidents: () => setState(() => _selectedIndex = 2),
+            openIncidents: () => setState(() => _selectedIndex = 3),
             openLiveMap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -63,6 +90,15 @@ class _RangerNetShellState extends State<RangerNetShell> {
           WildlifeAlertDashboardPage(
             ranger: widget.ranger,
             controller: _wildlifeAlertController,
+          ),
+          PatrolHomePage(
+            rangerId: widget.ranger.uid,
+            rangerName:
+                widget.ranger.displayName ?? widget.ranger.email ?? 'Ranger',
+            service: _patrolService,
+            trackingService: _patrolTrackingService,
+            syncService: _patrolSyncService,
+            networkStatus: _patrolNetworkStatus,
           ),
           IncidentHomePage(ranger: widget.ranger),
           IncidentResponderInboxPage(
@@ -86,6 +122,11 @@ class _RangerNetShellState extends State<RangerNetShell> {
             icon: Icon(Icons.radar_outlined),
             selectedIcon: Icon(Icons.radar),
             label: 'Alerts',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.route_outlined),
+            selectedIcon: Icon(Icons.route),
+            label: 'Patrols',
           ),
           NavigationDestination(
             icon: Icon(Icons.crisis_alert_outlined),
@@ -302,8 +343,10 @@ class _RangerHomePage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF34D399).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(30),
@@ -341,11 +384,14 @@ class _RangerHomePage extends StatelessWidget {
                         final active = controller.activeAlertsCount;
                         return Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: active > 0
-                                ? const Color(0xFFEF4444)
-                                    .withValues(alpha: 0.25)
+                                ? const Color(
+                                    0xFFEF4444,
+                                  ).withValues(alpha: 0.25)
                                 : Colors.white.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
@@ -399,7 +445,8 @@ class _RangerHomePage extends StatelessWidget {
                         color: Colors.white.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.15)),
+                          color: Colors.white.withValues(alpha: 0.15),
+                        ),
                       ),
                       child: const Icon(
                         Icons.radar,
@@ -442,10 +489,22 @@ class _RangerHomePage extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 6,
                   children: [
-                    _buildPillTag('🐘 Raja (Collar-001)', const Color(0xFF10B981)),
-                    _buildPillTag('🐆 Maya (Collar-002)', const Color(0xFF3B82F6)),
-                    _buildPillTag('📹 CAM-TRAP-101 (River)', const Color(0xFFA855F7)),
-                    _buildPillTag('🛡️ 4 Active Geofences', const Color(0xFFF59E0B)),
+                    _buildPillTag(
+                      '🐘 Raja (Collar-001)',
+                      const Color(0xFF10B981),
+                    ),
+                    _buildPillTag(
+                      '🐆 Maya (Collar-002)',
+                      const Color(0xFF3B82F6),
+                    ),
+                    _buildPillTag(
+                      '📹 CAM-TRAP-101 (River)',
+                      const Color(0xFFA855F7),
+                    ),
+                    _buildPillTag(
+                      '🛡️ 4 Active Geofences',
+                      const Color(0xFFF59E0B),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 18),
@@ -469,7 +528,9 @@ class _RangerHomePage extends StatelessWidget {
                         label: const Text(
                           'Open Telemetry Center',
                           style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 13),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ),
@@ -478,18 +539,26 @@ class _RangerHomePage extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
                         side: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.35)),
+                          color: Colors.white.withValues(alpha: 0.35),
+                        ),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 12),
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                       onPressed: openLiveMap,
-                      icon: const Icon(Icons.map_outlined,
-                          size: 18, color: Color(0xFF34D399)),
-                      label:
-                          const Text('Live Map', style: TextStyle(fontSize: 13)),
+                      icon: const Icon(
+                        Icons.map_outlined,
+                        size: 18,
+                        color: Color(0xFF34D399),
+                      ),
+                      label: const Text(
+                        'Live Map',
+                        style: TextStyle(fontSize: 13),
+                      ),
                     ),
                   ],
                 ),
@@ -545,7 +614,9 @@ class _RangerHomePage extends StatelessWidget {
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(12),
@@ -574,14 +645,19 @@ class _RangerHomePage extends StatelessWidget {
                       Text(
                         'Report illegal poaching, habitat encroachment, and assign response teams.',
                         style: TextStyle(
-                            fontSize: 12, color: Colors.grey.shade600),
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Icon(Icons.arrow_forward_ios,
-                    size: 14, color: Colors.grey),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  size: 14,
+                  color: Colors.grey,
+                ),
               ],
             ),
           ),
@@ -604,10 +680,7 @@ class _RangerHomePage extends StatelessWidget {
           Container(
             width: 6,
             height: 6,
-            decoration: BoxDecoration(
-              color: dotColor,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
           ),
           const SizedBox(width: 5),
           Text(

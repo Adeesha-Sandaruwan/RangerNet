@@ -1,8 +1,8 @@
 # RangerNet
 
-RangerNet is a Flutter app for wildlife conservation field work. This repository
-currently focuses on **UC02: Report and Manage Wildlife / Poaching Incidents**.
-It uses Firebase Authentication and Cloud Firestore.
+RangerNet is a Flutter app for wildlife conservation field work. This repository implements **UC01: Conduct and Record Ranger Patrol** and
+**UC02: Report and Manage Wildlife / Poaching Incidents** using Flutter,
+Firebase Authentication, and Cloud Firestore.
 
 The app supports two account roles:
 
@@ -11,8 +11,8 @@ The app supports two account roles:
 - **Park manager:** open the manager dashboard, review reports and evidence,
   assign responders, update incident status, and close resolved incidents.
 
-Patrol recording, wildlife sensor alerts, and conservation analytics are outside
-the current UC02 implementation.
+Wildlife sensor alerts and conservation analytics are outside the current
+implementation.
 
 ## What you need
 
@@ -93,6 +93,23 @@ If the app already created that profile as a ranger, update its `role` to
 `manager`. Sign out and sign in again. The manager opens a dashboard first, then
 selects **Go to incident management**.
 
+From the manager dashboard, select **Manage patrols & reviews**. In the patrol
+management screen, use **Review completed patrols** to open the manager review
+queue. Choose a synchronized patrol to compare its assigned route with the
+recorded route, inspect coverage and field records, add manager notes, and mark
+it reviewed or flag follow-up. Review notes and audit metadata are saved on the
+completed patrol record.
+
+To assign a patrol, select **Assign patrol**. Choose an active ranger, enter the park, zone, and route, and
+select **Select route on map**. Tap the map to select the start, add optional
+stops in visit order, then select the destination. Choose **Generate route
+coverage** to preview the connected route and its coverage sections, then
+choose **Create patrol assignment** to save and assign it. No coordinates need
+to be typed manually. The preview connects selected points with straight map
+segments, so verify the line follows accessible patrol tracks. The patrol then
+appears in that ranger's **Patrols** tab.
+Assignment creation is manager-only under the Firestore rules.
+
 ## How incident reporting works
 
 1. A ranger opens **Incidents** and starts a report.
@@ -110,8 +127,51 @@ selects **Go to incident management**.
 More detail about the implemented workflow is in
 [the UC02 guide](docs/UC02_RANGER_INCIDENT_REPORTING.md).
 
+## How patrol recording works
+
+1. A ranger opens **Patrols** and selects an assigned patrol.
+2. The ranger starts the patrol using a reliable GPS start fix or chooses a
+   manual map location when GPS is unavailable or inaccurate.
+3. GPS route points are filtered and stored locally; GPS health and accuracy
+   are shown, and the ranger can mark exact manual locations on the map when
+   needed. These manual locations do not modify the manager-assigned route.
+4. The ranger can compare the assigned route with the actual recorded track on
+   the map and view route distance, active patrol duration, and GPS point
+   count. Distance follows the start, GPS fixes, map-marked waypoints, and end
+   location in timestamp order. Segments between these sparse points are
+   straight-line estimates. During completion review, generated route sections
+   within 100 m of reliable GPS/manual points or the estimated track segment
+   between them are counted as covered; uncovered sections are listed as
+   potentially neglected. Inaccurate GPS points are not counted. Coverage and
+   patrol changes are saved locally before synchronization.
+5. The ranger records categorized observations and optional compressed
+   photographs, and can pause/resume or interrupt the patrol. Ending early
+   requires confirmation and a reason.
+6. Before completing, the ranger reviews the summary, GPS status, and selects
+   an end location. A separate confirmation saves completion locally first;
+   offline completions remain **Pending Sync** until synchronized.
+
+Assignments are read from `patrolAssignments/{patrolId}` and completed
+records are written to `patrols/{patrolId}` and its record subcollections. See
+[the UC01 lifecycle and Firebase schema](docs/UC01_PATROL_FOUNDATION.md).
+
 ## Offline data and photos
 
+- Cached assigned patrols can start and continue offline. Patrols, route points,
+  manual waypoints, observations, photos, and pause/resume events are stored on
+  the device; unfinished patrols appear as resumable after app restart.
+- Completed patrols remain **Pending Sync** until remote confirmation.
+  Synchronization retries automatically when connectivity returns or the app
+  resumes. Rangers can also select **Sync now** in the Patrols section to retry
+  pending records manually. A failed sync preserves local records and reports
+  the failure. Network, GPS, GPS accuracy, sync state, and last successful sync
+  time are shown in the ranger patrol flow; retry actions are available when
+  GPS or synchronization needs attention.
+- Patrol data is isolated by ranger ID and remains on-device across
+  authentication expiration. Re-authenticate as the same ranger to synchronize.
+- Device storage failures are surfaced; the prior successfully persisted
+  patrol snapshot is retained. Patrol photos are Base64 in the local record,
+  so long patrols can use substantial device storage.
 - Unsent incident drafts and reports are kept on the device and can sync when
   connectivity returns.
 - The offline queue holds up to eight reports at a time.
@@ -161,6 +221,10 @@ lib/
     incidents/domain/                Incident models and workflow rules
     incidents/data/                  Firebase, location, and offline storage
     incidents/presentation/          Ranger, responder, and manager screens
+    patrols/domain/                   Patrol records and lifecycle policy
+    patrols/application/              Workflow, tracking, metrics, and sync
+    patrols/data/                     Local, Firestore, GPS, and photo adapters
+    patrols/presentation/              Ranger patrol screens
     home/presentation/                Ranger bottom navigation
 test/                                Unit and widget tests
 docs/                                UC02 workflow and Firebase rules guides
