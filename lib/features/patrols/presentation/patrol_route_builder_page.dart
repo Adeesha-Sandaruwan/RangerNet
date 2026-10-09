@@ -12,10 +12,17 @@ enum _RoutePickMode { start, stop, end }
 /// Lets a manager build or edit a patrol's planned route on a map.
 /// SRP: returns the route plan; assignment persistence belongs to its caller.
 class PatrolRouteBuilderPage extends StatefulWidget {
-  const PatrolRouteBuilderPage({this.initialRoute, super.key});
+  const PatrolRouteBuilderPage({
+    this.initialRoute,
+    this.showTileLayer = true,
+    super.key,
+  });
 
   /// Existing route to edit, or null to create a new plan.
   final PatrolRoutePlan? initialRoute;
+
+  /// Whether to display map tiles beneath the route overlays.
+  final bool showTileLayer;
 
   @override
   State<PatrolRouteBuilderPage> createState() => _PatrolRouteBuilderPageState();
@@ -104,16 +111,17 @@ class _PatrolRouteBuilderPageState extends State<PatrolRouteBuilderPage> {
               onTap: _onMapTap,
             ),
             children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'lk.rangernet.rangernet',
-                errorTileCallback: (_, _, _) {
-                  if (_tilesUnavailable || !mounted) return;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) setState(() => _tilesUnavailable = true);
-                  });
-                },
-              ),
+              if (widget.showTileLayer)
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'lk.rangernet.rangernet',
+                  errorTileCallback: (_, _, _) {
+                    if (_tilesUnavailable || !mounted) return;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) setState(() => _tilesUnavailable = true);
+                    });
+                  },
+                ),
               if (_start != null && _end != null)
                 PolylineLayer(
                   polylines: [

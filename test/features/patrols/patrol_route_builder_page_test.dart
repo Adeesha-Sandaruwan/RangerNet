@@ -77,7 +77,10 @@ Future<void> _showRouteBuilder(
               final route = await Navigator.of(context).push<PatrolRoutePlan>(
                 MaterialPageRoute(
                   builder: (_) =>
-                      PatrolRouteBuilderPage(initialRoute: initialRoute),
+                      PatrolRouteBuilderPage(
+                        initialRoute: initialRoute,
+                        showTileLayer: false,
+                      ),
                 ),
               );
               if (route != null) onRoute?.call(route);

@@ -29,6 +29,7 @@ class PatrolSessionPage extends StatefulWidget {
     required this.syncService,
     required this.networkStatus,
     this.onReportIncident,
+    this.showTileLayer = true,
     super.key,
   });
 
@@ -51,6 +52,9 @@ class PatrolSessionPage extends StatefulWidget {
 
   /// Supplies connectivity changes used to retry pending sync.
   final PatrolNetworkStatusProvider networkStatus;
+
+  /// Whether patrol maps display their underlying map tiles.
+  final bool showTileLayer;
 
   @override
   State<PatrolSessionPage> createState() => _PatrolSessionPageState();
@@ -518,6 +522,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
           builder: (_) => ManualWaypointMapPage(
             patrol: _patrol,
             initialLocation: _trackingState.latestFix ?? _patrol.startLocation,
+            showTileLayer: widget.showTileLayer,
           ),
         ),
       );
@@ -765,6 +770,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
                   patrol: _patrol,
                   latestLocation: _reliableLatestFix,
                   height: 280,
+                  showTileLayer: widget.showTileLayer,
                 ),
                 const SizedBox(height: 8),
                 _routeLegend(),

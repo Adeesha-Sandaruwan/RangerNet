@@ -393,6 +393,7 @@ Future<void> _showSession(
         trackingService: context.tracking,
         syncService: context.sync,
         networkStatus: context.network,
+        showTileLayer: false,
       ),
     ),
   );
