@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../data/incident_management_repository.dart';
+import '../domain/incident_management_ports.dart';
 import '../domain/incident_report.dart';
 import '../domain/ranger_profile.dart';
 import 'auth_navigation.dart';
@@ -14,9 +14,14 @@ import 'widgets/incident_status_badges.dart';
 /// UC02-only operations inbox for the Park Manager / Duty Supervisor.
 /// Lets a manager review and filter reported incidents.
 class IncidentManagerInboxPage extends StatefulWidget {
-  const IncidentManagerInboxPage({required this.manager, super.key});
+  const IncidentManagerInboxPage({
+    required this.manager,
+    required this.repository,
+    super.key,
+  });
 
   final RangerProfile manager;
+  final IncidentManagerGateway repository;
 
   @override
   State<IncidentManagerInboxPage> createState() =>
@@ -24,7 +29,6 @@ class IncidentManagerInboxPage extends StatefulWidget {
 }
 
 class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
-  final _repository = IncidentManagementRepository();
   StreamSubscription<List<IncidentReport>>? _subscription;
   List<IncidentReport> _reports = const [];
   final Set<String> _knownIncidentIds = {};
@@ -38,7 +42,7 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
   // Subscribe to Firestore updates when the inbox opens.
   void initState() {
     super.initState();
-    _subscription = _repository.watchAllIncidents().listen(
+    _subscription = widget.repository.watchAllIncidents().listen(
       (reports) {
         if (mounted) {
           if (_receivedInitialSnapshot) {
@@ -91,7 +95,7 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
       _error = null;
     });
     try {
-      final reports = await _repository.loadAllIncidents();
+      final reports = await widget.repository.loadAllIncidents();
       if (mounted) setState(() => _reports = reports);
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
@@ -247,6 +251,7 @@ class _IncidentManagerInboxPageState extends State<IncidentManagerInboxPage> {
               builder: (_) => IncidentManagerDetailPage(
                 report: report,
                 manager: widget.manager,
+                repository: widget.repository,
               ),
             ),
           )

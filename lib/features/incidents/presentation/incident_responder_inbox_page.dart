@@ -3,7 +3,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../data/incident_management_repository.dart';
+import '../domain/incident_management_ports.dart';
 import '../domain/incident_report.dart';
 import 'incident_responder_detail_page.dart';
 import 'widgets/incident_status_badges.dart';
@@ -14,11 +14,13 @@ class IncidentResponderInboxPage extends StatefulWidget {
   const IncidentResponderInboxPage({
     required this.rangerId,
     required this.responderName,
+    required this.repository,
     super.key,
   });
 
   final String rangerId;
   final String responderName;
+  final IncidentResponderGateway repository;
 
   @override
   State<IncidentResponderInboxPage> createState() =>
@@ -27,7 +29,6 @@ class IncidentResponderInboxPage extends StatefulWidget {
 
 class _IncidentResponderInboxPageState
     extends State<IncidentResponderInboxPage> {
-  final _repository = IncidentManagementRepository();
   StreamSubscription<List<IncidentReport>>? _subscription;
   List<IncidentReport> _reports = const [];
   final Set<String> _knownIncidentIds = {};
@@ -44,7 +45,7 @@ class _IncidentResponderInboxPageState
 
   // Keep the assigned incident list updated from Firestore snapshots.
   void _watchAssignments() {
-    _subscription = _repository
+    _subscription = widget.repository
         .watchAssignedIncidents(widget.rangerId)
         .listen(
           (reports) {
@@ -98,7 +99,9 @@ class _IncidentResponderInboxPageState
     });
     await _subscription?.cancel();
     try {
-      final reports = await _repository.loadAssignedIncidents(widget.rangerId);
+      final reports = await widget.repository.loadAssignedIncidents(
+        widget.rangerId,
+      );
       if (mounted) {
         setState(() {
           _reports = reports;
@@ -189,6 +192,7 @@ class _IncidentResponderInboxPageState
               builder: (_) => IncidentResponderDetailPage(
                 report: report,
                 responderName: widget.responderName,
+                repository: widget.repository,
               ),
             ),
           )

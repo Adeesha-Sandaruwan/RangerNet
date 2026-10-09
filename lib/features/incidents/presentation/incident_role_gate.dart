@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../data/user_role_repository.dart';
+import '../data/incident_management_repository.dart';
 import '../domain/ranger_profile.dart';
 import 'incident_manager_dashboard_page.dart';
 import '../../home/presentation/rangernet_shell.dart';
@@ -19,6 +20,9 @@ class IncidentRoleGate extends StatefulWidget {
 }
 
 class _IncidentRoleGateState extends State<IncidentRoleGate> {
+  // Dependency Inversion: choose the Firebase implementation here, then give
+  // screens the smaller interfaces instead of making screens create it.
+  final _incidentRepository = IncidentManagementRepository();
   late Future<RangerProfile> _profile;
 
   @override
@@ -78,8 +82,14 @@ class _IncidentRoleGateState extends State<IncidentRoleGate> {
       }
       final profile = snapshot.data!;
       return profile.role == RangerRole.manager
-          ? IncidentManagerDashboardPage(manager: profile)
-          : RangerNetShell(ranger: widget.user);
+          ? IncidentManagerDashboardPage(
+              manager: profile,
+              repository: _incidentRepository,
+            )
+          : RangerNetShell(
+              ranger: widget.user,
+              responderRepository: _incidentRepository,
+            );
     },
   );
 }

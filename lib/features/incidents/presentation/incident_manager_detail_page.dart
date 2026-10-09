@@ -4,10 +4,10 @@ import 'dart:convert';
 // Lets a manager inspect an incident, assign responders, and close it later.
 import 'package:flutter/material.dart';
 
-import '../data/incident_management_repository.dart';
 import '../domain/incident_report.dart';
 import '../domain/incident_timeline_event.dart';
 import '../domain/ranger_profile.dart';
+import '../domain/incident_management_ports.dart';
 import 'widgets/incident_status_badges.dart';
 
 /// Shows an incident's evidence, review actions, assignments, and history.
@@ -15,11 +15,13 @@ class IncidentManagerDetailPage extends StatefulWidget {
   const IncidentManagerDetailPage({
     required this.report,
     required this.manager,
+    required this.repository,
     super.key,
   });
 
   final IncidentReport report;
   final RangerProfile manager;
+  final IncidentManagerGateway repository;
 
   @override
   State<IncidentManagerDetailPage> createState() =>
@@ -27,7 +29,6 @@ class IncidentManagerDetailPage extends StatefulWidget {
 }
 
 class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
-  final _repository = IncidentManagementRepository();
   final _note = TextEditingController();
   late IncidentReport _report;
   late Future<List<IncidentEvidence>> _evidenceFuture;
@@ -40,7 +41,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
   void initState() {
     super.initState();
     _report = widget.report;
-    _evidenceFuture = _repository.loadIncidentEvidence(_report.id);
+    _evidenceFuture = widget.repository.loadIncidentEvidence(_report.id);
     _loadTimeline();
   }
 
@@ -54,7 +55,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
   // Refresh the ordered list of actions recorded for this incident.
   Future<void> _loadTimeline() async {
     try {
-      final events = await _repository.loadTimeline(_report.id);
+      final events = await widget.repository.loadTimeline(_report.id);
       if (mounted) setState(() => _events = events);
     } catch (error) {
       if (mounted) setState(() => _error = 'Could not load history: $error');
@@ -64,11 +65,11 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
   // Reload current incident data, photos, and history from Firestore.
   Future<void> _refreshIncident() async {
     try {
-      final report = await _repository.loadIncident(_report.id);
+      final report = await widget.repository.loadIncident(_report.id);
       if (mounted) {
         setState(() {
           _report = report;
-          _evidenceFuture = _repository.loadIncidentEvidence(_report.id);
+          _evidenceFuture = widget.repository.loadIncidentEvidence(_report.id);
         });
       }
       await _loadTimeline();
@@ -130,7 +131,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
       _error = null;
     });
     try {
-      await _repository.managerTransition(
+      await widget.repository.managerTransition(
         incidentId: _report.id,
         status: status,
         managerName: widget.manager.displayName,
@@ -159,7 +160,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
       _error = null;
     });
     try {
-      await _repository.reviewIncident(
+      await widget.repository.reviewIncident(
         incidentId: _report.id,
         severity: _report.severity,
         managerName: widget.manager.displayName,
@@ -185,7 +186,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
   Future<void> _assignResponders() async {
     List<RangerProfile> candidates;
     try {
-      candidates = await _repository.loadActiveRangers();
+      candidates = await widget.repository.loadActiveRangers();
     } catch (error) {
       if (mounted) {
         setState(() => _error = 'Could not load ranger list: $error');
@@ -310,7 +311,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
       _error = null;
     });
     try {
-      await _repository.assignResponders(
+      await widget.repository.assignResponders(
         incidentId: _report.id,
         kind: result.kind,
         responders: result.responders,
@@ -698,7 +699,7 @@ class _IncidentManagerDetailPageState extends State<IncidentManagerDetailPage> {
                   trailing: IconButton(
                     tooltip: 'Retry loading photos',
                     onPressed: () => setState(() {
-                      _evidenceFuture = _repository.loadIncidentEvidence(
+                      _evidenceFuture = widget.repository.loadIncidentEvidence(
                         _report.id,
                       );
                     }),

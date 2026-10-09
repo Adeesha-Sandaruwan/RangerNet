@@ -5,9 +5,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../data/incident_evidence_picker.dart';
-import '../data/incident_management_repository.dart';
 import '../domain/incident_report.dart';
 import '../domain/incident_timeline_event.dart';
+import '../domain/incident_management_ports.dart';
 import 'incident_detail_page.dart';
 
 /// Shows an assigned incident and accepts the ranger's response update.
@@ -15,11 +15,13 @@ class IncidentResponderDetailPage extends StatefulWidget {
   const IncidentResponderDetailPage({
     required this.report,
     required this.responderName,
+    required this.repository,
     super.key,
   });
 
   final IncidentReport report;
   final String responderName;
+  final IncidentResponderGateway repository;
 
   @override
   State<IncidentResponderDetailPage> createState() =>
@@ -28,7 +30,6 @@ class IncidentResponderDetailPage extends StatefulWidget {
 
 class _IncidentResponderDetailPageState
     extends State<IncidentResponderDetailPage> {
-  final _repository = IncidentManagementRepository();
   final _evidencePicker = IncidentEvidencePicker();
   final _notes = TextEditingController();
   final List<IncidentEvidence> _evidence = [];
@@ -60,7 +61,7 @@ class _IncidentResponderDetailPageState
   // Read the saved manager and responder actions for this incident.
   Future<void> _loadHistory() async {
     try {
-      final history = await _repository.loadTimeline(widget.report.id);
+      final history = await widget.repository.loadTimeline(widget.report.id);
       if (mounted) setState(() => _history = history);
     } catch (error) {
       if (mounted) {
@@ -82,7 +83,7 @@ class _IncidentResponderDetailPageState
       _error = null;
     });
     try {
-      await _repository.recordResponderUpdate(
+      await widget.repository.recordResponderUpdate(
         incidentId: widget.report.id,
         responderName: widget.responderName,
         note: _notes.text,

@@ -7,11 +7,15 @@ import '../domain/incident_report.dart';
 import '../domain/incident_timeline_event.dart';
 import '../domain/ranger_profile.dart';
 import '../domain/incident_workflow_policy.dart';
+import '../domain/incident_management_ports.dart';
 
-/// Firestore boundary for UC02 management and responder actions.
+/// Firestore implementation of the manager and responder gateway contracts.
+/// It can replace another implementation while keeping the same operations.
+/// This class has the single job of managing UC02 data in Firestore.
 /// Authorization is enforced by Firestore rules, not by this UI repository.
 /// Keeps incident workflow database operations out of the screen widgets.
-class IncidentManagementRepository {
+class IncidentManagementRepository
+    implements IncidentManagerGateway, IncidentResponderGateway {
   IncidentManagementRepository({
     FirebaseFirestore? firestore,
     FirebaseAuth? auth,
@@ -23,6 +27,7 @@ class IncidentManagementRepository {
   final FirebaseAuth _auth;
 
   // Load all incidents the signed-in manager is allowed to see.
+  @override
   Future<List<IncidentReport>> loadAllIncidents() async {
     _requireSignedIn();
     final snapshot = await _firestore.collection('incidents').get();
@@ -32,6 +37,7 @@ class IncidentManagementRepository {
   }
 
   // Listen for manager inbox changes as they arrive from Firestore.
+  @override
   Stream<List<IncidentReport>> watchAllIncidents() {
     _requireSignedIn();
     return _firestore
@@ -47,6 +53,7 @@ class IncidentManagementRepository {
   }
 
   // Load one incident by its ID or explain if it no longer exists.
+  @override
   Future<IncidentReport> loadIncident(String incidentId) async {
     _requireSignedIn();
     final snapshot = await _firestore
@@ -59,6 +66,7 @@ class IncidentManagementRepository {
   }
 
   // Load the incidents assigned to this signed-in ranger.
+  @override
   Future<List<IncidentReport>> loadAssignedIncidents(String rangerId) async {
     final user = _requireSignedIn();
     if (user.uid != rangerId) {
@@ -74,6 +82,7 @@ class IncidentManagementRepository {
   }
 
   // Listen for new assignments and updates for this ranger.
+  @override
   Stream<List<IncidentReport>> watchAssignedIncidents(String rangerId) {
     final user = _requireSignedIn();
     if (user.uid != rangerId) {
@@ -93,6 +102,7 @@ class IncidentManagementRepository {
   }
 
   // Give the manager the active ranger accounts available for assignment.
+  @override
   Future<List<RangerProfile>> loadActiveRangers() async {
     _requireSignedIn();
     final snapshot = await _firestore
@@ -106,6 +116,7 @@ class IncidentManagementRepository {
   }
 
   // Load the incident's history, newest action first.
+  @override
   Future<List<IncidentTimelineEvent>> loadTimeline(String incidentId) async {
     _requireSignedIn();
     final snapshot = await _firestore
@@ -127,6 +138,7 @@ class IncidentManagementRepository {
   }
 
   // Load the photos attached to the original incident report.
+  @override
   Future<List<IncidentEvidence>> loadIncidentEvidence(String incidentId) async {
     _requireSignedIn();
     final snapshot = await _firestore
@@ -149,6 +161,7 @@ class IncidentManagementRepository {
   }
 
   // Save the manager's review and its history entry together.
+  @override
   Future<void> reviewIncident({
     required String incidentId,
     required IncidentSeverity severity,
@@ -196,6 +209,7 @@ class IncidentManagementRepository {
   }
 
   // Assign or reassign ranger(s), and record the change in history.
+  @override
   Future<void> assignResponders({
     required String incidentId,
     required IncidentAssignmentKind kind,
@@ -243,6 +257,7 @@ class IncidentManagementRepository {
   }
 
   // Save a manager status change, reason, and history entry together.
+  @override
   Future<void> managerTransition({
     required String incidentId,
     required IncidentWorkflowStatus status,
@@ -306,6 +321,7 @@ class IncidentManagementRepository {
   }
 
   // Save a responder's note, status, photos, and history as one batch.
+  @override
   Future<void> recordResponderUpdate({
     required String incidentId,
     required String responderName,

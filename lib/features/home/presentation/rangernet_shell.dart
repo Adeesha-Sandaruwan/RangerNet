@@ -2,6 +2,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../incidents/domain/incident_management_ports.dart';
 import '../../incidents/presentation/incident_home_page.dart';
 import '../../incidents/presentation/incident_responder_inbox_page.dart';
 
@@ -9,9 +10,14 @@ import '../../incidents/presentation/incident_responder_inbox_page.dart';
 /// Other use cases can add their own destinations when those features are ready.
 /// Shows the ranger home, incident list, and assigned-response inbox.
 class RangerNetShell extends StatefulWidget {
-  const RangerNetShell({required this.ranger, super.key});
+  const RangerNetShell({
+    required this.ranger,
+    required this.responderRepository,
+    super.key,
+  });
 
   final User ranger;
+  final IncidentResponderGateway responderRepository;
 
   @override
   State<RangerNetShell> createState() => _RangerNetShellState();
@@ -34,6 +40,7 @@ class _RangerNetShellState extends State<RangerNetShell> {
           IncidentHomePage(ranger: widget.ranger),
           IncidentResponderInboxPage(
             rangerId: widget.ranger.uid,
+            repository: widget.responderRepository,
             responderName:
                 widget.ranger.displayName ?? widget.ranger.email ?? 'Ranger',
           ),
