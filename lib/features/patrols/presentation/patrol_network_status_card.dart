@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+/// Shows online, offline, or checking status and an optional refresh action.
+/// SRP: presents connectivity without performing network checks itself.
 class PatrolNetworkStatusCard extends StatelessWidget {
   const PatrolNetworkStatusCard({
     required this.online,
@@ -7,7 +9,10 @@ class PatrolNetworkStatusCard extends StatelessWidget {
     super.key,
   });
 
+  /// Connectivity state; null means that the initial check is unresolved.
   final bool? online;
+
+  /// Optional callback that asks the owner to refresh connectivity.
   final VoidCallback? onRefresh;
 
   @override

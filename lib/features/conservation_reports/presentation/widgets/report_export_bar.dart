@@ -84,9 +84,9 @@ class _ReportExportBarState extends State<ReportExportBar> {
       final fileName = _fileName('csv');
       Printing.sharePdf(bytes: Uint8List.fromList(bytes), filename: fileName);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$fileName exported')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$fileName exported')));
       }
     } catch (error) {
       if (mounted) setState(() => _error = 'CSV export failed: $error');
@@ -106,9 +106,9 @@ class _ReportExportBarState extends State<ReportExportBar> {
         filename: fileName,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$fileName exported')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$fileName exported')));
       }
     } catch (error) {
       if (mounted) setState(() => _error = 'PDF export failed: $error');

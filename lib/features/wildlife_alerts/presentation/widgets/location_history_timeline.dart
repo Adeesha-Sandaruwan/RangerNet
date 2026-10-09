@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import '../../domain/models/geo_location.dart';
 
 class LocationHistoryTimeline extends StatelessWidget {
-  const LocationHistoryTimeline({
-    required this.locations,
-    super.key,
-  });
+  const LocationHistoryTimeline({required this.locations, super.key});
 
   final List<GeoLocation> locations;
 
@@ -32,9 +29,9 @@ class LocationHistoryTimeline extends StatelessWidget {
             Text(
               'Telemetry Breadcrumbs (${locations.length} pings)',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF17613F),
-                  ),
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF17613F),
+              ),
             ),
             if (locations.length > 1)
               Container(
@@ -67,9 +64,7 @@ class LocationHistoryTimeline extends StatelessWidget {
             return Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: isLatest
-                    ? const Color(0xFFF1F8F5)
-                    : Colors.white,
+                color: isLatest ? const Color(0xFFF1F8F5) : Colors.white,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isLatest
@@ -114,7 +109,9 @@ class LocationHistoryTimeline extends StatelessWidget {
                               const SizedBox(width: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 1),
+                                  horizontal: 6,
+                                  vertical: 1,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF17613F),
                                   borderRadius: BorderRadius.circular(8),

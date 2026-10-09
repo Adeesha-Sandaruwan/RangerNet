@@ -68,12 +68,11 @@ class ReportTypeSelector extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.w600,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.w600,
                           fontSize: 13,
-                          color: isSelected
-                              ? const Color(0xFF17613F)
-                              : null,
+                          color: isSelected ? const Color(0xFF17613F) : null,
                         ),
                       ),
                       const SizedBox(height: 2),

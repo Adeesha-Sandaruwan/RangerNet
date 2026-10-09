@@ -60,10 +60,7 @@ class ConservationExportService {
             level: 0,
             child: pw.Text(
               result.displayTitle,
-              style: pw.TextStyle(
-                fontSize: 22,
-                fontWeight: pw.FontWeight.bold,
-              ),
+              style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
             ),
           ),
           pw.SizedBox(height: 4),

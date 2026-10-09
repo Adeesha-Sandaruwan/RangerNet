@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../domain/patrol_records.dart';
 import 'patrol_metrics_service.dart';
 
+/// Creates bounded, evenly spaced planned coverage checkpoints between route stops.
 class PatrolRouteCoverageGenerator {
   const PatrolRouteCoverageGenerator({
     this.maximumSpacingMeters = 100,
@@ -12,11 +13,15 @@ class PatrolRouteCoverageGenerator {
     this._metrics = const PatrolMetricsService(),
   });
 
+  /// Target upper spacing between generated coverage checkpoints.
   final double maximumSpacingMeters;
+
+  /// Hard limit that prevents generating an excessively large route.
   final int maximumSections;
   final PatrolMetricsService _metrics;
   static const _uuid = Uuid();
 
+  /// Generates coverage checkpoints no farther apart than the configured spacing, subject to route limits.
   PatrolRoutePlan generate({
     required PatrolCoverageCheckpoint start,
     required PatrolCoverageCheckpoint end,
@@ -38,7 +43,11 @@ class PatrolRouteCoverageGenerator {
     }
 
     final sections = <PatrolCoverageCheckpoint>[];
-    for (var segmentIndex = 0; segmentIndex < route.length - 1; segmentIndex++) {
+    for (
+      var segmentIndex = 0;
+      segmentIndex < route.length - 1;
+      segmentIndex++
+    ) {
       final segmentStart = route[segmentIndex];
       final segmentEnd = route[segmentIndex + 1];
       final distance = _distance(segmentStart, segmentEnd);
@@ -75,6 +84,7 @@ class PatrolRouteCoverageGenerator {
     );
   }
 
+  /// Counts generated sections while rejecting overlapping checkpoints.
   int _sectionCount(List<PatrolCoverageCheckpoint> route) {
     var count = 1;
     for (var index = 0; index < route.length - 1; index++) {
@@ -89,6 +99,7 @@ class PatrolRouteCoverageGenerator {
     return count;
   }
 
+  /// Measures geodesic distance between two planned checkpoints.
   double _distance(
     PatrolCoverageCheckpoint first,
     PatrolCoverageCheckpoint second,

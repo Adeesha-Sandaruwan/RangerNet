@@ -24,8 +24,9 @@ class HumanWildlifeConflictGenerator extends ReportGenerator {
     if (incidents.isEmpty) return _emptyResult();
 
     // Separate conflicts from non-conflicts
-    final conflicts =
-        incidents.where((i) => conflictTypes.contains(i.type)).toList();
+    final conflicts = incidents
+        .where((i) => conflictTypes.contains(i.type))
+        .toList();
     final conflictRate = incidents.isEmpty
         ? 0.0
         : (conflicts.length / incidents.length) * 100;
@@ -39,7 +40,9 @@ class HumanWildlifeConflictGenerator extends ReportGenerator {
     // By park
     final byPark = <String, int>{};
     for (final incident in conflicts) {
-      final park = incident.parkOrBlock.isEmpty ? 'Unknown' : incident.parkOrBlock;
+      final park = incident.parkOrBlock.isEmpty
+          ? 'Unknown'
+          : incident.parkOrBlock;
       byPark[park] = (byPark[park] ?? 0) + 1;
     }
     final sortedParks = byPark.entries.toList()
@@ -48,8 +51,7 @@ class HumanWildlifeConflictGenerator extends ReportGenerator {
     // By severity
     final bySeverity = <IncidentSeverity, int>{};
     for (final incident in conflicts) {
-      bySeverity[incident.severity] =
-          (bySeverity[incident.severity] ?? 0) + 1;
+      bySeverity[incident.severity] = (bySeverity[incident.severity] ?? 0) + 1;
     }
 
     // Active threats
@@ -75,8 +77,9 @@ class HumanWildlifeConflictGenerator extends ReportGenerator {
             .map((e) => ChartDataPoint(e.key, e.value.toDouble()))
             .toList(),
         'Severity of conflicts': IncidentSeverity.values
-            .map((s) =>
-                ChartDataPoint(s.label, (bySeverity[s] ?? 0).toDouble()))
+            .map(
+              (s) => ChartDataPoint(s.label, (bySeverity[s] ?? 0).toDouble()),
+            )
             .toList(),
       },
       tableColumns: const [
@@ -89,14 +92,27 @@ class HumanWildlifeConflictGenerator extends ReportGenerator {
       ],
       tableRows: sortedParks.map((entry) {
         final parkConflicts = conflicts
-            .where((i) => (i.parkOrBlock.isEmpty ? 'Unknown' : i.parkOrBlock) == entry.key)
+            .where(
+              (i) =>
+                  (i.parkOrBlock.isEmpty ? 'Unknown' : i.parkOrBlock) ==
+                  entry.key,
+            )
             .toList();
         return [
           entry.key,
           parkConflicts.length.toString(),
-          parkConflicts.where((i) => i.type == IncidentType.illegalSnare).length.toString(),
-          parkConflicts.where((i) => i.type == IncidentType.animalCarcass).length.toString(),
-          parkConflicts.where((i) => i.type == IncidentType.suspiciousActivity).length.toString(),
+          parkConflicts
+              .where((i) => i.type == IncidentType.illegalSnare)
+              .length
+              .toString(),
+          parkConflicts
+              .where((i) => i.type == IncidentType.animalCarcass)
+              .length
+              .toString(),
+          parkConflicts
+              .where((i) => i.type == IncidentType.suspiciousActivity)
+              .length
+              .toString(),
           parkConflicts.where((i) => i.activeThreat).length.toString(),
         ];
       }).toList(),
@@ -104,12 +120,22 @@ class HumanWildlifeConflictGenerator extends ReportGenerator {
   }
 
   ConservationReportResult _emptyResult() => ConservationReportResult(
-        reportType: ConservationReportType.humanWildlifeConflict,
-        generatedAt: DateTime.now(),
-        totalIncidents: 0,
-        summaryMetrics: const {'Total incidents analysed': '0', 'Conflict incidents': '0'},
-        chartSeries: const {},
-        tableColumns: const ['Area', 'Conflicts', 'Snares', 'Carcasses', 'Suspicious', 'Active threats'],
-        tableRows: const [],
-      );
+    reportType: ConservationReportType.humanWildlifeConflict,
+    generatedAt: DateTime.now(),
+    totalIncidents: 0,
+    summaryMetrics: const {
+      'Total incidents analysed': '0',
+      'Conflict incidents': '0',
+    },
+    chartSeries: const {},
+    tableColumns: const [
+      'Area',
+      'Conflicts',
+      'Snares',
+      'Carcasses',
+      'Suspicious',
+      'Active threats',
+    ],
+    tableRows: const [],
+  );
 }

@@ -6,7 +6,9 @@ import '../../domain/models/sensor.dart';
 import '../../domain/models/wildlife_alert.dart';
 
 class WildlifeSeedData {
-  static final DateTime _baseTime = DateTime.now().subtract(const Duration(hours: 2));
+  static final DateTime _baseTime = DateTime.now().subtract(
+    const Duration(hours: 2),
+  );
 
   // High-Risk Geofence Zones in Yala National Park Conservation Sector
   static final List<HighRiskZone> initialZones = [
@@ -14,14 +16,19 @@ class WildlifeSeedData {
       zoneId: 'ZONE-POACH-01',
       name: 'Southern Boundary Human Buffer Zone',
       severityLevel: ZoneSeverityLevel.high,
-      description: 'Border abutting sugarcane farms where human-elephant conflict and snare traps are prevalent.',
+      description:
+          'Border abutting sugarcane farms where human-elephant conflict and snare traps are prevalent.',
       boundaryPolygon: [
         GeoLocation(latitude: 6.3500, longitude: 81.4500, timestamp: _baseTime),
         GeoLocation(latitude: 6.3700, longitude: 81.4500, timestamp: _baseTime),
         GeoLocation(latitude: 6.3700, longitude: 81.4800, timestamp: _baseTime),
         GeoLocation(latitude: 6.3500, longitude: 81.4800, timestamp: _baseTime),
       ],
-      centerLocation: GeoLocation(latitude: 6.3600, longitude: 81.4650, timestamp: _baseTime),
+      centerLocation: GeoLocation(
+        latitude: 6.3600,
+        longitude: 81.4650,
+        timestamp: _baseTime,
+      ),
       radiusMeters: 2500,
       isActive: true,
     ),
@@ -29,8 +36,13 @@ class WildlifeSeedData {
       zoneId: 'ZONE-RIVER-02',
       name: 'Menik Ganga Poaching Hotspot',
       severityLevel: ZoneSeverityLevel.high,
-      description: 'Dense riverine corridor known for illegal snares and gemstone mining intrusion.',
-      centerLocation: GeoLocation(latitude: 6.4200, longitude: 81.3900, timestamp: _baseTime),
+      description:
+          'Dense riverine corridor known for illegal snares and gemstone mining intrusion.',
+      centerLocation: GeoLocation(
+        latitude: 6.4200,
+        longitude: 81.3900,
+        timestamp: _baseTime,
+      ),
       radiusMeters: 1800,
       isActive: true,
     ),
@@ -39,7 +51,11 @@ class WildlifeSeedData {
       name: 'West Perimeter Highway Buffer',
       severityLevel: ZoneSeverityLevel.medium,
       description: 'Road reserve buffer prone to vehicular wildlife collision.',
-      centerLocation: GeoLocation(latitude: 6.4800, longitude: 81.3200, timestamp: _baseTime),
+      centerLocation: GeoLocation(
+        latitude: 6.4800,
+        longitude: 81.3200,
+        timestamp: _baseTime,
+      ),
       radiusMeters: 1200,
       isActive: true,
     ),
@@ -53,7 +69,8 @@ class WildlifeSeedData {
       species: 'Sri Lankan Elephant (Elephas maximus maximus)',
       collarId: 'COLLAR-001',
       riskProfile: AnimalRiskProfile.high,
-      notes: 'Dominant bull elephant; carries history of raiding village farms near Southern Border.',
+      notes:
+          'Dominant bull elephant; carries history of raiding village farms near Southern Border.',
     ),
     const Animal(
       id: 'ANIMAL-LEO-02',
@@ -61,7 +78,8 @@ class WildlifeSeedData {
       species: 'Sri Lankan Leopard (Panthera pardus kotiya)',
       collarId: 'COLLAR-002',
       riskProfile: AnimalRiskProfile.high,
-      notes: 'Breeding female with cubs frequently patrolling rocky outcrops near river bank.',
+      notes:
+          'Breeding female with cubs frequently patrolling rocky outcrops near river bank.',
     ),
     const Animal(
       id: 'ANIMAL-SAM-03',
@@ -130,7 +148,8 @@ class WildlifeSeedData {
         timestamp: _baseTime,
       ),
       triggerTimestamp: _baseTime.add(const Duration(minutes: 60)),
-      capturedImageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80',
+      capturedImageUrl:
+          'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80',
       simulatedDetectionTag: 'HUMAN_TRESPASS_SUSPECT',
     ),
     CameraTrap(
@@ -146,7 +165,8 @@ class WildlifeSeedData {
         timestamp: _baseTime,
       ),
       triggerTimestamp: _baseTime.add(const Duration(minutes: 30)),
-      capturedImageUrl: 'https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?auto=format&fit=crop&w=600&q=80',
+      capturedImageUrl:
+          'https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?auto=format&fit=crop&w=600&q=80',
       simulatedDetectionTag: 'NORMAL_PASSAGE',
     ),
   ];
@@ -163,7 +183,8 @@ class WildlifeSeedData {
       status: AlertStatus.active,
       triggerType: AlertTriggerType.geofenceBreach,
       title: 'HIGH: Raja (Tusker) breached Southern Boundary Human Buffer Zone',
-      description: 'Elephant Raja crossed 240m inside agricultural buffer adjacent to village perimeter. Potential human-wildlife conflict hazard.',
+      description:
+          'Elephant Raja crossed 240m inside agricultural buffer adjacent to village perimeter. Potential human-wildlife conflict hazard.',
       triggeredAt: _baseTime.add(const Duration(minutes: 60)),
       lastUpdatedAt: _baseTime.add(const Duration(minutes: 75)),
       zoneId: 'ZONE-POACH-01',
@@ -175,9 +196,24 @@ class WildlifeSeedData {
         timestamp: _baseTime.add(const Duration(minutes: 75)),
       ),
       locationHistory: [
-        GeoLocation(latitude: 6.3580, longitude: 81.4580, altitude: 44.0, timestamp: _baseTime.add(const Duration(minutes: 60))),
-        GeoLocation(latitude: 6.3600, longitude: 81.4595, altitude: 45.0, timestamp: _baseTime.add(const Duration(minutes: 68))),
-        GeoLocation(latitude: 6.3620, longitude: 81.4610, altitude: 45.0, timestamp: _baseTime.add(const Duration(minutes: 75))),
+        GeoLocation(
+          latitude: 6.3580,
+          longitude: 81.4580,
+          altitude: 44.0,
+          timestamp: _baseTime.add(const Duration(minutes: 60)),
+        ),
+        GeoLocation(
+          latitude: 6.3600,
+          longitude: 81.4595,
+          altitude: 45.0,
+          timestamp: _baseTime.add(const Duration(minutes: 68)),
+        ),
+        GeoLocation(
+          latitude: 6.3620,
+          longitude: 81.4610,
+          altitude: 45.0,
+          timestamp: _baseTime.add(const Duration(minutes: 75)),
+        ),
       ],
     ),
     WildlifeAlert(
@@ -189,13 +225,16 @@ class WildlifeSeedData {
       riskLevel: AlertRiskLevel.high,
       status: AlertStatus.acknowledged,
       triggerType: AlertTriggerType.cameraDetection,
-      title: 'HIGH THREAT: Human Intrusion / Poaching Detected at River Corridors',
-      description: 'Camera Trap CAM-TRAP-101 flagged armed human motion near Menik Ganga crossing after dusk.',
+      title:
+          'HIGH THREAT: Human Intrusion / Poaching Detected at River Corridors',
+      description:
+          'Camera Trap CAM-TRAP-101 flagged armed human motion near Menik Ganga crossing after dusk.',
       triggeredAt: _baseTime.add(const Duration(minutes: 30)),
       acknowledgedAt: _baseTime.add(const Duration(minutes: 40)),
       acknowledgedByRangerId: 'RANGER-LEAD-07',
       lastUpdatedAt: _baseTime.add(const Duration(minutes: 40)),
-      capturedImageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80',
+      capturedImageUrl:
+          'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80',
       simulatedDetectionTag: 'HUMAN_TRESPASS_SUSPECT',
       currentLocation: GeoLocation(
         latitude: 6.4215,
@@ -204,7 +243,12 @@ class WildlifeSeedData {
         timestamp: _baseTime.add(const Duration(minutes: 30)),
       ),
       locationHistory: [
-        GeoLocation(latitude: 6.4215, longitude: 81.3912, altitude: 50.0, timestamp: _baseTime.add(const Duration(minutes: 30))),
+        GeoLocation(
+          latitude: 6.4215,
+          longitude: 81.3912,
+          altitude: 50.0,
+          timestamp: _baseTime.add(const Duration(minutes: 30)),
+        ),
       ],
     ),
     WildlifeAlert(
@@ -217,13 +261,15 @@ class WildlifeSeedData {
       status: AlertStatus.resolved,
       triggerType: AlertTriggerType.geofenceBreach,
       title: 'MEDIUM: Maya approached Menik Ganga Poaching Hotspot',
-      description: 'Leopard crossed near old wire snare sector. Quick response team inspected area.',
+      description:
+          'Leopard crossed near old wire snare sector. Quick response team inspected area.',
       triggeredAt: _baseTime.subtract(const Duration(hours: 4)),
       acknowledgedAt: _baseTime.subtract(const Duration(hours: 3, minutes: 45)),
       acknowledgedByRangerId: 'RANGER-LEAD-07',
       resolvedAt: _baseTime.subtract(const Duration(hours: 3)),
       resolvedByRangerId: 'RANGER-LEAD-07',
-      responseNotes: 'Action: Dispatched mobile patrol team. Swept perimeter and dismantled 2 abandoned wire snares. Animal returned safely to park core.',
+      responseNotes:
+          'Action: Dispatched mobile patrol team. Swept perimeter and dismantled 2 abandoned wire snares. Animal returned safely to park core.',
       lastUpdatedAt: _baseTime.subtract(const Duration(hours: 3)),
       zoneId: 'ZONE-RIVER-02',
       zoneName: 'Menik Ganga Poaching Hotspot',
@@ -234,7 +280,12 @@ class WildlifeSeedData {
         timestamp: _baseTime.subtract(const Duration(hours: 4)),
       ),
       locationHistory: [
-        GeoLocation(latitude: 6.4150, longitude: 81.3850, altitude: 62.0, timestamp: _baseTime.subtract(const Duration(hours: 4))),
+        GeoLocation(
+          latitude: 6.4150,
+          longitude: 81.3850,
+          altitude: 62.0,
+          timestamp: _baseTime.subtract(const Duration(hours: 4)),
+        ),
       ],
     ),
   ];
@@ -245,8 +296,10 @@ class WildlifeSeedData {
       alertId: 'ALERT-003',
       rangerId: 'RANGER-LEAD-07',
       rangerName: 'Officer K. Perera',
-      actionTaken: 'Dispatched patrol squad, swept area with metal detector and dismantled 2 wire snares.',
-      observations: 'Maya was visually confirmed moving north back into high canopy forest undamaged.',
+      actionTaken:
+          'Dispatched patrol squad, swept area with metal detector and dismantled 2 wire snares.',
+      observations:
+          'Maya was visually confirmed moving north back into high canopy forest undamaged.',
       timestamp: _baseTime.subtract(const Duration(hours: 3)),
       followUpRequired: false,
     ),

@@ -3,7 +3,11 @@ import '../../domain/models/wildlife_alert.dart';
 import '../services/alert_sound_service.dart';
 
 class RiskLevelBadge extends StatelessWidget {
-  const RiskLevelBadge({required this.riskLevel, this.isLarge = false, super.key});
+  const RiskLevelBadge({
+    required this.riskLevel,
+    this.isLarge = false,
+    super.key,
+  });
 
   final AlertRiskLevel riskLevel;
   final bool isLarge;
@@ -80,7 +84,11 @@ class RiskLevelBadge extends StatelessWidget {
 }
 
 class AlertStatusBadge extends StatelessWidget {
-  const AlertStatusBadge({required this.status, this.isLarge = false, super.key});
+  const AlertStatusBadge({
+    required this.status,
+    this.isLarge = false,
+    super.key,
+  });
 
   final AlertStatus status;
   final bool isLarge;

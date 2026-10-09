@@ -51,32 +51,117 @@ class _WildlifeLiveTrackingMapPageState
 
   // Waypoints for Elephant Raja crossing Southern Boundary (lat: 6.35 - 6.37, lon: 81.45 - 81.48)
   final List<GeoLocation> _elephantRouteWaypoints = [
-    GeoLocation(latitude: 6.4100, longitude: 81.4300, altitude: 65.0, timestamp: DateTime.now()),
-    GeoLocation(latitude: 6.3950, longitude: 81.4400, altitude: 58.0, timestamp: DateTime.now()),
-    GeoLocation(latitude: 6.3800, longitude: 81.4480, altitude: 52.0, timestamp: DateTime.now()),
-    GeoLocation(latitude: 6.3720, longitude: 81.4520, altitude: 48.0, timestamp: DateTime.now()),
+    GeoLocation(
+      latitude: 6.4100,
+      longitude: 81.4300,
+      altitude: 65.0,
+      timestamp: DateTime.now(),
+    ),
+    GeoLocation(
+      latitude: 6.3950,
+      longitude: 81.4400,
+      altitude: 58.0,
+      timestamp: DateTime.now(),
+    ),
+    GeoLocation(
+      latitude: 6.3800,
+      longitude: 81.4480,
+      altitude: 52.0,
+      timestamp: DateTime.now(),
+    ),
+    GeoLocation(
+      latitude: 6.3720,
+      longitude: 81.4520,
+      altitude: 48.0,
+      timestamp: DateTime.now(),
+    ),
     // Crosses boundary line here! (Inside Southern Buffer Zone)
-    GeoLocation(latitude: 6.3650, longitude: 81.4600, altitude: 45.0, timestamp: DateTime.now()),
-    GeoLocation(latitude: 6.3610, longitude: 81.4650, altitude: 44.0, timestamp: DateTime.now()),
-    GeoLocation(latitude: 6.3570, longitude: 81.4700, altitude: 43.0, timestamp: DateTime.now()),
+    GeoLocation(
+      latitude: 6.3650,
+      longitude: 81.4600,
+      altitude: 45.0,
+      timestamp: DateTime.now(),
+    ),
+    GeoLocation(
+      latitude: 6.3610,
+      longitude: 81.4650,
+      altitude: 44.0,
+      timestamp: DateTime.now(),
+    ),
+    GeoLocation(
+      latitude: 6.3570,
+      longitude: 81.4700,
+      altitude: 43.0,
+      timestamp: DateTime.now(),
+    ),
   ];
 
   // Waypoints for Leopard Maya patrolling river corridor
   final List<GeoLocation> _leopardRouteWaypoints = [
-    GeoLocation(latitude: 6.4500, longitude: 81.3600, altitude: 70.0, timestamp: DateTime.now()),
-    GeoLocation(latitude: 6.4350, longitude: 81.3750, altitude: 65.0, timestamp: DateTime.now()),
-    GeoLocation(latitude: 6.4220, longitude: 81.3880, altitude: 60.0, timestamp: DateTime.now()),
-    GeoLocation(latitude: 6.4150, longitude: 81.3950, altitude: 55.0, timestamp: DateTime.now()),
-    GeoLocation(latitude: 6.4080, longitude: 81.4050, altitude: 50.0, timestamp: DateTime.now()),
+    GeoLocation(
+      latitude: 6.4500,
+      longitude: 81.3600,
+      altitude: 70.0,
+      timestamp: DateTime.now(),
+    ),
+    GeoLocation(
+      latitude: 6.4350,
+      longitude: 81.3750,
+      altitude: 65.0,
+      timestamp: DateTime.now(),
+    ),
+    GeoLocation(
+      latitude: 6.4220,
+      longitude: 81.3880,
+      altitude: 60.0,
+      timestamp: DateTime.now(),
+    ),
+    GeoLocation(
+      latitude: 6.4150,
+      longitude: 81.3950,
+      altitude: 55.0,
+      timestamp: DateTime.now(),
+    ),
+    GeoLocation(
+      latitude: 6.4080,
+      longitude: 81.4050,
+      altitude: 50.0,
+      timestamp: DateTime.now(),
+    ),
   ];
 
   // Rapid pings close together
   final List<GeoLocation> _rapidPingsWaypoints = [
-    GeoLocation(latitude: 6.3630, longitude: 81.4620, altitude: 45.0, timestamp: DateTime.now()),
-    GeoLocation(latitude: 6.3635, longitude: 81.4625, altitude: 45.2, timestamp: DateTime.now()),
-    GeoLocation(latitude: 6.3640, longitude: 81.4630, altitude: 45.4, timestamp: DateTime.now()),
-    GeoLocation(latitude: 6.3645, longitude: 81.4635, altitude: 45.6, timestamp: DateTime.now()),
-    GeoLocation(latitude: 6.3650, longitude: 81.4640, altitude: 45.8, timestamp: DateTime.now()),
+    GeoLocation(
+      latitude: 6.3630,
+      longitude: 81.4620,
+      altitude: 45.0,
+      timestamp: DateTime.now(),
+    ),
+    GeoLocation(
+      latitude: 6.3635,
+      longitude: 81.4625,
+      altitude: 45.2,
+      timestamp: DateTime.now(),
+    ),
+    GeoLocation(
+      latitude: 6.3640,
+      longitude: 81.4630,
+      altitude: 45.4,
+      timestamp: DateTime.now(),
+    ),
+    GeoLocation(
+      latitude: 6.3645,
+      longitude: 81.4635,
+      altitude: 45.6,
+      timestamp: DateTime.now(),
+    ),
+    GeoLocation(
+      latitude: 6.3650,
+      longitude: 81.4640,
+      altitude: 45.8,
+      timestamp: DateTime.now(),
+    ),
   ];
 
   List<GeoLocation> get _currentWaypoints {
@@ -129,7 +214,9 @@ class _WildlifeLiveTrackingMapPageState
       }
     });
 
-    _simulationTimer = Timer.periodic(const Duration(milliseconds: 1600), (timer) {
+    _simulationTimer = Timer.periodic(const Duration(milliseconds: 1600), (
+      timer,
+    ) {
       if (_currentStepIndex < _currentWaypoints.length) {
         _dispatchNextSimulatedPoint();
       } else {
@@ -163,14 +250,15 @@ class _WildlifeLiveTrackingMapPageState
     });
 
     // Ingest simulated telemetry ping directly into live pipeline!
-    final res = await widget.controller.simulator.telemetryService.ingestGpsTelemetry(
-      collarId: _currentCollarId,
-      latitude: pt.latitude,
-      longitude: pt.longitude,
-      altitude: pt.altitude,
-      batteryLevel: 86.0 - (_currentStepIndex * 0.2),
-      timestamp: now,
-    );
+    final res = await widget.controller.simulator.telemetryService
+        .ingestGpsTelemetry(
+          collarId: _currentCollarId,
+          latitude: pt.latitude,
+          longitude: pt.longitude,
+          altitude: pt.altitude,
+          batteryLevel: 86.0 - (_currentStepIndex * 0.2),
+          timestamp: now,
+        );
 
     if (res.alert != null) {
       setState(() => _lastTriggeredAlert = res.alert);
@@ -221,9 +309,15 @@ class _WildlifeLiveTrackingMapPageState
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildHudMetric('Monitored Animals', '${animals.length} tracked'),
+                _buildHudMetric(
+                  'Monitored Animals',
+                  '${animals.length} tracked',
+                ),
                 _buildHudMetric('Active Geofences', '${zones.length} zones'),
-                _buildHudMetric('Active Alerts', '${controller.activeAlertsCount} active'),
+                _buildHudMetric(
+                  'Active Alerts',
+                  '${controller.activeAlertsCount} active',
+                ),
                 _buildHudMetric(
                   'Collar Telemetry Status',
                   _isSimulating ? 'TRANSMITTING 🟢' : 'STANDBY ⚪',
@@ -269,8 +363,11 @@ class _WildlifeLiveTrackingMapPageState
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.warning_rounded,
-                              color: Colors.amberAccent, size: 28),
+                          const Icon(
+                            Icons.warning_rounded,
+                            color: Colors.amberAccent,
+                            size: 28,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -311,7 +408,8 @@ class _WildlifeLiveTrackingMapPageState
                               foregroundColor: Colors.red.shade900,
                             ),
                             onPressed: () {
-                              if (_lastTriggeredAlert!.riskLevel == AlertRiskLevel.high) {
+                              if (_lastTriggeredAlert!.riskLevel ==
+                                  AlertRiskLevel.high) {
                                 AlertSoundService.playHighRiskAlarm();
                               }
                               Navigator.of(context).push(
@@ -319,8 +417,12 @@ class _WildlifeLiveTrackingMapPageState
                                   builder: (_) => WildlifeAlertDetailPage(
                                     alertId: _lastTriggeredAlert!.alertId,
                                     controller: widget.controller,
-                                    rangerId: widget.ranger?.uid ?? widget.rangerId ?? 'RANGER-01',
-                                    rangerName: widget.ranger?.displayName ??
+                                    rangerId:
+                                        widget.ranger?.uid ??
+                                        widget.rangerId ??
+                                        'RANGER-01',
+                                    rangerName:
+                                        widget.ranger?.displayName ??
                                         widget.ranger?.email ??
                                         widget.rangerName ??
                                         'Ranger',
@@ -328,12 +430,20 @@ class _WildlifeLiveTrackingMapPageState
                                 ),
                               );
                             },
-                            child: const Text('View Alert', style: TextStyle(fontSize: 11)),
+                            child: const Text(
+                              'View Alert',
+                              style: TextStyle(fontSize: 11),
+                            ),
                           ),
                           const SizedBox(width: 6),
                           IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white70, size: 18),
-                            onPressed: () => setState(() => _lastTriggeredAlert = null),
+                            icon: const Icon(
+                              Icons.close,
+                              color: Colors.white70,
+                              size: 18,
+                            ),
+                            onPressed: () =>
+                                setState(() => _lastTriggeredAlert = null),
                           ),
                         ],
                       ),
@@ -356,7 +466,11 @@ class _WildlifeLiveTrackingMapPageState
                 // Route selector
                 Row(
                   children: [
-                    const Icon(Icons.route, color: Colors.greenAccent, size: 18),
+                    const Icon(
+                      Icons.route,
+                      color: Colors.greenAccent,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     const Text(
                       'Simulation Scenario:',
@@ -372,8 +486,14 @@ class _WildlifeLiveTrackingMapPageState
                         value: _selectedRoute,
                         isExpanded: true,
                         dropdownColor: const Color(0xFF1E3A2B),
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
-                        underline: Container(height: 1, color: Colors.greenAccent),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                        underline: Container(
+                          height: 1,
+                          color: Colors.greenAccent,
+                        ),
                         items: SimulationRoute.values.map((route) {
                           return DropdownMenuItem(
                             value: route,
@@ -405,9 +525,15 @@ class _WildlifeLiveTrackingMapPageState
                             : const Color(0xFF17613F),
                         foregroundColor: Colors.white,
                       ),
-                      onPressed: _isSimulating ? _pauseSimulation : _startSimulation,
-                      icon: Icon(_isSimulating ? Icons.pause : Icons.play_arrow),
-                      label: Text(_isSimulating ? 'Pause' : 'Simulate Movement'),
+                      onPressed: _isSimulating
+                          ? _pauseSimulation
+                          : _startSimulation,
+                      icon: Icon(
+                        _isSimulating ? Icons.pause : Icons.play_arrow,
+                      ),
+                      label: Text(
+                        _isSimulating ? 'Pause' : 'Simulate Movement',
+                      ),
                     ),
                     const SizedBox(width: 8),
 
@@ -417,7 +543,9 @@ class _WildlifeLiveTrackingMapPageState
                         foregroundColor: Colors.white70,
                         side: const BorderSide(color: Colors.white30),
                       ),
-                      onPressed: _isSimulating ? null : _dispatchNextSimulatedPoint,
+                      onPressed: _isSimulating
+                          ? null
+                          : _dispatchNextSimulatedPoint,
                       icon: const Icon(Icons.skip_next, size: 16),
                       label: const Text('Step Ping'),
                     ),
@@ -435,7 +563,10 @@ class _WildlifeLiveTrackingMapPageState
                     // Progress indicator
                     Text(
                       'Waypoint: $_currentStepIndex / ${_currentWaypoints.length}',
-                      style: const TextStyle(color: Colors.white70, fontSize: 11),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     SizedBox(
@@ -445,8 +576,9 @@ class _WildlifeLiveTrackingMapPageState
                             ? _currentStepIndex / _currentWaypoints.length
                             : 0,
                         backgroundColor: Colors.white12,
-                        valueColor:
-                            const AlwaysStoppedAnimation<Color>(Colors.greenAccent),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Colors.greenAccent,
+                        ),
                       ),
                     ),
                   ],

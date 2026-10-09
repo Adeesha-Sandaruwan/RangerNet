@@ -91,8 +91,8 @@ class GPSCollarProcessingStrategy implements SensorProcessingStrategy {
       final riskLevel = isHighPriority
           ? AlertRiskLevel.high
           : zone.severityLevel == ZoneSeverityLevel.medium
-              ? AlertRiskLevel.medium
-              : AlertRiskLevel.low;
+          ? AlertRiskLevel.medium
+          : AlertRiskLevel.low;
 
       final boundaryNotice = breachResult.isExactBoundary
           ? ' [Exact Boundary Edge]'
@@ -101,7 +101,8 @@ class GPSCollarProcessingStrategy implements SensorProcessingStrategy {
       return SensorEvaluationResult(
         shouldAlert: true,
         riskLevel: riskLevel,
-        title: '$riskLevel Risk: $animalName entered ${zone.name}$boundaryNotice',
+        title:
+            '$riskLevel Risk: $animalName entered ${zone.name}$boundaryNotice',
         description:
             '$animalSpecies "$animalName" breached high-risk zone "${zone.name}" '
             '(${zone.description.isNotEmpty ? zone.description : zone.severityLevel.label}) '
@@ -132,7 +133,10 @@ class CameraTrapProcessingStrategy implements SensorProcessingStrategy {
     }
 
     final tag = sensor.simulatedDetectionTag?.toUpperCase();
-    if (tag == null || tag.isEmpty || tag == 'NORMAL_PASSAGE' || tag == 'SAFE') {
+    if (tag == null ||
+        tag.isEmpty ||
+        tag == 'NORMAL_PASSAGE' ||
+        tag == 'SAFE') {
       return SensorEvaluationResult.noAlert;
     }
 

@@ -12,6 +12,9 @@ import '../domain/patrol_records.dart';
 import 'patrol_network_status_card.dart';
 import 'patrol_session_page.dart';
 
+/// Ranger-facing assigned-patrol list and entry point for conducting a patrol.
+/// DIP: receives patrol, tracking, sync, and network service abstractions.
+/// The ranger UI uses a green gradient header and semantic status colours.
 class PatrolHomePage extends StatefulWidget {
   const PatrolHomePage({
     required this.rangerId,
@@ -20,27 +23,50 @@ class PatrolHomePage extends StatefulWidget {
     required this.trackingService,
     required this.syncService,
     required this.networkStatus,
+    this.onReportIncident,
     super.key,
   });
 
+  /// Forwarded to the session page to start a linked incident report.
+  final Future<void> Function(Patrol patrol)? onReportIncident;
+
+  /// ID used to load this ranger's assigned patrols.
   final String rangerId;
+
+  /// Name shown to the ranger in the patrol interface.
   final String rangerName;
+
+  /// Application boundary for patrol assignment and lifecycle operations.
   final PatrolService service;
+
+  /// Boundary for location acquisition and ongoing patrol tracking.
   final PatrolTrackingService trackingService;
+
+  /// Boundary for retrying synchronization of locally saved patrols.
   final PatrolSyncService syncService;
+
+  /// Supplies current connectivity and online/offline change notifications.
   final PatrolNetworkStatusProvider networkStatus;
 
   @override
   State<PatrolHomePage> createState() => _PatrolHomePageState();
 }
 
+/// Coordinates live assignments, local-first patrol status, and sync feedback.
+/// Cancels timers and subscriptions and removes its lifecycle observer on dispose.
 class _PatrolHomePageState extends State<PatrolHomePage>
     with WidgetsBindingObserver {
   static const _metrics = PatrolMetricsService();
 
   List<Patrol> _patrols = const [];
+
+  /// Connectivity listener, cancelled when this page is disposed.
   StreamSubscription<bool>? _connectivitySubscription;
+
+  /// Live assignment listener, cancelled when this page is disposed.
   StreamSubscription<PatrolListResult>? _assignmentSubscription;
+
+  /// Refreshes displayed elapsed time for active patrols; disposed with state.
   Timer? _clock;
   bool _loading = true;
   bool _syncing = false;
@@ -51,6 +77,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
   String? _syncMessage;
   bool _syncFailed = false;
 
+  /// Starts assignment, network, and pending-sync observation for the ranger.
   @override
   void initState() {
     super.initState();
@@ -90,6 +117,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
     unawaited(_synchronizePending());
   }
 
+  /// Cancels timers/subscriptions and removes this page's lifecycle observer.
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -99,6 +127,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
     super.dispose();
   }
 
+  /// Refreshes assignments and sync state when the app returns to foreground.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -143,6 +172,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
     }
   }
 
+  /// Runs an elapsed-time timer only while a patrol needs live duration.
   void _updateClock() {
     final hasActivePatrol = _patrols.any(
       (patrol) =>
@@ -169,12 +199,14 @@ class _PatrolHomePageState extends State<PatrolHomePage>
           trackingService: widget.trackingService,
           syncService: widget.syncService,
           networkStatus: widget.networkStatus,
+          onReportIncident: widget.onReportIncident,
         ),
       ),
     );
     await _load();
   }
 
+  /// Retries eligible local patrols and reports their pending/synced status.
   Future<void> _synchronizePending({bool manual = false}) async {
     if (_syncing) {
       _syncRequestedAgain = true;
@@ -259,12 +291,48 @@ class _PatrolHomePageState extends State<PatrolHomePage>
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text(
-                'Assigned patrols',
-                style: Theme.of(context).textTheme.headlineSmall,
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF17613F), Color(0xFF2E8B5E)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Assigned patrols',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.badge_outlined,
+                          size: 18,
+                          color: Colors.white70,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Ranger: ${widget.rangerName}',
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 6),
-              Text('Ranger: ${widget.rangerName}'),
               PatrolNetworkStatusCard(
                 online: _online,
                 onRefresh: _refreshNetworkStatus,
@@ -406,7 +474,12 @@ class _PatrolHomePageState extends State<PatrolHomePage>
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => _open(patrol),
-        child: Padding(
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(color: _statusColor(patrol.status), width: 5),
+            ),
+          ),
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -545,6 +618,18 @@ class _PatrolHomePageState extends State<PatrolHomePage>
     );
   }
 
+  /// Maps lifecycle statuses to the page's consistent semantic colours.
+  Color _statusColor(PatrolStatus status) => switch (status) {
+    PatrolStatus.assigned => const Color(0xFF2F6FDE),
+    PatrolStatus.inProgress => const Color(0xFF17613F),
+    PatrolStatus.paused => const Color(0xFFC77700),
+    PatrolStatus.interrupted => const Color(0xFFB42318),
+    PatrolStatus.completedPendingSync => const Color(0xFF7A5AF8),
+    PatrolStatus.completedSynced => const Color(0xFF536459),
+    PatrolStatus.incomplete => const Color(0xFFC77700),
+    PatrolStatus.aborted => const Color(0xFF8A8F8C),
+  };
+
   String _statusLabel(PatrolStatus status) => switch (status) {
     PatrolStatus.assigned => 'Assigned',
     PatrolStatus.inProgress => 'In progress',
@@ -565,6 +650,7 @@ class _PatrolHomePageState extends State<PatrolHomePage>
   };
 }
 
+/// Displays a compact patrol status label and icon. SRP: presentation only.
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.label, required this.icon});
 
@@ -579,6 +665,7 @@ class _StatusChip extends StatelessWidget {
   );
 }
 
+/// Displays one patrol metric in a list card. SRP: presentation only.
 class _PatrolCardMetric extends StatelessWidget {
   const _PatrolCardMetric({required this.label, required this.value});
 

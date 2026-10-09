@@ -68,7 +68,10 @@ class _SubmitResponseDialogState extends State<SubmitResponseDialog> {
                 ),
                 Text(
                   widget.alert.title,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
                 ),
                 const Divider(height: 24),
 
@@ -104,7 +107,8 @@ class _SubmitResponseDialogState extends State<SubmitResponseDialog> {
                   maxLines: 2,
                   decoration: const InputDecoration(
                     labelText: 'Action Taken *',
-                    hintText: 'e.g. Dispatched squad, mobilized vet, checked snares...',
+                    hintText:
+                        'e.g. Dispatched squad, mobilized vet, checked snares...',
                     border: OutlineInputBorder(),
                   ),
                   validator: (val) {
@@ -121,7 +125,8 @@ class _SubmitResponseDialogState extends State<SubmitResponseDialog> {
                   maxLines: 3,
                   decoration: const InputDecoration(
                     labelText: 'Field Observations & Wildlife Status *',
-                    hintText: 'e.g. Animal moved unharmed toward northern valley...',
+                    hintText:
+                        'e.g. Animal moved unharmed toward northern valley...',
                     border: OutlineInputBorder(),
                   ),
                   validator: (val) {

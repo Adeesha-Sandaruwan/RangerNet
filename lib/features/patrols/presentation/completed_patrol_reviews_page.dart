@@ -12,8 +12,11 @@ import '../../incidents/models/ranger_profile.dart';
 import 'patrol_coverage_summary.dart';
 import 'patrol_route_map.dart';
 
+/// Filter categories available in the manager's completed-patrol review list.
 enum _ReviewFilter { all, pending, reviewed, followUp }
 
+/// Lists completed patrols for manager review. SRP: owns review-list presentation;
+/// DIP: loads records through the injected review-service abstraction.
 class CompletedPatrolReviewsPage extends StatefulWidget {
   const CompletedPatrolReviewsPage({
     required this.service,
@@ -21,7 +24,10 @@ class CompletedPatrolReviewsPage extends StatefulWidget {
     super.key,
   });
 
+  /// Application boundary for loading and saving patrol reviews.
   final PatrolReviewService service;
+
+  /// Manager performing the review.
   final RangerProfile manager;
 
   @override
@@ -29,6 +35,7 @@ class CompletedPatrolReviewsPage extends StatefulWidget {
       _CompletedPatrolReviewsPageState();
 }
 
+/// Owns manager review-list loading and filter state.
 class _CompletedPatrolReviewsPageState
     extends State<CompletedPatrolReviewsPage> {
   List<PatrolReviewRecord> _records = const [];
@@ -42,6 +49,7 @@ class _CompletedPatrolReviewsPageState
     _load();
   }
 
+  /// Loads completed patrols through the review service.
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -69,6 +77,7 @@ class _CompletedPatrolReviewsPageState
       })
       .toList(growable: false);
 
+  /// Opens the selected patrol's review detail screen.
   Future<void> _openReview(PatrolReviewRecord record) async {
     final updated = await Navigator.of(context).push<PatrolReviewRecord>(
       MaterialPageRoute<PatrolReviewRecord>(
@@ -191,10 +200,14 @@ class _CompletedPatrolReviewsPageState
   );
 }
 
+/// Presents one completed-patrol summary. SRP: keeps card rendering reusable.
 class _CompletedPatrolReviewCard extends StatelessWidget {
   const _CompletedPatrolReviewCard({required this.record, required this.onTap});
 
+  /// Review data represented by this card or detail page.
   final PatrolReviewRecord record;
+
+  /// Opens the detail view when this summary is selected.
   final VoidCallback onTap;
 
   @override
@@ -290,6 +303,8 @@ class _CompletedPatrolReviewCard extends StatelessWidget {
   }
 }
 
+/// Presents a completed patrol's evidence and manager review controls.
+/// DIP: uses the injected review-service boundary rather than a backend SDK.
 class _CompletedPatrolReviewDetailPage extends StatefulWidget {
   const _CompletedPatrolReviewDetailPage({
     required this.record,
@@ -297,8 +312,13 @@ class _CompletedPatrolReviewDetailPage extends StatefulWidget {
     required this.manager,
   });
 
+  /// Review data represented by this card or detail page.
   final PatrolReviewRecord record;
+
+  /// Application boundary for loading and saving patrol reviews.
   final PatrolReviewService service;
+
+  /// Manager performing the review.
   final RangerProfile manager;
 
   @override
@@ -306,6 +326,7 @@ class _CompletedPatrolReviewDetailPage extends StatefulWidget {
       _CompletedPatrolReviewDetailPageState();
 }
 
+/// Owns the detail view's review interaction state and asynchronous actions.
 class _CompletedPatrolReviewDetailPageState
     extends State<_CompletedPatrolReviewDetailPage> {
   static const _metrics = PatrolMetricsService();
@@ -330,6 +351,8 @@ class _CompletedPatrolReviewDetailPageState
     super.dispose();
   }
 
+  /// Saves the manager's review, optionally marking a patrol for follow-up.
+  /// Saves a manager's review, optionally marking the patrol for follow-up.
   Future<void> _saveReview({required bool flagOnly}) async {
     setState(() {
       _saving = true;
@@ -701,6 +724,7 @@ class _CompletedPatrolReviewDetailPageState
   }
 }
 
+/// Groups related patrol-review details in a themed card. SRP: presentation only.
 class _DetailCard extends StatelessWidget {
   const _DetailCard({
     required this.title,
@@ -735,6 +759,7 @@ class _DetailCard extends StatelessWidget {
   );
 }
 
+/// Displays a label/value pair in patrol-review details. SRP: presentation only.
 class _DetailRow extends StatelessWidget {
   const _DetailRow({required this.label, required this.value});
 
@@ -755,6 +780,7 @@ class _DetailRow extends StatelessWidget {
   );
 }
 
+/// Renders one checklist result with its completion status.
 class _ChecklistItem extends StatelessWidget {
   const _ChecklistItem({required this.label, required this.complete});
 
@@ -773,6 +799,7 @@ class _ChecklistItem extends StatelessWidget {
   );
 }
 
+/// Explains a map or review status marker using its label and colour.
 class _LegendItem extends StatelessWidget {
   const _LegendItem({required this.color, required this.label});
 
@@ -790,6 +817,7 @@ class _LegendItem extends StatelessWidget {
   );
 }
 
+/// Displays one compact label/value metric in a review summary.
 class _SummaryValue extends StatelessWidget {
   const _SummaryValue({required this.icon, required this.text});
 
@@ -807,6 +835,7 @@ class _SummaryValue extends StatelessWidget {
   );
 }
 
+/// Displays a patrol evidence photo and its available caption/details.
 class _PhotoCard extends StatelessWidget {
   const _PhotoCard({required this.photo});
 

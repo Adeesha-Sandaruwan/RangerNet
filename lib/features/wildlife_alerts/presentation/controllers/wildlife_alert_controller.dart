@@ -15,12 +15,13 @@ class WildlifeAlertController extends ChangeNotifier {
     AlertWorkflowService? workflowService,
     SensorTelemetryService? telemetryService,
     WildlifeSensorSimulator? simulator,
-  })  : _repository = repository,
-        _workflowService = workflowService ??
-            AlertWorkflowService(repository: repository),
-        _telemetryService = telemetryService ??
-            SensorTelemetryService(repository: repository) {
-    _simulator = simulator ??
+  }) : _repository = repository,
+       _workflowService =
+           workflowService ?? AlertWorkflowService(repository: repository),
+       _telemetryService =
+           telemetryService ?? SensorTelemetryService(repository: repository) {
+    _simulator =
+        simulator ??
         WildlifeSensorSimulator(telemetryService: _telemetryService);
     loadData();
   }
@@ -59,7 +60,11 @@ class WildlifeAlertController extends ChangeNotifier {
   int get resolvedAlertsCount =>
       _alerts.where((a) => a.status == AlertStatus.resolved).length;
   int get highRiskActiveCount => _alerts
-      .where((a) => a.status == AlertStatus.active && a.riskLevel == AlertRiskLevel.high)
+      .where(
+        (a) =>
+            a.status == AlertStatus.active &&
+            a.riskLevel == AlertRiskLevel.high,
+      )
       .length;
 
   List<WildlifeAlert> get filteredAlerts {

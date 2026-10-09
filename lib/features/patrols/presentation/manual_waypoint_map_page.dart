@@ -7,6 +7,8 @@ import 'package:latlong2/latlong.dart';
 import '../domain/patrol.dart';
 import '../domain/patrol_records.dart';
 
+/// Lets a ranger select and describe a manual patrol location on a map.
+/// SRP: gathers one location record; its caller controls patrol persistence.
 class ManualWaypointMapPage extends StatefulWidget {
   const ManualWaypointMapPage({
     required this.patrol,
@@ -14,13 +16,17 @@ class ManualWaypointMapPage extends StatefulWidget {
     super.key,
   });
 
+  /// Patrol whose current route is shown while selecting a waypoint.
   final Patrol patrol;
+
+  /// Optional coordinate to center the map on initially.
   final PatrolLocation? initialLocation;
 
   @override
   State<ManualWaypointMapPage> createState() => _ManualWaypointMapPageState();
 }
 
+/// Manages map selection and form state for a manual waypoint.
 class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
   final _latitude = TextEditingController();
   final _longitude = TextEditingController();
@@ -34,6 +40,7 @@ class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
       _latitude.text.trim().isNotEmpty ||
       _longitude.text.trim().isNotEmpty;
 
+  /// Initializes map selection and editable coordinate fields.
   @override
   void initState() {
     super.initState();
@@ -49,6 +56,7 @@ class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
     }
   }
 
+  /// Releases the coordinate controllers owned by this page.
   @override
   void dispose() {
     _latitude.dispose();
@@ -376,6 +384,7 @@ class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
     );
   }
 
+  /// Recenters the map using validated latitude and longitude form values.
   void _openMapAtEnteredCenter() {
     final latitude = double.tryParse(_latitude.text.trim());
     final longitude = double.tryParse(_longitude.text.trim());
@@ -394,6 +403,7 @@ class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
     setState(() => _center = LatLng(latitude, longitude));
   }
 
+  /// Returns the validated manual location to the calling patrol screen.
   void _confirmSelection() {
     final point = _selected;
     if (point == null) return;
@@ -410,10 +420,13 @@ class _ManualWaypointMapPageState extends State<ManualWaypointMapPage> {
   }
 }
 
+/// Explains the map's planned, recorded, and manually marked locations.
 class _MapLegend extends StatelessWidget {
   const _MapLegend({required this.color, required this.label});
 
   final Color color;
+
+  /// Human-readable description of the map marker.
   final String label;
 
   @override

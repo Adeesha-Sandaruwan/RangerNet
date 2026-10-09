@@ -6,17 +6,22 @@ import 'package:uuid/uuid.dart';
 import '../application/patrol_route_coverage_generator.dart';
 import '../domain/patrol_records.dart';
 
+/// Identifies which part of the manager's planned route is being selected.
 enum _RoutePickMode { start, stop, end }
 
+/// Lets a manager build or edit a patrol's planned route on a map.
+/// SRP: returns the route plan; assignment persistence belongs to its caller.
 class PatrolRouteBuilderPage extends StatefulWidget {
   const PatrolRouteBuilderPage({this.initialRoute, super.key});
 
+  /// Existing route to edit, or null to create a new plan.
   final PatrolRoutePlan? initialRoute;
 
   @override
   State<PatrolRouteBuilderPage> createState() => _PatrolRouteBuilderPageState();
 }
 
+/// Manages route-point selection and route-plan editing for the builder page.
 class _PatrolRouteBuilderPageState extends State<PatrolRouteBuilderPage> {
   static const _uuid = Uuid();
   static const _coverageGenerator = PatrolRouteCoverageGenerator();
@@ -251,6 +256,7 @@ class _PatrolRouteBuilderPageState extends State<PatrolRouteBuilderPage> {
     ),
   );
 
+  /// Adds the tapped map coordinate to the currently selected route segment.
   void _onMapTap(TapPosition tapPosition, LatLng point) {
     setState(() {
       _error = null;
@@ -276,6 +282,7 @@ class _PatrolRouteBuilderPageState extends State<PatrolRouteBuilderPage> {
     });
   }
 
+  /// Builds the selected route plan and returns it to the calling form.
   void _generateAndSave() {
     final start = _start;
     final end = _end;

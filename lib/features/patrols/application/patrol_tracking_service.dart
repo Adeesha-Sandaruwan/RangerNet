@@ -8,6 +8,7 @@ import '../domain/patrol_records.dart';
 import 'patrol_metrics_service.dart';
 import 'patrol_service.dart';
 
+/// Snapshot of the GPS state, current patrol, latest fix, saved-point count, and tracking error.
 class PatrolTrackingState {
   const PatrolTrackingState({
     required this.gpsStatus,
@@ -17,13 +18,25 @@ class PatrolTrackingState {
     this.error,
   });
 
+  /// Current GPS availability and fix quality.
   final PatrolGpsStatus gpsStatus;
+
+  /// Patrol currently being tracked, if any.
   final Patrol? patrol;
+
+  /// Most recently received GPS location.
   final PatrolLocation? latestFix;
+
+  /// Number of route points successfully stored on the patrol.
   final int recordedPointCount;
+
+  /// Most recent tracking or persistence error, if any.
   final String? error;
 }
 
+/// Tracks GPS fixes and saves route points independently of lifecycle control.
+/// SRP: isolates tracking; DIP: injects [PatrolLocationProvider] and
+/// [PatrolService].
 class PatrolTrackingService {
   PatrolTrackingService({
     required this._patrolService,
@@ -39,8 +52,14 @@ class PatrolTrackingService {
   final PatrolLocationProvider _locationProvider;
   final PatrolMetricsService _metrics;
   final Uuid _uuid;
+
+  /// Highest GPS accuracy error, in meters, accepted for route recording.
   final double maximumAccuracyMeters;
+
+  /// Minimum travel distance before another fix is stored.
   final double minimumPointDistanceMeters;
+
+  /// Minimum elapsed time before another fix is stored.
   final Duration minimumPointInterval;
   final _states = StreamController<PatrolTrackingState>.broadcast();
 
@@ -58,8 +77,10 @@ class PatrolTrackingService {
   bool _disposed = false;
   bool _retryInProgress = false;
 
+  /// Broadcast stream of tracking state snapshots.
   Stream<PatrolTrackingState> get states => _states.stream;
 
+  /// Current tracking snapshot without waiting for another stream event.
   PatrolTrackingState get currentState => PatrolTrackingState(
     gpsStatus: _gpsStatus,
     patrol: _patrol,
@@ -68,9 +89,11 @@ class PatrolTrackingService {
     error: _error,
   );
 
+  /// Gets one location through the injected provider.
   Future<PatrolLocation> currentLocation() =>
       _locationProvider.currentLocation();
 
+  /// Starts GPS monitoring for an in-progress patrol, retaining existing route points.
   Future<void> start(Patrol patrol) async {
     if (patrol.status != PatrolStatus.inProgress) {
       throw StateError('GPS tracking requires an in-progress patrol.');
@@ -123,6 +146,7 @@ class PatrolTrackingService {
     }
   }
 
+  /// Stops GPS subscriptions and waits for queued route writes to finish.
   Future<void> stop() async {
     _retryTimer?.cancel();
     _retryTimer = null;
@@ -134,6 +158,7 @@ class PatrolTrackingService {
     await _writeTail;
   }
 
+  /// Monitors GPS status and stale-fix intervals while tracking.
   void _startHealthChecks() {
     _healthTimer?.cancel();
     _healthTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
@@ -180,11 +205,13 @@ class PatrolTrackingService {
     });
   }
 
+  /// Replaces the local tracking snapshot after another operation updates the patrol.
   Future<void> refreshPatrol(Patrol patrol) async {
     _patrol = patrol;
     _emit();
   }
 
+  /// Stops tracking and closes the state stream.
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
@@ -192,6 +219,7 @@ class PatrolTrackingService {
     await _states.close();
   }
 
+  /// Periodically retries GPS subscription after provider errors or outages.
   void _scheduleRetry() {
     _retryTimer ??= Timer.periodic(const Duration(seconds: 15), (_) async {
       if (_disposed || _subscription != null) {
@@ -245,6 +273,7 @@ class PatrolTrackingService {
     });
   }
 
+  /// Serializes asynchronous fix processing so rapid samples cannot reorder local writes.
   Future<void> _queueFix(PatrolLocation fix) async {
     // Serialize async local writes so rapid GPS fixes cannot reorder the track.
     final previous = _writeTail;
@@ -258,6 +287,7 @@ class PatrolTrackingService {
     }
   }
 
+  /// Filters low-quality/redundant fixes before saving eligible GPS route points.
   Future<void> _acceptFix(PatrolLocation fix) async {
     _latestFix = fix;
     final accuracy = fix.accuracyMeters;
@@ -316,6 +346,7 @@ class PatrolTrackingService {
     _emit();
   }
 
+  /// Publishes current state unless the service has been disposed.
   void _emit() {
     if (!_disposed && !_states.isClosed) _states.add(currentState);
   }

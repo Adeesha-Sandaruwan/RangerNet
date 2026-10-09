@@ -33,8 +33,9 @@ class HighRiskZone {
   final String description;
   final bool isActive;
 
-  GeofenceType get geofenceType =>
-      boundaryPolygon.length >= 3 ? GeofenceType.polygon : GeofenceType.circular;
+  GeofenceType get geofenceType => boundaryPolygon.length >= 3
+      ? GeofenceType.polygon
+      : GeofenceType.circular;
 
   Map<String, dynamic> toJson() => {
     'zoneId': zoneId,

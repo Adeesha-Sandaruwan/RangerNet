@@ -2,6 +2,7 @@ import '../domain/patrol.dart';
 import '../domain/patrol_records.dart';
 import 'patrol_metrics_service.dart';
 
+/// Calculates planned-section coverage from reliable recorded locations and route segments.
 class PatrolCoverageService {
   const PatrolCoverageService({
     this.coverageRadiusMeters = 100,
@@ -9,10 +10,16 @@ class PatrolCoverageService {
     this.metrics = const PatrolMetricsService(),
   });
 
+  /// Maximum distance from a planned section for a recorded route to count as coverage.
   final double coverageRadiusMeters;
+
+  /// Maximum GPS accuracy error accepted as reliable coverage evidence.
   final double maximumGpsAccuracyMeters;
+
+  /// Distance calculations used to evaluate fixes and route segments.
   final PatrolMetricsService metrics;
 
+  /// Marks sections covered by reliable fixes or connecting route segments; returns null without planned sections.
   PatrolCoverage? calculate(
     Patrol patrol, {
     DateTime? calculatedAt,
@@ -60,11 +67,13 @@ class PatrolCoverageService {
     );
   }
 
+  /// Accepts manual points and GPS points within the configured accuracy limit.
   bool _isReliable(PatrolLocation location) =>
       location.source == PatrolLocationSource.manual ||
       location.accuracyMeters == null ||
       location.accuracyMeters! <= maximumGpsAccuracyMeters;
 
+  /// Tests whether any segment between reliable fixes passes within the coverage radius.
   bool _trackPassesWithinRadius(
     PatrolLocation checkpoint,
     List<PatrolLocation> locations,

@@ -5,15 +5,22 @@ import '../domain/patrol_records.dart';
 import '../domain/patrol_repository.dart';
 import 'patrol_route_plan_codec.dart';
 
+/// Firestore assignment-source adapter. DIP/LSP: implements PatrolAssignmentSource for ranger assignment reads.
 class FirestorePatrolAssignmentSource implements PatrolAssignmentSource {
+  /// Creates the source with injectable Firestore and authentication clients.
   FirestorePatrolAssignmentSource({
     FirebaseFirestore? firestore,
     FirebaseAuth? auth,
   }) : _firestore = firestore ?? FirebaseFirestore.instance,
        _auth = auth ?? FirebaseAuth.instance;
 
+  /// Firestore client used to query assigned patrol records.
   final FirebaseFirestore _firestore;
+
+  /// Authentication client used to enforce the ranger identity.
   final FirebaseAuth _auth;
+
+  /// Loads the ranger assignments from the Firestore server.
   @override
   Future<List<Patrol>> loadAssignedTo(String rangerId) async {
     final snapshot = await _assignedQuery(
@@ -22,6 +29,7 @@ class FirestorePatrolAssignmentSource implements PatrolAssignmentSource {
     return snapshot.docs.map(_fromAssignment).toList(growable: false);
   }
 
+  /// Watches live Firestore changes to the ranger assignments.
   @override
   Stream<List<Patrol>> watchAssignedTo(String rangerId) =>
       _assignedQuery(rangerId).snapshots().map(
@@ -29,6 +37,7 @@ class FirestorePatrolAssignmentSource implements PatrolAssignmentSource {
             snapshot.docs.map(_fromAssignment).toList(growable: false),
       );
 
+  /// Builds the assignment query after verifying the signed-in user matches rangerId.
   Query<Map<String, dynamic>> _assignedQuery(String rangerId) {
     final user = _auth.currentUser;
     if (user == null || user.uid != rangerId) {
@@ -39,6 +48,7 @@ class FirestorePatrolAssignmentSource implements PatrolAssignmentSource {
         .where('assignedRangerId', isEqualTo: rangerId);
   }
 
+  /// Maps one Firestore assignment document into a domain Patrol.
   Patrol _fromAssignment(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
     final rangerId = data['assignedRangerId']?.toString() ?? '';

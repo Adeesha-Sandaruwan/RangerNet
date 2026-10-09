@@ -25,8 +25,9 @@ class WildlifeMonitoringGenerator extends ReportGenerator {
     if (incidents.isEmpty) return _emptyResult();
 
     // Wildlife-relevant incidents
-    final wildlifeIncidents =
-        incidents.where((i) => wildlifeTypes.contains(i.type)).toList();
+    final wildlifeIncidents = incidents
+        .where((i) => wildlifeTypes.contains(i.type))
+        .toList();
 
     // By type
     final byType = <IncidentType, int>{};
@@ -37,22 +38,26 @@ class WildlifeMonitoringGenerator extends ReportGenerator {
     // By park
     final byPark = <String, int>{};
     for (final incident in wildlifeIncidents) {
-      final park = incident.parkOrBlock.isEmpty ? 'Unknown' : incident.parkOrBlock;
+      final park = incident.parkOrBlock.isEmpty
+          ? 'Unknown'
+          : incident.parkOrBlock;
       byPark[park] = (byPark[park] ?? 0) + 1;
     }
     final sortedParks = byPark.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
     // Geo-tagged percentage
-    final geoTagged =
-        wildlifeIncidents.where((i) => i.latitude != null && i.longitude != null).length;
+    final geoTagged = wildlifeIncidents
+        .where((i) => i.latitude != null && i.longitude != null)
+        .length;
     final geoRate = wildlifeIncidents.isEmpty
         ? 0.0
         : (geoTagged / wildlifeIncidents.length) * 100;
 
     // Carcasses specifically (important wildlife indicator)
-    final carcasses =
-        incidents.where((i) => i.type == IncidentType.animalCarcass).length;
+    final carcasses = incidents
+        .where((i) => i.type == IncidentType.animalCarcass)
+        .length;
 
     return ConservationReportResult(
       reportType: ConservationReportType.wildlifeMonitoring,
@@ -84,14 +89,27 @@ class WildlifeMonitoringGenerator extends ReportGenerator {
       ],
       tableRows: sortedParks.map((entry) {
         final parkIncidents = wildlifeIncidents
-            .where((i) => (i.parkOrBlock.isEmpty ? 'Unknown' : i.parkOrBlock) == entry.key)
+            .where(
+              (i) =>
+                  (i.parkOrBlock.isEmpty ? 'Unknown' : i.parkOrBlock) ==
+                  entry.key,
+            )
             .toList();
         return [
           entry.key,
           parkIncidents.length.toString(),
-          parkIncidents.where((i) => i.type == IncidentType.animalCarcass).length.toString(),
-          parkIncidents.where((i) => i.type == IncidentType.illegalSnare).length.toString(),
-          parkIncidents.where((i) => i.type == IncidentType.other).length.toString(),
+          parkIncidents
+              .where((i) => i.type == IncidentType.animalCarcass)
+              .length
+              .toString(),
+          parkIncidents
+              .where((i) => i.type == IncidentType.illegalSnare)
+              .length
+              .toString(),
+          parkIncidents
+              .where((i) => i.type == IncidentType.other)
+              .length
+              .toString(),
           parkIncidents.where((i) => i.latitude != null).length.toString(),
         ];
       }).toList(),
@@ -99,12 +117,19 @@ class WildlifeMonitoringGenerator extends ReportGenerator {
   }
 
   ConservationReportResult _emptyResult() => ConservationReportResult(
-        reportType: ConservationReportType.wildlifeMonitoring,
-        generatedAt: DateTime.now(),
-        totalIncidents: 0,
-        summaryMetrics: const {'Total incidents': '0'},
-        chartSeries: const {},
-        tableColumns: const ['Area', 'Wildlife incidents', 'Carcasses', 'Snare related', 'Other', 'GPS-tagged'],
-        tableRows: const [],
-      );
+    reportType: ConservationReportType.wildlifeMonitoring,
+    generatedAt: DateTime.now(),
+    totalIncidents: 0,
+    summaryMetrics: const {'Total incidents': '0'},
+    chartSeries: const {},
+    tableColumns: const [
+      'Area',
+      'Wildlife incidents',
+      'Carcasses',
+      'Snare related',
+      'Other',
+      'GPS-tagged',
+    ],
+    tableRows: const [],
+  );
 }

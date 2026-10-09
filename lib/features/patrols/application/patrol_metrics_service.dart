@@ -3,9 +3,11 @@ import 'dart:math' as math;
 import '../domain/patrol.dart';
 import '../domain/patrol_records.dart';
 
+/// Calculates recorded/planned route distances and active duration from patrol evidence.
 class PatrolMetricsService {
   const PatrolMetricsService();
 
+  /// Returns route locations in timestamp order, excluding fixes before patrol start.
   List<PatrolLocation> actualRouteLocations(Patrol patrol) {
     final start = patrol.startLocation;
     final startTime = start?.recordedAt ?? patrol.startedAt;
@@ -45,6 +47,7 @@ class PatrolMetricsService {
     ]);
   }
 
+  /// Sums geodesic distances between ordered recorded route locations.
   double distanceTravelledMeters(Patrol patrol) {
     final locations = actualRouteLocations(patrol);
     var distance = 0.0;
@@ -54,9 +57,11 @@ class PatrolMetricsService {
     return distance;
   }
 
+  /// Calculates geodesic distance between two patrol locations.
   double distanceBetween(PatrolLocation first, PatrolLocation second) =>
       _distanceBetween(first, second);
 
+  /// Calculates the local projected distance from a location to a route segment.
   double distanceToSegmentMeters(
     PatrolLocation point,
     PatrolLocation segmentStart,
@@ -82,14 +87,14 @@ class PatrolMetricsService {
       return math.sqrt(start.$1 * start.$1 + start.$2 * start.$2);
     }
 
-    final fraction = (-(start.$1 * deltaX + start.$2 * deltaY) /
-            lengthSquared)
+    final fraction = (-(start.$1 * deltaX + start.$2 * deltaY) / lengthSquared)
         .clamp(0.0, 1.0);
     final nearestX = start.$1 + fraction * deltaX;
     final nearestY = start.$2 + fraction * deltaY;
     return math.sqrt(nearestX * nearestX + nearestY * nearestY);
   }
 
+  /// Sums geodesic distance across ordered planned route locations.
   double plannedRouteDistanceMeters(PatrolRoutePlan route) {
     final locations = route.routeLocations;
     var distance = 0.0;
@@ -106,6 +111,7 @@ class PatrolMetricsService {
     return distance;
   }
 
+  /// Computes elapsed patrol time through [now], excluding recorded paused intervals.
   Duration durationAt(Patrol patrol, DateTime now) {
     final start = patrol.startedAt;
     if (start == null) return Duration.zero;
@@ -137,6 +143,7 @@ class PatrolMetricsService {
     return activeDuration.isNegative ? Duration.zero : activeDuration;
   }
 
+  /// Calculates distance using the shared coordinate-based geodesic helper.
   static double _distanceBetween(PatrolLocation first, PatrolLocation second) {
     return _distanceBetweenCoordinates(
       first.latitude,
@@ -146,6 +153,7 @@ class PatrolMetricsService {
     );
   }
 
+  /// Calculates great-circle distance with the haversine formula.
   static double _distanceBetweenCoordinates(
     double firstLatitude,
     double firstLongitude,
@@ -165,5 +173,6 @@ class PatrolMetricsService {
     return earthRadiusMeters * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
   }
 
+  /// Converts degrees to radians for spherical calculations.
   static double _radians(double degrees) => degrees * math.pi / 180;
 }

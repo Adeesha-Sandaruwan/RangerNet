@@ -5,9 +5,12 @@ import 'package:geolocator/geolocator.dart';
 import '../domain/patrol_location_provider.dart';
 import '../domain/patrol_records.dart';
 
+/// Adapts Geolocator APIs to the patrol location-provider port. DIP/LSP: consumers depend on PatrolLocationProvider rather than the platform plugin.
 class GeolocatorPatrolLocationProvider implements PatrolLocationProvider {
+  /// Creates the platform-backed location adapter.
   const GeolocatorPatrolLocationProvider();
 
+  /// Reads one GPS fix after checking service and permission availability.
   @override
   Future<PatrolLocation> currentLocation() async {
     await _ensureReady();
@@ -26,6 +29,7 @@ class GeolocatorPatrolLocationProvider implements PatrolLocationProvider {
     }
   }
 
+  /// Reports GPS service and permission readiness without requesting permission.
   @override
   Future<PatrolGpsStatus> checkStatus() async {
     try {
@@ -55,6 +59,7 @@ class GeolocatorPatrolLocationProvider implements PatrolLocationProvider {
     }
   }
 
+  /// Opens a stream of GPS positions using the configured accuracy and distance filter.
   @override
   Future<Stream<PatrolLocation>> watchLocations() async {
     await _ensureReady();
@@ -93,9 +98,12 @@ class GeolocatorPatrolLocationProvider implements PatrolLocationProvider {
   );
 }
 
+/// Describes an unavailable or timed-out patrol location operation.
 class PatrolLocationException implements Exception {
+  /// Creates an exception with a user-presentable explanation.
   const PatrolLocationException(this.message);
 
+  /// User-presentable explanation of the location failure.
   final String message;
 
   @override

@@ -7,8 +7,10 @@ class SensorProcessorFactory {
   SensorProcessorFactory({
     SensorProcessingStrategy? gpsCollarStrategy,
     SensorProcessingStrategy? cameraTrapStrategy,
-  }) : _gpsCollarStrategy = gpsCollarStrategy ?? const GPSCollarProcessingStrategy(),
-       _cameraTrapStrategy = cameraTrapStrategy ?? const CameraTrapProcessingStrategy();
+  }) : _gpsCollarStrategy =
+           gpsCollarStrategy ?? const GPSCollarProcessingStrategy(),
+       _cameraTrapStrategy =
+           cameraTrapStrategy ?? const CameraTrapProcessingStrategy();
 
   final SensorProcessingStrategy _gpsCollarStrategy;
   final SensorProcessingStrategy _cameraTrapStrategy;

@@ -1,5 +1,8 @@
 import 'patrol_records.dart';
 
+/// Immutable UC01 patrol aggregate. Validates IDs, timestamps, and completion
+/// location; keeps lifecycle and sync status separate. Route distance and active
+/// duration are derived from recorded evidence.
 class Patrol {
   Patrol({
     required this.patrolId,
@@ -31,7 +34,9 @@ class Patrol {
     if (patrolId.trim().isEmpty ||
         localId.trim().isEmpty ||
         rangerId.trim().isEmpty) {
-      throw ArgumentError('Patrol, local, and assigned ranger IDs are required.');
+      throw ArgumentError(
+        'Patrol, local, and assigned ranger IDs are required.',
+      );
     }
     if (startedAt != null && endedAt != null && endedAt!.isBefore(startedAt!)) {
       throw ArgumentError('Patrol end time cannot be before its start time.');
@@ -45,35 +50,81 @@ class Patrol {
     if (status == PatrolStatus.completedPendingSync ||
         status == PatrolStatus.completedSynced) {
       if (startedAt == null || startLocation == null) {
-        throw ArgumentError('A completed patrol must have started with a location.');
+        throw ArgumentError(
+          'A completed patrol must have started with a location.',
+        );
       }
     }
   }
 
+  /// Stable patrol identifier from the assignment source.
   final String patrolId;
+
+  /// Stable device-local identifier used for local lookup and sync deduplication.
   final String localId;
+
+  /// ID of the ranger assigned to this patrol.
   final String rangerId;
+
+  /// Display name of the assigned ranger.
   final String rangerName;
+
+  /// Park, zone, and route assigned to this patrol.
   final PatrolArea area;
+
+  /// Lifecycle state; sync state is stored separately in [syncInfo].
   final PatrolStatus status;
+
+  /// Time the patrol was assigned, when known.
   final DateTime? assignedAt;
+
+  /// Patrol start time used for duration calculations.
   final DateTime? startedAt;
+
+  /// Patrol end time for completed or otherwise finished patrols.
   final DateTime? endedAt;
+
+  /// Location captured when the patrol started.
   final PatrolLocation? startLocation;
+
+  /// Location captured when the patrol ended.
   final PatrolLocation? endLocation;
+
+  /// Immutable GPS route samples recorded during tracking.
   final List<PatrolRoutePoint> routePoints;
+
+  /// Immutable manually placed points recorded by the ranger.
   final List<PatrolWaypoint> manualWaypoints;
+
+  /// Planned route and coverage sections, when available.
   final PatrolRoutePlan? plannedRoute;
+
+  /// Coverage sections from the planned route, or an empty list when no route is planned.
   List<PatrolCoverageCheckpoint> get plannedCoverageSections =>
       plannedRoute?.coverageSections ?? const [];
+
+  /// Immutable field observations recorded for this patrol.
   final List<PatrolObservation> observations;
+
+  /// Immutable photo evidence associated with this patrol.
   final List<PatrolPhoto> photographs;
+
+  /// Immutable pause/resume history used to exclude paused time.
   final List<PatrolPauseResumeEvent> pauseResumeEvents;
+
+  /// Reason supplied when the patrol is aborted or marked incomplete.
   final String? earlyTerminationReason;
+
+  /// Reason the patrol was interrupted and may need resumption.
   final String? interruptionReason;
+
+  /// Sync status and timestamps, independent of [status].
   final PatrolSyncInfo syncInfo;
+
+  /// Most recently calculated planned-route coverage summary.
   final PatrolCoverage? coverage;
 
+  /// Maps the lifecycle state to a broad active/completed/interrupted classification.
   PatrolCompletionState get completionState => switch (status) {
     PatrolStatus.assigned ||
     PatrolStatus.inProgress ||
@@ -85,6 +136,7 @@ class Patrol {
     PatrolStatus.interrupted => PatrolCompletionState.interrupted,
   };
 
+  /// Returns a new patrol with selected values replaced while preserving unspecified data.
   Patrol copyWith({
     String? localId,
     String? rangerName,
@@ -137,6 +189,7 @@ class Patrol {
     coverage: clearCoverage ? null : coverage ?? this.coverage,
   );
 
+  /// Whether this lifecycle state requires a recorded start time.
   static bool _requiresStartTime(PatrolStatus status) => {
     PatrolStatus.inProgress,
     PatrolStatus.paused,
@@ -146,11 +199,11 @@ class Patrol {
     PatrolStatus.interrupted,
   }.contains(status);
 
+  /// Whether this lifecycle state requires a recorded end time.
   static bool _requiresEndTime(PatrolStatus status) => {
     PatrolStatus.completedPendingSync,
     PatrolStatus.completedSynced,
     PatrolStatus.incomplete,
     PatrolStatus.aborted,
   }.contains(status);
-
 }

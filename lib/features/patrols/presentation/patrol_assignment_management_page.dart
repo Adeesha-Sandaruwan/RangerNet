@@ -10,6 +10,9 @@ import 'completed_patrol_reviews_page.dart';
 import 'patrol_route_builder_page.dart';
 import 'patrol_route_map.dart';
 
+/// Manager-facing patrol assignment list and creation entry point.
+/// DIP: assignment and review work is delegated to injected services.
+/// The manager view uses a green gradient header and numbered _StepHeader form sections.
 class PatrolAssignmentManagementPage extends StatefulWidget {
   const PatrolAssignmentManagementPage({
     required this.service,
@@ -18,8 +21,13 @@ class PatrolAssignmentManagementPage extends StatefulWidget {
     super.key,
   });
 
+  /// Application boundary for loading and creating patrol assignments.
   final PatrolAssignmentService service;
+
+  /// Supplies completed patrols and manager review operations.
   final PatrolReviewService reviewService;
+
+  /// Manager identity used by review and assignment workflows.
   final RangerProfile manager;
 
   @override
@@ -27,18 +35,21 @@ class PatrolAssignmentManagementPage extends StatefulWidget {
       _PatrolAssignmentManagementPageState();
 }
 
+/// Loads and presents assignments for the manager; refreshes through its service.
 class _PatrolAssignmentManagementPageState
     extends State<PatrolAssignmentManagementPage> {
   List<PatrolAssignment> _assignments = const [];
   bool _loading = true;
   String? _error;
 
+  /// Initializes this manager page and begins its initial data load.
   @override
   void initState() {
     super.initState();
     _load();
   }
 
+  /// Loads assignments through the injected service and updates the view state.
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -54,6 +65,7 @@ class _PatrolAssignmentManagementPageState
     }
   }
 
+  /// Opens the assignment form and adds a successfully created result.
   Future<void> _createAssignment() async {
     final assignment = await Navigator.of(context).push<PatrolAssignment>(
       MaterialPageRoute<PatrolAssignment>(
@@ -65,6 +77,7 @@ class _PatrolAssignmentManagementPageState
     }
   }
 
+  /// Builds the manager assignment view with its assignment workflow styling.
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF5F8F3),
@@ -104,14 +117,46 @@ class _PatrolAssignmentManagementPageState
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
             children: [
-              Text(
-                'Assignments for rangers',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Choose an active ranger and define the park, zone, and route. '
-                'The patrol will appear in that ranger’s Patrols list.',
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF17613F), Color(0xFF2E8B5E)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.assignment_ind_outlined,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Assignments for rangers',
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Choose an active ranger and define the park, zone, and route. '
+                      'The patrol will appear in that ranger’s Patrols list.',
+                      style: TextStyle(color: Colors.white70, height: 1.4),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -208,7 +253,10 @@ class _PatrolAssignmentManagementPageState
                                 ),
                               ),
                               const Chip(
-                                avatar: Icon(Icons.check_circle_outline, size: 16),
+                                avatar: Icon(
+                                  Icons.check_circle_outline,
+                                  size: 16,
+                                ),
                                 label: Text('Assigned'),
                                 visualDensity: VisualDensity.compact,
                               ),
@@ -216,10 +264,7 @@ class _PatrolAssignmentManagementPageState
                           ),
                           if (assignment.plannedRoute case final route?) ...[
                             const SizedBox(height: 12),
-                            PatrolRouteMap(
-                              plannedRoute: route,
-                              height: 190,
-                            ),
+                            PatrolRouteMap(plannedRoute: route, height: 190),
                             const SizedBox(height: 8),
                             Text(
                               '${route.start.name} → ${route.end.name}',
@@ -240,9 +285,7 @@ class _PatrolAssignmentManagementPageState
                               Expanded(
                                 child: Text(
                                   assignment.rangerName,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.bodyMedium,
+                                  style: Theme.of(context).textTheme.bodyMedium,
                                 ),
                               ),
                               Text(
@@ -265,12 +308,14 @@ class _PatrolAssignmentManagementPageState
       ),
     ),
   );
-
 }
 
+/// Collects manager-entered ranger, area, and planned-route assignment details.
+/// DIP: submits assignment work through the injected assignment service.
 class _CreatePatrolAssignmentPage extends StatefulWidget {
   const _CreatePatrolAssignmentPage({required this.service});
 
+  /// Application boundary for loading and creating patrol assignments.
   final PatrolAssignmentService service;
 
   @override
@@ -278,6 +323,7 @@ class _CreatePatrolAssignmentPage extends StatefulWidget {
       _CreatePatrolAssignmentPageState();
 }
 
+/// Owns assignment form controllers and validation; disposes its controllers.
 class _CreatePatrolAssignmentPageState
     extends State<_CreatePatrolAssignmentPage> {
   final _formKey = GlobalKey<FormState>();
@@ -294,12 +340,14 @@ class _CreatePatrolAssignmentPageState
   bool _saving = false;
   String? _error;
 
+  /// Initializes this manager page and begins its initial data load.
   @override
   void initState() {
     super.initState();
     _loadRangers();
   }
 
+  /// Disposes form controllers owned by the assignment form.
   @override
   void dispose() {
     _parkName.dispose();
@@ -311,6 +359,7 @@ class _CreatePatrolAssignmentPageState
     super.dispose();
   }
 
+  /// Loads the available active rangers for the assignment form.
   Future<void> _loadRangers() async {
     setState(() {
       _loadingRangers = true;
@@ -331,6 +380,7 @@ class _CreatePatrolAssignmentPageState
     }
   }
 
+  /// Validates the manager's form and persists the assignment via its service.
   Future<void> _save() async {
     if (_saving || !_formKey.currentState!.validate()) return;
     final ranger = _selectedRanger;
@@ -373,6 +423,7 @@ class _CreatePatrolAssignmentPageState
     }
   }
 
+  /// Builds the manager assignment view with its assignment workflow styling.
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF5F8F3),
@@ -388,16 +439,12 @@ class _CreatePatrolAssignmentPageState
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text(
-                '1. Select ranger',
-                style: Theme.of(context).textTheme.titleLarge,
+              const _StepHeader(
+                step: 1,
+                title: 'Select ranger',
+                subtitle: 'Choose who will receive this patrol assignment.',
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Choose who will receive this patrol assignment.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               if (_loadingRangers)
                 const LinearProgressIndicator()
               else if (_rangers.isEmpty)
@@ -443,16 +490,13 @@ class _CreatePatrolAssignmentPageState
                       ranger == null ? 'Select a ranger.' : null,
                 ),
               const SizedBox(height: 24),
-              Text(
-                '2. Define patrol area',
-                style: Theme.of(context).textTheme.titleLarge,
+              const _StepHeader(
+                step: 2,
+                title: 'Define patrol area',
+                subtitle:
+                    'Use names that help the ranger identify the place and route.',
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Use names that help the ranger identify the place and route.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               _requiredField(_parkName, 'Park name'),
               const SizedBox(height: 12),
               _optionalField(_parkId, 'Park ID (optional)'),
@@ -465,17 +509,15 @@ class _CreatePatrolAssignmentPageState
               const SizedBox(height: 12),
               _optionalField(_routeId, 'Route ID (optional)'),
               const SizedBox(height: 24),
-              Text(
-                '3. Build route on map',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Choose the start and destination by tapping the map. Add '
-                'optional stops in the order the ranger should visit them. '
-                'The preview connects selected locations with straight map '
-                'segments. Confirm the path follows accessible tracks; '
-                'coverage sections are generated from those map selections.',
+              const _StepHeader(
+                step: 3,
+                title: 'Build route on map',
+                subtitle:
+                    'Choose the start and destination by tapping the map. Add '
+                    'optional stops in the order the ranger should visit them. '
+                    'The preview connects selected locations with straight map '
+                    'segments. Confirm the path follows accessible tracks; '
+                    'coverage sections are generated from those map selections.',
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -554,6 +596,7 @@ class _CreatePatrolAssignmentPageState
     ),
   );
 
+  /// Opens the route builder and adopts its returned planned route.
   Future<void> _buildRoute() async {
     final route = await Navigator.of(context).push<PatrolRoutePlan>(
       MaterialPageRoute<PatrolRoutePlan>(
@@ -561,6 +604,52 @@ class _CreatePatrolAssignmentPageState
       ),
     );
     if (route != null && mounted) setState(() => _plannedRoute = route);
+  }
+}
+
+/// Renders a numbered section heading using the active Material theme.
+/// SRP: presentation-only step indicator and copy.
+class _StepHeader extends StatelessWidget {
+  const _StepHeader({
+    required this.step,
+    required this.title,
+    required this.subtitle,
+  });
+
+  /// Sequential number displayed in the section marker.
+  final int step;
+
+  /// Short heading for the assignment-form section.
+  final String title;
+
+  /// Supporting instruction for the assignment-form section.
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CircleAvatar(
+          radius: 15,
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: theme.colorScheme.onPrimary,
+          child: Text('$step', style: const TextStyle(fontSize: 13)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: theme.textTheme.titleMedium),
+              const SizedBox(height: 2),
+              Text(subtitle, style: theme.textTheme.bodySmall),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 

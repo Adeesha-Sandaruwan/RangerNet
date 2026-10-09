@@ -4,6 +4,9 @@ import '../domain/patrol_records.dart';
 import '../domain/patrol_network_status.dart';
 import 'patrol_service.dart';
 
+/// Syncs completed patrols with network gating, retryable state, and per-patrol
+/// in-flight deduplication. DIP: injects network and sync repository ports;
+/// completed records remain locally saved while offline.
 class PatrolSyncService {
   PatrolSyncService({
     required this._patrolService,
@@ -13,9 +16,12 @@ class PatrolSyncService {
 
   final PatrolService _patrolService;
   final PatrolSyncRepository _syncRepository;
+
+  /// Connectivity abstraction used to keep completed patrols local while offline.
   final PatrolNetworkStatusProvider networkStatus;
   final Map<String, Future<Patrol>> _inFlight = {};
 
+  /// Attempts each completed patrol not yet synced and returns individual failures.
   Future<PatrolSyncBatchResult> synchronizePending(String rangerId) async {
     final patrols = await _patrolService.listForRanger(rangerId);
     var synchronized = 0;
@@ -38,6 +44,7 @@ class PatrolSyncService {
     );
   }
 
+  /// Synchronizes a completed pending patrol, deduplicating concurrent attempts by ranger/local ID.
   Future<Patrol> synchronize(Patrol patrol, {DateTime? now}) {
     if (patrol.status == PatrolStatus.completedSynced ||
         patrol.syncInfo.status == PatrolSyncStatus.synced) {
@@ -57,6 +64,7 @@ class PatrolSyncService {
     });
   }
 
+  /// Persists sync progress, submits the latest local patrol, and records failures for retry.
   Future<Patrol> _synchronize(Patrol patrol, {DateTime? now}) async {
     final attemptedAt = (now ?? DateTime.now()).toUtc();
     Patrol latest = patrol;
@@ -70,8 +78,7 @@ class PatrolSyncService {
           break;
         }
       }
-      if (!isPersisted ||
-          latest.status != PatrolStatus.completedPendingSync) {
+      if (!isPersisted || latest.status != PatrolStatus.completedPendingSync) {
         if (latest.status == PatrolStatus.completedSynced ||
             latest.syncInfo.status == PatrolSyncStatus.synced) {
           return latest;
@@ -119,12 +126,16 @@ class PatrolSyncService {
   }
 }
 
+/// Outcome counts and per-patrol errors from a pending-sync batch.
 class PatrolSyncBatchResult {
   const PatrolSyncBatchResult({
     required this.synchronizedCount,
     required this.failures,
   });
 
+  /// Number of patrols synchronized successfully in this batch.
   final int synchronizedCount;
+
+  /// Per-patrol error descriptions for attempts that failed.
   final List<String> failures;
 }

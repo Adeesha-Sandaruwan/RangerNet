@@ -19,6 +19,8 @@ import 'patrol_network_status_card.dart';
 import 'patrol_primary_action_button.dart';
 import 'patrol_route_map.dart';
 
+/// Ranger's active patrol screen for recording observations and managing its
+/// lifecycle. DIP: delegates patrol, tracking, and sync operations to services.
 class PatrolSessionPage extends StatefulWidget {
   const PatrolSessionPage({
     required this.patrol,
@@ -26,19 +28,36 @@ class PatrolSessionPage extends StatefulWidget {
     required this.trackingService,
     required this.syncService,
     required this.networkStatus,
+    this.onReportIncident,
     super.key,
   });
 
+  /// Opens the separate formal incident report for this patrol. Injected so the
+  /// patrol feature stays decoupled from the incident feature (DIP); the
+  /// button is hidden when null.
+  final Future<void> Function(Patrol patrol)? onReportIncident;
+
+  /// Patrol record to display and conduct.
   final Patrol patrol;
+
+  /// Application boundary for recording patrol lifecycle and field data.
   final PatrolService service;
+
+  /// Boundary for GPS updates and tracking control.
   final PatrolTrackingService trackingService;
+
+  /// Boundary for synchronizing a completed patrol.
   final PatrolSyncService syncService;
+
+  /// Supplies connectivity changes used to retry pending sync.
   final PatrolNetworkStatusProvider networkStatus;
 
   @override
   State<PatrolSessionPage> createState() => _PatrolSessionPageState();
 }
 
+/// Coordinates patrol actions, GPS/network updates, and elapsed-time display.
+/// Cancels timers/subscriptions and removes the lifecycle observer on dispose.
 class _PatrolSessionPageState extends State<PatrolSessionPage>
     with WidgetsBindingObserver {
   static const _uuid = Uuid();
@@ -49,14 +68,21 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
   PatrolTrackingState _trackingState = const PatrolTrackingState(
     gpsStatus: PatrolGpsStatus(state: PatrolGpsState.acquiring),
   );
+
+  /// Tracking-state listener, cancelled when the page is disposed.
   StreamSubscription<PatrolTrackingState>? _trackingSubscription;
+
+  /// Connectivity listener, cancelled when the page is disposed.
   StreamSubscription<bool>? _networkSubscription;
+
+  /// Elapsed-time refresh timer, cancelled when the page is disposed.
   Timer? _clock;
   bool _busy = false;
   bool _reviewingCompletion = false;
   bool? _online;
   String? _error;
 
+  /// Subscribes to tracking/connectivity and resumes tracking when appropriate.
   @override
   void initState() {
     super.initState();
@@ -87,6 +113,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     }
   }
 
+  /// Cancels timers/subscriptions and removes this page's lifecycle observer.
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -96,6 +123,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     super.dispose();
   }
 
+  /// Restarts tracking after foregrounding an active patrol.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed &&
@@ -146,6 +174,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     }
   }
 
+  /// Retries sync while retaining the last locally saved status on failure.
   Future<void> _retryPendingSync() async {
     if (_busy || _patrol.status != PatrolStatus.completedPendingSync) return;
     setState(() {
@@ -176,6 +205,8 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     }
   }
 
+  /// Starts an assigned patrol, using a manual location only after confirmation
+  /// when reliable GPS cannot be acquired.
   Future<void> _startPatrol() async {
     if (_busy || _patrol.status != PatrolStatus.assigned) return;
     setState(() {
@@ -250,6 +281,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     ),
   );
 
+  /// Pauses tracking and records the patrol pause through the service.
   Future<void> _pause() async {
     await _runAction('Could not pause patrol', () async {
       await widget.trackingService.stop();
@@ -261,6 +293,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     });
   }
 
+  /// Resumes the paused patrol and its location tracking.
   Future<void> _resume() async {
     await _runAction('Could not resume patrol', () async {
       _patrol = await widget.service.resume(
@@ -273,6 +306,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     });
   }
 
+  /// Records an interruption and stops active tracking.
   Future<void> _interrupt() async {
     final reason = await _reasonDialog(
       title: 'Interrupt patrol',
@@ -290,6 +324,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     });
   }
 
+  /// Ends a patrol early with the ranger-provided reason.
   Future<void> _endEarly() async {
     final confirmed = await _confirmAction(
       title: 'End patrol early?',
@@ -332,6 +367,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     }
   }
 
+  /// Adds a map-selected manual waypoint to the active patrol.
   Future<void> _addWaypoint() async {
     final location = await _selectManualLocation();
     if (location == null || !mounted) return;
@@ -367,6 +403,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     }
   }
 
+  /// Collects an observation and records it against the patrol.
   Future<void> _addObservation() async {
     final enteredInput = await _recordInputDialog(
       title: 'Add patrol observation',
@@ -423,6 +460,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     }
   }
 
+  /// Captures or selects evidence and attaches it to the patrol.
   Future<void> _addPhoto(PatrolPhotoSource source) async {
     if (_patrol.photographs.length >= PatrolPhotoPicker.maxPhotos) {
       setState(() => _error = 'Up to three compressed photos can be attached.');
@@ -439,6 +477,7 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     });
   }
 
+  /// Opens the completion review before the ranger confirms patrol completion.
   Future<void> _reviewCompletion() async {
     if (_busy ||
         (_patrol.status != PatrolStatus.inProgress &&
@@ -514,8 +553,8 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
     String? initialCategory,
     List<String> categories = const [],
   }) async {
-    final controller = TextEditingController(text: initialValue);
     final formKey = GlobalKey<FormState>();
+    var description = initialValue ?? '';
     final value = await showDialog<_PatrolRecordInput>(
       context: context,
       barrierDismissible: false,
@@ -525,7 +564,8 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
         StateSetter? updateDialog;
 
         Future<void> cancel() async {
-          if (controller.text.trim().isNotEmpty ||
+          if (description.trim().isNotEmpty ||
+              description != (initialValue ?? '') ||
               category != initialCategory) {
             final discard = await _confirmAction(
               title: 'Discard unsaved changes?',
@@ -549,80 +589,78 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
                 if (!didPop) unawaited(cancel());
               },
               child: AlertDialog(
-              title: Text(title),
-              content: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (categories.isNotEmpty) ...[
-                      DropdownButtonFormField<String>(
-                        initialValue: category,
-                        decoration: const InputDecoration(
-                          labelText: 'Observation category',
-                          border: OutlineInputBorder(),
+                title: Text(title),
+                content: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (categories.isNotEmpty) ...[
+                        DropdownButtonFormField<String>(
+                          initialValue: category,
+                          decoration: const InputDecoration(
+                            labelText: 'Observation category',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: categories
+                              .map(
+                                (option) => DropdownMenuItem(
+                                  value: option,
+                                  child: Text(option),
+                                ),
+                              )
+                              .toList(),
+                          validator: (selected) => selected == null
+                              ? 'Choose an observation category.'
+                              : null,
+                          onChanged: (selected) =>
+                              setDialogState(() => category = selected),
                         ),
-                        items: categories
-                            .map(
-                              (option) => DropdownMenuItem(
-                                value: option,
-                                child: Text(option),
-                              ),
-                            )
-                            .toList(),
-                        validator: (selected) => selected == null
-                            ? 'Choose an observation category.'
+                        const SizedBox(height: 12),
+                      ],
+                      TextFormField(
+                        initialValue: initialValue,
+                        autofocus: true,
+                        maxLines: maxLines,
+                        maxLength: 500,
+                        decoration: InputDecoration(
+                          labelText: label,
+                          border: const OutlineInputBorder(),
+                        ),
+                        validator: (text) => text == null || text.trim().isEmpty
+                            ? 'This field is required.'
                             : null,
-                        onChanged: (selected) =>
-                            setDialogState(() => category = selected),
+                        onChanged: (text) => description = text,
                       ),
-                      const SizedBox(height: 12),
                     ],
-                    TextFormField(
-                      controller: controller,
-                      autofocus: true,
-                      maxLines: maxLines,
-                      maxLength: 500,
-                      decoration: InputDecoration(
-                        labelText: label,
-                        border: const OutlineInputBorder(),
-                      ),
-                      validator: (text) => text == null || text.trim().isEmpty
-                          ? 'This field is required.'
-                          : null,
-                    ),
-                  ],
+                  ),
                 ),
+                actions: [
+                  TextButton(onPressed: cancel, child: const Text('Cancel')),
+                  FilledButton(
+                    onPressed: () {
+                      if (!formKey.currentState!.validate()) return;
+                      formKey.currentState!.save();
+                      setDialogState(() => allowPop = true);
+                      final result = _PatrolRecordInput(
+                        description.trim(),
+                        category: category,
+                      );
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext, result);
+                        }
+                      });
+                    },
+                    child: const Text('Save'),
+                  ),
+                ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: cancel,
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    if (!formKey.currentState!.validate()) return;
-                    setDialogState(() => allowPop = true);
-                    final result = _PatrolRecordInput(
-                      controller.text.trim(),
-                      category: category,
-                    );
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (dialogContext.mounted) {
-                        Navigator.pop(dialogContext, result);
-                      }
-                    });
-                  },
-                  child: const Text('Save'),
-                ),
-              ],
-            ),
             );
           },
         );
       },
     );
-    controller.dispose();
     return value;
   }
 
@@ -783,6 +821,38 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
                     subtitle: Text(
                       _patrol.syncInfo.lastError ??
                           'Synchronization will need to be retried.',
+                    ),
+                  ),
+                ),
+              if (widget.onReportIncident != null &&
+                  (_patrol.status == PatrolStatus.inProgress ||
+                      _patrol.status == PatrolStatus.paused ||
+                      _patrol.status == PatrolStatus.interrupted))
+                Card(
+                  color: const Color(0xFFFFF1D6),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Formal incident on this patrol?',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Submit a separate incident report linked to this '
+                          'patrol. The patrol stays active.',
+                        ),
+                        const SizedBox(height: 10),
+                        FilledButton.icon(
+                          onPressed: _busy
+                              ? null
+                              : () => widget.onReportIncident!(_patrol),
+                          icon: const Icon(Icons.crisis_alert),
+                          label: const Text('Report incident'),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -1170,13 +1240,18 @@ class _PatrolSessionPageState extends State<PatrolSessionPage>
   };
 }
 
+/// Holds validated form values before they are recorded against a patrol.
 class _PatrolRecordInput {
   const _PatrolRecordInput(this.description, {this.category});
 
+  /// Observation description entered by the ranger.
   final String description;
+
+  /// Optional observation category.
   final String? category;
 }
 
+/// Shows one route metric with its label and value. SRP: presentation only.
 class _RouteMetric extends StatelessWidget {
   const _RouteMetric({
     required this.icon,
@@ -1206,6 +1281,7 @@ class _RouteMetric extends StatelessWidget {
   );
 }
 
+/// Labels a route-map symbol with its corresponding status colour.
 class _RouteLegendItem extends StatelessWidget {
   const _RouteLegendItem({required this.color, required this.label});
 

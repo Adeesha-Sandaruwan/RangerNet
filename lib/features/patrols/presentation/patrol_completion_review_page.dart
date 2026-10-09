@@ -15,6 +15,8 @@ import 'patrol_network_status_card.dart';
 import 'patrol_primary_action_button.dart';
 import 'patrol_route_map.dart';
 
+/// Lets a ranger confirm a patrol end location and review coverage before
+/// completion. DIP: uses injected patrol, sync, and network abstractions.
 class PatrolCompletionReviewPage extends StatefulWidget {
   const PatrolCompletionReviewPage({
     required this.patrol,
@@ -26,11 +28,22 @@ class PatrolCompletionReviewPage extends StatefulWidget {
     super.key,
   });
 
+  /// Current patrol awaiting completion confirmation.
   final Patrol patrol;
+
+  /// Best available end location offered for ranger confirmation.
   final PatrolLocation? suggestedEndLocation;
+
+  /// GPS state shown to the ranger during completion review.
   final PatrolGpsStatus gpsStatus;
+
+  /// Application boundary for coverage calculation and completion.
   final PatrolService service;
+
+  /// Boundary for synchronization after local completion.
   final PatrolSyncService syncService;
+
+  /// Supplies current and changing connectivity status.
   final PatrolNetworkStatusProvider networkStatus;
 
   @override
@@ -38,6 +51,8 @@ class PatrolCompletionReviewPage extends StatefulWidget {
       _PatrolCompletionReviewPageState();
 }
 
+/// Calculates coverage and coordinates completion/sync feedback; cancels the
+/// network subscription when the review page is disposed.
 class _PatrolCompletionReviewPageState
     extends State<PatrolCompletionReviewPage> {
   static const _metrics = PatrolMetricsService();
@@ -48,8 +63,11 @@ class _PatrolCompletionReviewPageState
   String? _coverageError;
   String? _message;
   bool? _online;
+
+  /// Connectivity listener, cancelled when the page is disposed.
   StreamSubscription<bool>? _networkSubscription;
 
+  /// Subscribes to connectivity and calculates route coverage for review.
   @override
   void initState() {
     super.initState();
@@ -60,6 +78,7 @@ class _PatrolCompletionReviewPageState
     _calculateCoverage();
   }
 
+  /// Cancels the connectivity listener owned by this page.
   @override
   void dispose() {
     _networkSubscription?.cancel();
@@ -72,6 +91,7 @@ class _PatrolCompletionReviewPageState
       _endLocation != null &&
       _coverageReady;
 
+  /// Requests route coverage for the current patrol and selected end location.
   Future<void> _calculateCoverage() async {
     if (!mounted) return;
     setState(() {
@@ -90,6 +110,7 @@ class _PatrolCompletionReviewPageState
     }
   }
 
+  /// Confirms completion and saves locally before attempting synchronization.
   Future<void> _confirmCompletion() async {
     if (_busy || !_canConfirm) return;
     final confirmed = await showDialog<bool>(
@@ -151,6 +172,7 @@ class _PatrolCompletionReviewPageState
     }
   }
 
+  /// Attempts synchronization while preserving the locally saved sync status.
   Future<void> _synchronize() async {
     if (mounted) setState(() => _busy = true);
     try {
@@ -177,6 +199,7 @@ class _PatrolCompletionReviewPageState
     }
   }
 
+  /// Lets the ranger replace the suggested end point with a manual map point.
   Future<void> _chooseEndLocation() async {
     final location = await Navigator.of(context).push<PatrolLocation>(
       MaterialPageRoute<PatrolLocation>(
@@ -219,7 +242,9 @@ class _PatrolCompletionReviewPageState
                         ? Icons.gps_fixed
                         : Icons.gps_not_fixed,
                   ),
-                  title: Text('GPS status: ${_gpsStatusLabel(widget.gpsStatus)}'),
+                  title: Text(
+                    'GPS status: ${_gpsStatusLabel(widget.gpsStatus)}',
+                  ),
                   subtitle: Text(
                     widget.gpsStatus.accuracyMeters == null
                         ? widget.gpsStatus.message ??
@@ -491,9 +516,9 @@ class _PatrolCompletionReviewPageState
       : '${location.latitude.toStringAsFixed(6)}, '
             '${location.longitude.toStringAsFixed(6)} '
             '(${location.source == PatrolLocationSource.gps ? 'GPS' : 'Manual'})';
-
 }
 
+/// Explains why coverage is still being calculated or cannot be shown.
 class _CoveragePendingMessage extends StatelessWidget {
   const _CoveragePendingMessage();
 

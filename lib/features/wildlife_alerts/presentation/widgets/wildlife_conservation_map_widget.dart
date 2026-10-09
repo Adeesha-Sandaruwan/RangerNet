@@ -90,8 +90,11 @@ class _WildlifeConservationMapWidgetState
     super.initState();
     _transformController = TransformationController();
     _currentZoom = widget.initialZoom;
-    _transformController.value =
-        Matrix4.diagonal3Values(_currentZoom, _currentZoom, 1.0);
+    _transformController.value = Matrix4.diagonal3Values(
+      _currentZoom,
+      _currentZoom,
+      1.0,
+    );
 
     _pulseController = AnimationController(
       vsync: this,
@@ -109,16 +112,22 @@ class _WildlifeConservationMapWidgetState
   void _zoomIn() {
     setState(() {
       _currentZoom = (_currentZoom + 0.3).clamp(0.8, 3.5);
-      _transformController.value =
-          Matrix4.diagonal3Values(_currentZoom, _currentZoom, 1.0);
+      _transformController.value = Matrix4.diagonal3Values(
+        _currentZoom,
+        _currentZoom,
+        1.0,
+      );
     });
   }
 
   void _zoomOut() {
     setState(() {
       _currentZoom = (_currentZoom - 0.3).clamp(0.8, 3.5);
-      _transformController.value =
-          Matrix4.diagonal3Values(_currentZoom, _currentZoom, 1.0);
+      _transformController.value = Matrix4.diagonal3Values(
+        _currentZoom,
+        _currentZoom,
+        1.0,
+      );
     });
   }
 
@@ -186,11 +195,16 @@ class _WildlifeConservationMapWidgetState
               top: 12,
               left: 12,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.75),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+                  border: Border.all(
+                    color: Colors.green.withValues(alpha: 0.4),
+                  ),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
@@ -216,7 +230,10 @@ class _WildlifeConservationMapWidgetState
               bottom: 12,
               left: 12,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(8),
@@ -258,7 +275,11 @@ class _WildlifeConservationMapWidgetState
                     const SizedBox(height: 6),
                     _buildControlButton(Icons.remove, _zoomOut, 'Zoom out'),
                     const SizedBox(height: 6),
-                    _buildControlButton(Icons.my_location, _resetView, 'Recenter'),
+                    _buildControlButton(
+                      Icons.my_location,
+                      _resetView,
+                      'Recenter',
+                    ),
                   ],
                 ),
               ),
@@ -309,19 +330,12 @@ class _WildlifeConservationMapWidgetState
             ),
           )
         else if (isLine)
-          Container(
-            width: 14,
-            height: 3,
-            color: color,
-          )
+          Container(width: 14, height: 3, color: color)
         else
           Container(
             width: 10,
             height: 10,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
         const SizedBox(width: 6),
         Text(
@@ -530,7 +544,9 @@ class _ConservationMapPainter extends CustomPainter {
         // Pulsing radar ring
         final pulseRadius = 14 + (pulseValue * 8);
         final pulsePaint = Paint()
-          ..color = const Color(0xFF40C4FF).withValues(alpha: (1.0 - pulseValue) * 0.5)
+          ..color = const Color(
+            0xFF40C4FF,
+          ).withValues(alpha: (1.0 - pulseValue) * 0.5)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5;
         canvas.drawCircle(pos, pulseRadius, pulsePaint);
@@ -588,7 +604,11 @@ class _ConservationMapPainter extends CustomPainter {
               ? Colors.redAccent
               : const Color(0xFF00E676)
           ..style = PaintingStyle.fill;
-        canvas.drawCircle(pt, i == breadcrumbsToDraw.length - 1 ? 5 : 3.5, dotPaint);
+        canvas.drawCircle(
+          pt,
+          i == breadcrumbsToDraw.length - 1 ? 5 : 3.5,
+          dotPaint,
+        );
       }
       canvas.drawPath(path, linePaint);
     }
@@ -597,10 +617,10 @@ class _ConservationMapPainter extends CustomPainter {
   void _drawAnimals(Canvas canvas, Size size) {
     for (final animal in animals) {
       // Find corresponding collar
-      final collar = sensors.whereType<GPSCollar>().cast<GPSCollar?>().firstWhere(
-            (c) => c?.id == animal.collarId,
-            orElse: () => null,
-          );
+      final collar = sensors
+          .whereType<GPSCollar>()
+          .cast<GPSCollar?>()
+          .firstWhere((c) => c?.id == animal.collarId, orElse: () => null);
 
       if (collar != null) {
         final pos = projection.project(
@@ -608,11 +628,14 @@ class _ConservationMapPainter extends CustomPainter {
           collar.currentLocation.longitude,
         );
 
-        final isSelected = selectedAnimalId == animal.id ||
+        final isSelected =
+            selectedAnimalId == animal.id ||
             selectedAlert?.targetId == animal.id;
 
         // Animated pulse ring around animal
-        final ringRadius = isSelected ? 22 + (pulseValue * 10) : 16 + (pulseValue * 6);
+        final ringRadius = isSelected
+            ? 22 + (pulseValue * 10)
+            : 16 + (pulseValue * 6);
         final ringPaint = Paint()
           ..color = (isSelected ? Colors.amberAccent : Colors.greenAccent)
               .withValues(alpha: (1.0 - pulseValue) * 0.6)
@@ -622,7 +645,9 @@ class _ConservationMapPainter extends CustomPainter {
 
         // Core marker avatar
         final avatarPaint = Paint()
-          ..color = isSelected ? const Color(0xFFFFB300) : const Color(0xFF2E7D32)
+          ..color = isSelected
+              ? const Color(0xFFFFB300)
+              : const Color(0xFF2E7D32)
           ..style = PaintingStyle.fill;
         canvas.drawCircle(pos, 10, avatarPaint);
 
@@ -644,15 +669,15 @@ class _ConservationMapPainter extends CustomPainter {
         }
 
         final emojiPainter = TextPainter(
-          text: TextSpan(
-            text: icon,
-            style: const TextStyle(fontSize: 11),
-          ),
+          text: TextSpan(text: icon, style: const TextStyle(fontSize: 11)),
           textDirection: TextDirection.ltr,
         )..layout();
         emojiPainter.paint(
           canvas,
-          Offset(pos.dx - (emojiPainter.width / 2), pos.dy - (emojiPainter.height / 2)),
+          Offset(
+            pos.dx - (emojiPainter.width / 2),
+            pos.dy - (emojiPainter.height / 2),
+          ),
         );
 
         // Label above animal

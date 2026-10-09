@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../domain/patrol_records.dart';
 
+/// Summarizes assigned-route coverage with a progress bar and status colours.
+/// SRP: renders the supplied coverage result without owning its calculation.
 class PatrolCoverageSummary extends StatelessWidget {
   const PatrolCoverageSummary({required this.coverage, super.key});
 
+  /// Coverage calculation to summarize, including covered route sections.
   final PatrolCoverage coverage;
 
   @override

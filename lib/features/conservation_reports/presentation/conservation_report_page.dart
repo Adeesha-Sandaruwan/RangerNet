@@ -140,166 +140,166 @@ class _ConservationReportPageState extends State<ConservationReportPage> {
           child: _dataLoading
               ? const Center(child: CircularProgressIndicator())
               : _dataError != null
-                  ? _errorView()
-                  : _reportFlow(),
+              ? _errorView()
+              : _reportFlow(),
         ),
       ),
     );
   }
 
   Widget _errorView() => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.cloud_off_outlined, size: 48),
-              const SizedBox(height: 12),
-              Text(
-                _dataError!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.red),
-              ),
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: _loadData,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.cloud_off_outlined, size: 48),
+          const SizedBox(height: 12),
+          Text(
+            _dataError!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.red),
           ),
-        ),
-      );
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: _loadData,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Retry'),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Widget _reportFlow() => ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Header
-          Text(
-            'Conservation data analysis',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Manager: ${widget.manager.displayName} · '
-            '${_allIncidents.length} incidents available',
-          ),
-          const SizedBox(height: 16),
+    padding: const EdgeInsets.all(16),
+    children: [
+      // Header
+      Text(
+        'Conservation data analysis',
+        style: Theme.of(context).textTheme.headlineSmall,
+      ),
+      const SizedBox(height: 4),
+      Text(
+        'Manager: ${widget.manager.displayName} · '
+        '${_allIncidents.length} incidents available',
+      ),
+      const SizedBox(height: 16),
 
-          // Step 1: Report type selection
-          Text(
-            'Select report type',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          ReportTypeSelector(
-            selected: _selectedType,
-            onSelected: (type) {
-              setState(() {
-                _selectedType = type;
-                _result = null;
-                _reportError = null;
-              });
-            },
-          ),
-          const SizedBox(height: 16),
+      // Step 1: Report type selection
+      Text(
+        'Select report type',
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
+      const SizedBox(height: 8),
+      ReportTypeSelector(
+        selected: _selectedType,
+        onSelected: (type) {
+          setState(() {
+            _selectedType = type;
+            _result = null;
+            _reportError = null;
+          });
+        },
+      ),
+      const SizedBox(height: 16),
 
-          // Step 2: Filters
-          ReportFilterPanel(
-            filter: _filter,
-            onFilterChanged: (newFilter) {
-              setState(() {
-                _filter = newFilter;
-                _result = null;
-                _reportError = null;
-              });
-            },
-            parks: _parks,
-            rangers: _rangers,
-          ),
-          const SizedBox(height: 16),
+      // Step 2: Filters
+      ReportFilterPanel(
+        filter: _filter,
+        onFilterChanged: (newFilter) {
+          setState(() {
+            _filter = newFilter;
+            _result = null;
+            _reportError = null;
+          });
+        },
+        parks: _parks,
+        rangers: _rangers,
+      ),
+      const SizedBox(height: 16),
 
-          // Generate button
-          FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF17613F),
-              minimumSize: const Size.fromHeight(48),
-            ),
-            onPressed: _generating || _selectedType == null
-                ? null
-                : _generateReport,
-            icon: _generating
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.analytics_outlined),
-            label: Text(
-              _selectedType == null
-                  ? 'Select a report type above'
-                  : 'Generate ${_selectedType!.title}',
-            ),
-          ),
-
-          // Error
-          if (_reportError != null) ...[
-            const SizedBox(height: 12),
-            Card(
-              color: const Color(0xFFFFE9E5),
-              child: ListTile(
-                leading: const Icon(Icons.error_outline),
-                title: const Text('Report generation error'),
-                subtitle: Text(_reportError!),
-              ),
-            ),
-          ],
-
-          // Results
-          if (_result != null) ...[
-            const SizedBox(height: 20),
-            const Divider(),
-            const SizedBox(height: 12),
-
-            // Report title
-            Text(
-              _result!.displayTitle,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            if (_result!.isEmpty) ...[
-              const SizedBox(height: 12),
-              const Card(
-                child: ListTile(
-                  leading: Icon(Icons.info_outline),
-                  title: Text('No data matches the current filters'),
-                  subtitle: Text(
-                    'Try broadening the date range or removing filters to include more incidents.',
-                  ),
+      // Generate button
+      FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFF17613F),
+          minimumSize: const Size.fromHeight(48),
+        ),
+        onPressed: _generating || _selectedType == null
+            ? null
+            : _generateReport,
+        icon: _generating
+            ? const SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
                 ),
+              )
+            : const Icon(Icons.analytics_outlined),
+        label: Text(
+          _selectedType == null
+              ? 'Select a report type above'
+              : 'Generate ${_selectedType!.title}',
+        ),
+      ),
+
+      // Error
+      if (_reportError != null) ...[
+        const SizedBox(height: 12),
+        Card(
+          color: const Color(0xFFFFE9E5),
+          child: ListTile(
+            leading: const Icon(Icons.error_outline),
+            title: const Text('Report generation error'),
+            subtitle: Text(_reportError!),
+          ),
+        ),
+      ],
+
+      // Results
+      if (_result != null) ...[
+        const SizedBox(height: 20),
+        const Divider(),
+        const SizedBox(height: 12),
+
+        // Report title
+        Text(
+          _result!.displayTitle,
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        if (_result!.isEmpty) ...[
+          const SizedBox(height: 12),
+          const Card(
+            child: ListTile(
+              leading: Icon(Icons.info_outline),
+              title: Text('No data matches the current filters'),
+              subtitle: Text(
+                'Try broadening the date range or removing filters to include more incidents.',
               ),
-            ] else ...[
-              const SizedBox(height: 12),
+            ),
+          ),
+        ] else ...[
+          const SizedBox(height: 12),
 
-              // Summary KPIs
-              ReportSummaryCards(result: _result!),
-              const SizedBox(height: 12),
+          // Summary KPIs
+          ReportSummaryCards(result: _result!),
+          const SizedBox(height: 12),
 
-              // Charts
-              ReportCharts(result: _result!),
-              const SizedBox(height: 12),
+          // Charts
+          ReportCharts(result: _result!),
+          const SizedBox(height: 12),
 
-              // Detail table
-              ReportDataTable(result: _result!),
-              const SizedBox(height: 12),
+          // Detail table
+          ReportDataTable(result: _result!),
+          const SizedBox(height: 12),
 
-              // Export
-              ReportExportBar(result: _result!),
-            ],
-          ],
-
-          const SizedBox(height: 32),
+          // Export
+          ReportExportBar(result: _result!),
         ],
-      );
+      ],
+
+      const SizedBox(height: 32),
+    ],
+  );
 }

@@ -56,7 +56,8 @@ class WildlifeSensorSimulator {
 
     return SimulationScenarioResult(
       scenarioName: 'Safe Range Movement',
-      description: 'Simulated elephant feeding safely within sanctuary core sector.',
+      description:
+          'Simulated elephant feeding safely within sanctuary core sector.',
       telemetryResults: [result],
     );
   }
@@ -77,7 +78,8 @@ class WildlifeSensorSimulator {
 
     return SimulationScenarioResult(
       scenarioName: 'Exact Geofence Boundary Test',
-      description: 'Collar positioned exactly on polygon perimeter boundary segment.',
+      description:
+          'Collar positioned exactly on polygon perimeter boundary segment.',
       telemetryResults: [result],
     );
   }
@@ -144,7 +146,8 @@ class WildlifeSensorSimulator {
 
     return SimulationScenarioResult(
       scenarioName: 'Camera Trap: Poaching Infiltration',
-      description: 'Camera Trap detected unauthorized armed intruder near river trail.',
+      description:
+          'Camera Trap detected unauthorized armed intruder near river trail.',
       telemetryResults: [result],
     );
   }
@@ -165,7 +168,8 @@ class WildlifeSensorSimulator {
 
     return SimulationScenarioResult(
       scenarioName: 'Camera Trap: Distressed Wildlife',
-      description: 'Camera Trap tagged distressed leopard requiring field intervention.',
+      description:
+          'Camera Trap tagged distressed leopard requiring field intervention.',
       telemetryResults: [result],
     );
   }
@@ -185,7 +189,8 @@ class WildlifeSensorSimulator {
 
     return SimulationScenarioResult(
       scenarioName: 'Critical Battery Warning',
-      description: 'Collar battery dropped to 8.5%, triggering hardware maintenance alert.',
+      description:
+          'Collar battery dropped to 8.5%, triggering hardware maintenance alert.',
       telemetryResults: [result],
     );
   }

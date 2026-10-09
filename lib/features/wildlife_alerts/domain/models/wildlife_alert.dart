@@ -171,9 +171,7 @@ class WildlifeAlert {
     riskLevel: AlertRiskLevel.values.byName(
       json['riskLevel'] as String? ?? 'medium',
     ),
-    status: AlertStatus.values.byName(
-      json['status'] as String? ?? 'active',
-    ),
+    status: AlertStatus.values.byName(json['status'] as String? ?? 'active'),
     triggerType: AlertTriggerType.values.byName(
       json['triggerType'] as String? ?? 'geofenceBreach',
     ),

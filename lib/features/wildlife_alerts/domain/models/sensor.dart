@@ -110,7 +110,8 @@ class CameraTrap extends Sensor {
   final GeoLocation cameraLocation;
   final DateTime triggerTimestamp;
   final String? capturedImageUrl;
-  final String? simulatedDetectionTag; // e.g. "HUMAN_TRESPASS", "POACHER_WEAPON", "DISTRESSED_ANIMAL", "NORMAL_PASSAGE"
+  final String?
+  simulatedDetectionTag; // e.g. "HUMAN_TRESPASS", "POACHER_WEAPON", "DISTRESSED_ANIMAL", "NORMAL_PASSAGE"
   final String? targetAnimalId;
 
   CameraTrap copyWith({
