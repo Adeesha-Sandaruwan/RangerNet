@@ -16,9 +16,12 @@ import '../../patrols/data/local_patrol_repository.dart';
 import '../../patrols/presentation/patrol_home_page.dart';
 
 import '../../wildlife_alerts/data/repositories/wildlife_alert_repository_impl.dart';
+import '../../wildlife_alerts/domain/models/wildlife_alert.dart';
 import '../../wildlife_alerts/presentation/controllers/wildlife_alert_controller.dart';
 import '../../wildlife_alerts/presentation/pages/wildlife_alert_dashboard_page.dart';
+import '../../wildlife_alerts/presentation/pages/wildlife_alert_detail_page.dart';
 import '../../wildlife_alerts/presentation/pages/wildlife_live_tracking_map_page.dart';
+import '../../wildlife_alerts/presentation/widgets/alert_badges.dart';
 
 /// Navigation container for RangerNet.
 /// Hosts UC02 Incident Reporting and UC03 Wildlife Sensor Alerts.
@@ -151,8 +154,8 @@ class _RangerNetShellState extends State<RangerNetShell> {
   }
 }
 
-/// Simple landing page with a shortcut to incident reporting.
-class _RangerHomePage extends StatelessWidget {
+/// Simple landing page with shortcuts to incident reporting and wildlife alerts.
+class _RangerHomePage extends StatefulWidget {
   const _RangerHomePage({
     required this.ranger,
     required this.controller,
@@ -168,9 +171,458 @@ class _RangerHomePage extends StatelessWidget {
   final VoidCallback openLiveMap;
 
   @override
+  State<_RangerHomePage> createState() => _RangerHomePageState();
+}
+
+class _RangerHomePageState extends State<_RangerHomePage> {
+  final Set<String> _dismissedAlertIds = {};
+
+  void _openAlertDetail(String alertId) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WildlifeAlertDetailPage(
+          alertId: alertId,
+          controller: widget.controller,
+          rangerId: widget.ranger.uid,
+          rangerName: widget.ranger.displayName ?? widget.ranger.email,
+        ),
+      ),
+    );
+  }
+
+  void _showNotificationsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (bottomSheetContext) {
+        return ListenableBuilder(
+          listenable: widget.controller,
+          builder: (context, _) {
+            final activeAlerts = widget.controller.alerts
+                .where((a) => a.status == AlertStatus.active)
+                .toList();
+
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.85,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 10, bottom: 6),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: activeAlerts.isNotEmpty
+                                ? const Color(0xFFEF4444).withValues(alpha: 0.12)
+                                : const Color(0xFF17613F).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            activeAlerts.isNotEmpty
+                                ? Icons.notifications_active
+                                : Icons.notifications_none,
+                            color: activeAlerts.isNotEmpty
+                                ? const Color(0xFFDC2626)
+                                : const Color(0xFF17613F),
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Alert Notifications',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF14241C),
+                                ),
+                              ),
+                              Text(
+                                activeAlerts.isNotEmpty
+                                    ? '${activeAlerts.length} active sensor/telemetry alert${activeAlerts.length > 1 ? "s" : ""}'
+                                    : 'All wildlife sectors secure & normal',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.of(bottomSheetContext).pop(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Flexible(
+                    child: activeAlerts.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.all(40),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.check_circle_outline,
+                                  size: 48,
+                                  color: Colors.green.shade600,
+                                ),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'No Active Notifications',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'When simulated movement breaches a geofence or camera traps detect wildlife hazards, notifications will appear here.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                OutlinedButton.icon(
+                                  onPressed: () {
+                                    Navigator.of(bottomSheetContext).pop();
+                                    widget.openLiveMap();
+                                  },
+                                  icon: const Icon(Icons.play_circle_outline),
+                                  label: const Text('Open Map & Simulate Movement'),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            shrinkWrap: true,
+                            itemCount: activeAlerts.length,
+                            separatorBuilder: (_, index) => const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              final alert = activeAlerts[index];
+                              return _buildNotificationCard(
+                                bottomSheetContext,
+                                alert,
+                              );
+                            },
+                          ),
+                  ),
+                  const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            onPressed: () {
+                              Navigator.of(bottomSheetContext).pop();
+                              widget.openLiveMap();
+                            },
+                            icon: const Icon(Icons.map_outlined, size: 16),
+                            label: const Text(
+                              'Live Map Tracker',
+                              style: TextStyle(fontSize: 13),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF17613F),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            onPressed: () {
+                              Navigator.of(bottomSheetContext).pop();
+                              widget.openAlerts();
+                            },
+                            icon: const Icon(Icons.radar, size: 16),
+                            label: const Text(
+                              'All Alerts',
+                              style: TextStyle(fontSize: 13),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildNotificationCard(
+    BuildContext bottomSheetContext,
+    WildlifeAlert alert,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBFB),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: alert.riskLevel == AlertRiskLevel.high
+              ? const Color(0xFFFCA5A5)
+              : Colors.grey.shade300,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              RiskLevelBadge(riskLevel: alert.riskLevel),
+              const SizedBox(width: 8),
+              if (alert.targetName != null)
+                Text(
+                  alert.targetName!,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Color(0xFF14241C),
+                  ),
+                ),
+              const Spacer(),
+              Text(
+                '${alert.triggeredAt.hour.toString().padLeft(2, '0')}:${alert.triggeredAt.minute.toString().padLeft(2, '0')}',
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            alert.title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            alert.description,
+            style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
+                onPressed: () async {
+                  await widget.controller.acknowledgeAlert(
+                    alertId: alert.alertId,
+                    rangerId: widget.ranger.uid,
+                  );
+                },
+                child: const Text('Acknowledge'),
+              ),
+              const SizedBox(width: 6),
+              FilledButton.tonal(
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  backgroundColor: const Color(0xFF17613F),
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  Navigator.of(bottomSheetContext).pop();
+                  _openAlertDetail(alert.alertId);
+                },
+                child: const Text('View Alert', style: TextStyle(fontSize: 12)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAlertNotificationBanner(
+    BuildContext context,
+    WildlifeAlert alert,
+    int totalCount,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFF87171), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFEF4444).withValues(alpha: 0.15),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.crisis_alert,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Row(
+                  children: [
+                    const Text(
+                      'BREACH NOTIFICATION',
+                      style: TextStyle(
+                        color: Color(0xFFB91C1C),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    RiskLevelBadge(riskLevel: alert.riskLevel),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 18, color: Colors.black54),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                tooltip: 'Dismiss banner',
+                onPressed: () {
+                  setState(() {
+                    _dismissedAlertIds.add(alert.alertId);
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            alert.title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF7F1D1D),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            alert.description,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade800,
+              height: 1.3,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFDC2626),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  minimumSize: const Size(0, 34),
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                onPressed: () => _openAlertDetail(alert.alertId),
+                icon: const Icon(Icons.remove_red_eye_outlined, size: 15),
+                label: const Text('View Alert'),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF991B1B),
+                  side: const BorderSide(color: Color(0xFFFCA5A5)),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  minimumSize: const Size(0, 34),
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                onPressed: widget.openLiveMap,
+                icon: const Icon(Icons.map_outlined, size: 15),
+                label: const Text('Track On Map'),
+              ),
+              const Spacer(),
+              if (totalCount > 1)
+                TextButton(
+                  onPressed: () => _showNotificationsSheet(context),
+                  child: Text(
+                    '+${totalCount - 1} more',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFDC2626),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final displayName =
-        ranger.displayName ?? ranger.email?.split('@').first ?? 'Ranger';
+    final displayName = widget.ranger.displayName ??
+        widget.ranger.email?.split('@').first ??
+        'Ranger';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F6F3),
@@ -199,6 +651,45 @@ class _RangerHomePage extends StatelessWidget {
           child: Container(color: Colors.grey.shade200, height: 1),
         ),
         actions: [
+          // Notification button with active alert badge
+          ListenableBuilder(
+            listenable: widget.controller,
+            builder: (context, _) {
+              final activeAlerts = widget.controller.alerts
+                  .where((a) => a.status == AlertStatus.active)
+                  .toList();
+              final count = activeAlerts.length;
+
+              return Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: IconButton(
+                  tooltip: count > 0 ? '$count Alert Notifications' : 'Notifications',
+                  onPressed: () => _showNotificationsSheet(context),
+                  icon: Badge(
+                    isLabelVisible: count > 0,
+                    label: Text(
+                      '$count',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    backgroundColor: const Color(0xFFEF4444),
+                    child: Icon(
+                      count > 0
+                          ? Icons.notifications_active
+                          : Icons.notifications_none_outlined,
+                      color: count > 0
+                          ? const Color(0xFFDC2626)
+                          : const Color(0xFF14241C),
+                      size: 22,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
           Container(
             margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -247,7 +738,30 @@ class _RangerHomePage extends StatelessWidget {
               children: [
                 // Ranger Greeting Header
                 _buildHeader(context, displayName),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
+
+                // Live Notification Banner (When simulated movement or telemetry triggers an alert)
+                ListenableBuilder(
+                  listenable: widget.controller,
+                  builder: (context, _) {
+                    final activeAlerts = widget.controller.alerts
+                        .where((a) =>
+                            a.status == AlertStatus.active &&
+                            !_dismissedAlertIds.contains(a.alertId))
+                        .toList();
+                    if (activeAlerts.isEmpty) return const SizedBox.shrink();
+
+                    final latestAlert = activeAlerts.first;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildAlertNotificationBanner(
+                        context,
+                        latestAlert,
+                        activeAlerts.length,
+                      ),
+                    );
+                  },
+                ),
 
                 // FEATURED UC03 COMMAND CARD
                 _buildWildlifeAlertsCard(context),
@@ -340,7 +854,7 @@ class _RangerHomePage extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
-          onTap: openAlerts,
+          onTap: widget.openAlerts,
           child: Padding(
             padding: const EdgeInsets.all(22),
             child: Column(
@@ -387,9 +901,9 @@ class _RangerHomePage extends StatelessWidget {
                       ),
                     ),
                     ListenableBuilder(
-                      listenable: controller,
+                      listenable: widget.controller,
                       builder: (context, _) {
-                        final active = controller.activeAlertsCount;
+                        final active = widget.controller.activeAlertsCount;
                         return Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
@@ -531,7 +1045,7 @@ class _RangerHomePage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        onPressed: openAlerts,
+                        onPressed: widget.openAlerts,
                         icon: const Icon(Icons.dashboard_outlined, size: 18),
                         label: const Text(
                           'Open Telemetry Center',
@@ -557,7 +1071,7 @@ class _RangerHomePage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      onPressed: openLiveMap,
+                      onPressed: widget.openLiveMap,
                       icon: const Icon(
                         Icons.map_outlined,
                         size: 18,
@@ -596,7 +1110,7 @@ class _RangerHomePage extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: openIncidents,
+          onTap: widget.openIncidents,
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
