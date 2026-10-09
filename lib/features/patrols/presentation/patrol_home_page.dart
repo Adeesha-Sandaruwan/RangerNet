@@ -259,12 +259,48 @@ class _PatrolHomePageState extends State<PatrolHomePage>
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text(
-                'Assigned patrols',
-                style: Theme.of(context).textTheme.headlineSmall,
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF17613F), Color(0xFF2E8B5E)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Assigned patrols',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.badge_outlined,
+                          size: 18,
+                          color: Colors.white70,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Ranger: ${widget.rangerName}',
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 6),
-              Text('Ranger: ${widget.rangerName}'),
               PatrolNetworkStatusCard(
                 online: _online,
                 onRefresh: _refreshNetworkStatus,
@@ -406,7 +442,12 @@ class _PatrolHomePageState extends State<PatrolHomePage>
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => _open(patrol),
-        child: Padding(
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(color: _statusColor(patrol.status), width: 5),
+            ),
+          ),
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -544,6 +585,17 @@ class _PatrolHomePageState extends State<PatrolHomePage>
       ),
     );
   }
+
+  Color _statusColor(PatrolStatus status) => switch (status) {
+    PatrolStatus.assigned => const Color(0xFF2F6FDE),
+    PatrolStatus.inProgress => const Color(0xFF17613F),
+    PatrolStatus.paused => const Color(0xFFC77700),
+    PatrolStatus.interrupted => const Color(0xFFB42318),
+    PatrolStatus.completedPendingSync => const Color(0xFF7A5AF8),
+    PatrolStatus.completedSynced => const Color(0xFF536459),
+    PatrolStatus.incomplete => const Color(0xFFC77700),
+    PatrolStatus.aborted => const Color(0xFF8A8F8C),
+  };
 
   String _statusLabel(PatrolStatus status) => switch (status) {
     PatrolStatus.assigned => 'Assigned',

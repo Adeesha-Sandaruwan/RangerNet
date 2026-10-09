@@ -104,14 +104,46 @@ class _PatrolAssignmentManagementPageState
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
             children: [
-              Text(
-                'Assignments for rangers',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Choose an active ranger and define the park, zone, and route. '
-                'The patrol will appear in that ranger’s Patrols list.',
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF17613F), Color(0xFF2E8B5E)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.assignment_ind_outlined,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Assignments for rangers',
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Choose an active ranger and define the park, zone, and route. '
+                      'The patrol will appear in that ranger’s Patrols list.',
+                      style: TextStyle(color: Colors.white70, height: 1.4),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -208,7 +240,10 @@ class _PatrolAssignmentManagementPageState
                                 ),
                               ),
                               const Chip(
-                                avatar: Icon(Icons.check_circle_outline, size: 16),
+                                avatar: Icon(
+                                  Icons.check_circle_outline,
+                                  size: 16,
+                                ),
                                 label: Text('Assigned'),
                                 visualDensity: VisualDensity.compact,
                               ),
@@ -216,10 +251,7 @@ class _PatrolAssignmentManagementPageState
                           ),
                           if (assignment.plannedRoute case final route?) ...[
                             const SizedBox(height: 12),
-                            PatrolRouteMap(
-                              plannedRoute: route,
-                              height: 190,
-                            ),
+                            PatrolRouteMap(plannedRoute: route, height: 190),
                             const SizedBox(height: 8),
                             Text(
                               '${route.start.name} → ${route.end.name}',
@@ -240,9 +272,7 @@ class _PatrolAssignmentManagementPageState
                               Expanded(
                                 child: Text(
                                   assignment.rangerName,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.bodyMedium,
+                                  style: Theme.of(context).textTheme.bodyMedium,
                                 ),
                               ),
                               Text(
@@ -265,7 +295,6 @@ class _PatrolAssignmentManagementPageState
       ),
     ),
   );
-
 }
 
 class _CreatePatrolAssignmentPage extends StatefulWidget {
@@ -388,16 +417,12 @@ class _CreatePatrolAssignmentPageState
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text(
-                '1. Select ranger',
-                style: Theme.of(context).textTheme.titleLarge,
+              const _StepHeader(
+                step: 1,
+                title: 'Select ranger',
+                subtitle: 'Choose who will receive this patrol assignment.',
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Choose who will receive this patrol assignment.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               if (_loadingRangers)
                 const LinearProgressIndicator()
               else if (_rangers.isEmpty)
@@ -443,16 +468,13 @@ class _CreatePatrolAssignmentPageState
                       ranger == null ? 'Select a ranger.' : null,
                 ),
               const SizedBox(height: 24),
-              Text(
-                '2. Define patrol area',
-                style: Theme.of(context).textTheme.titleLarge,
+              const _StepHeader(
+                step: 2,
+                title: 'Define patrol area',
+                subtitle:
+                    'Use names that help the ranger identify the place and route.',
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Use names that help the ranger identify the place and route.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               _requiredField(_parkName, 'Park name'),
               const SizedBox(height: 12),
               _optionalField(_parkId, 'Park ID (optional)'),
@@ -465,17 +487,15 @@ class _CreatePatrolAssignmentPageState
               const SizedBox(height: 12),
               _optionalField(_routeId, 'Route ID (optional)'),
               const SizedBox(height: 24),
-              Text(
-                '3. Build route on map',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Choose the start and destination by tapping the map. Add '
-                'optional stops in the order the ranger should visit them. '
-                'The preview connects selected locations with straight map '
-                'segments. Confirm the path follows accessible tracks; '
-                'coverage sections are generated from those map selections.',
+              const _StepHeader(
+                step: 3,
+                title: 'Build route on map',
+                subtitle:
+                    'Choose the start and destination by tapping the map. Add '
+                    'optional stops in the order the ranger should visit them. '
+                    'The preview connects selected locations with straight map '
+                    'segments. Confirm the path follows accessible tracks; '
+                    'coverage sections are generated from those map selections.',
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -561,6 +581,45 @@ class _CreatePatrolAssignmentPageState
       ),
     );
     if (route != null && mounted) setState(() => _plannedRoute = route);
+  }
+}
+
+class _StepHeader extends StatelessWidget {
+  const _StepHeader({
+    required this.step,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final int step;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CircleAvatar(
+          radius: 15,
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: theme.colorScheme.onPrimary,
+          child: Text('$step', style: const TextStyle(fontSize: 13)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: theme.textTheme.titleMedium),
+              const SizedBox(height: 2),
+              Text(subtitle, style: theme.textTheme.bodySmall),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 
